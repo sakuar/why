@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>句子转Emoji</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f0f4ff;
+    --card: #ffffff;
+    --primary: #6c63ff;
+    --primary-light: #a89cff;
+    --primary-dark: #4b44cc;
+    --accent: #ff6b9d;
+    --text: #2d2d3a;
+    --text-muted: #8888aa;
+    --border: #e0e0f0;
+    --shadow: 0 4px 24px rgba(108,99,255,0.10);
+    --radius: 16px;
+  }
+
+  body {
+    font-family: "PingFang SC","Microsoft YaHei",sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px 16px 60px;
+  }
+
+  .back-link {
+    display: inline-block;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+    margin-bottom: 18px;
+    transition: color .2s;
+  }
+  .back-link:hover { color: var(--primary); }
+
+  .hero {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .hero h1 {
+    font-size: clamp(22px,5vw,34px);
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+  .hero p {
+    margin-top: 6px;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    max-width: 680px;
+    margin: 0 auto 20px;
+  }
+
+  .input-area {
+    position: relative;
+  }
+  textarea {
+    width: 100%;
+    min-height: 110px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 16px;
+    font-family: inherit;
+    color: var(--text);
+    resize: vertical;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    line-height: 1.6;
+  }
+  textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(108,99,255,.13);
+  }
+  textarea::placeholder { color: #c0c0d8; }
+
+  .char-count {
+    position: absolute;
+    bottom: 10px;
+    right: 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+  .char-count.warn { color: var(--accent); }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    transition: transform .15s, box-shadow .15s, opacity .15s;
+  }
+  button:active { transform: scale(.96); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+    color: #fff;
+    padding: 12px 28px;
+    box-shadow: 0 4px 14px rgba(108,99,255,.35);
+    flex: 1;
+    min-width: 120px;
+  }
+  .btn-primary:hover { box-shadow: 0 6px 20px rgba(108,99,255,.45); }
+
+  .btn-secondary {
+    background: var(--bg);
+    color: var(--text-muted);
+    padding: 12px 18px;
+    border: 2px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--primary-light); color: var(--primary); }
+
+  .btn-copy {
+    background: linear-gradient(135deg, #ff6b9d, #ff9a5c);
+    color: #fff;
+    padding: 12px 22px;
+    box-shadow: 0 4px 14px rgba(255,107,157,.30);
+    display: none;
+  }
+  .btn-copy.visible { display: block; }
+  .btn-copy:hover { box-shadow: 0 6px 20px rgba(255,107,157,.42); }
+  .btn-copy.copied { background: linear-gradient(135deg,#22c55e,#16a34a); }
+
+  .result-section {
+    max-width: 680px;
+    margin: 0 auto;
+    display: none;
+    animation: fadeUp .4s ease both;
+  }
+  .result-section.visible { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(14px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  .result-box {
+    background: linear-gradient(135deg,#f8f6ff,#fff0f8);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 20px;
+    font-size: clamp(17px,3.5vw,22px);
+    line-height: 1.9;
+    word-break: break-all;
+    min-height: 70px;
+    letter-spacing: .02em;
+    position: relative;
+  }
+  .result-box .emoji-badge {
+    display: inline;
+    font-size: 1.25em;
+    vertical-align: middle;
+    animation: pop .3s ease;
+  }
+  @keyframes pop {
+    0%   { transform: scale(0.4); }
+    70%  { transform: scale(1.25); }
+    100% { transform: scale(1); }
+  }
+
+  .diff-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .tag-row {
+    margin-top: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .tag {
+    background: rgba(108,99,255,.09);
+    color: var(--primary-dark);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    animation: fadeIn .3s ease both;
+  }
+  @keyframes fadeIn { from{opacity:0;transform:scale(.85)} to{opacity:1;transform:scale(1)} }
+
+  .stats {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  /* History */
+  .history-section {
+    max-width: 680px;
+    margin: 24px auto 0;
+  }
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .history-title { font-size: 14px; font-weight: 700; color: var(--text-muted); }
+  .btn-clear-hist {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: none;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .btn-clear-hist:hover { color: var(--accent); border-color: var(--accent); }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .hist-item {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: border-color .2s, box-shadow .2s;
+    font-size: 14px;
+  }
+  .hist-item:hover { border-color: var(--primary-light); box-shadow: 0 2px 10px rgba(108,99,255,.10); }
+  .hist-item .hist-original { color: var(--text-muted); font-size: 12px; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist-item .hist-result { color: var(--text); line-height: 1.5; }
+
+  .divider { width: 40px; height: 3px; background: linear-gradient(90deg,var(--primary),var(--accent)); border-radius: 99px; margin: 0 auto 18px; }
+
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #2d2d3a;
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0;
+    transition: transform .3s ease, opacity .3s ease;
+    pointer-events: none;
+    z-index: 9999;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  @media(max-width:480px) {
+    body { padding: 14px 10px 60px; }
+    .card { padding: 16px; }
+    .btn-row { flex-direction: column; }
+    .btn-primary,.btn-copy { width:100%; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<div class="hero">
+  <h1>✨ 句子转 Emoji</h1>
+  <p>输入一句中文，关键词秒变表情符号</p>
+</div>
+<div class="divider"></div>
+
+<div class="card">
+  <div class="input-area">
+    <textarea id="inputText" placeholder="例如：今天天气晴朗，我和猫咪一起吃西瓜，心情很开心～" maxlength="200"></textarea>
+    <span class="char-count" id="charCount">0 / 200</span>
+  </div>
+  <div class="btn-row">
+    <button class="btn-primary" id="btnConvert">转换 Emoji ✨</button>
+    <button class="btn-secondary" id="btnRandom">随机例句</button>
+    <button class="btn-copy" id="btnCopy">复制结果</button>
+  </div>
+</div>
+
+<div class="result-section" id="resultSection">
+  <div class="card">
+    <div class="diff-label">转换结果</div>
+    <div class="result-box" id="resultBox"></div>
+    <div class="tag-row" id="tagRow"></div>
+    <div class="stats" id="statsText"></div>
+  </div>
+</div>
+
+<div class="history-section" id="historySection" style="display:none;">
+  <div class="history-header">
+    <span class="history-title">最近记录</span>
+    <button class="btn-clear-hist" id="btnClearHist">清空</button>
+  </div>
+  <div class="history-list" id="historyList"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ===== Emoji 映射表 ===== */
+  var emojiMap = [
+    /* 情绪 */
+    ["开心","😊"],["高兴","😄"],["快乐","😁"],["兴奋","🤩"],["激动","😆"],
+    ["喜欢","🥰"],["爱","❤️"],["喜悦","😃"],["幸福","💕"],["满足","😌"],
+    ["难过","😢"],["伤心","😭"],["哭","😭"],["悲伤","😔"],["失落","😞"],
+    ["生气","😡"],["愤怒","🤬"],["烦","😤"],["讨厌","😒"],["无奈","🙄"],
+    ["害怕","😱"],["恐惧","😨"],["担心","😰"],["紧张","😬"],["焦虑","😟"],
+    ["惊讶","😲"],["震惊","🤯"],["好奇","🤔"],["疑惑","❓"],["思考","💭"],
+    ["睡觉","😴"],["困","😪"],["累","😩"],["疲惫","😫"],["无聊","🥱"],
+    ["笑","😂"],["哈哈","😂"],["可爱","🥳"],["帅","😎"],["美","😍"],
+    ["感谢","🙏"],["谢谢","🙏"],["抱歉","😓"],["对不起","😔"],
+    ["冷","🥶"],["热","🥵"],
+    /* 天气 */
+    ["晴","☀️"],["晴朗","🌤️"],["太阳","☀️"],["下雨","🌧️"],["雨","🌧️"],
+    ["下雪","❄️"],["雪","❄️"],["刮风","💨"],["风","💨"],["云","☁️"],
+    ["彩虹","🌈"],["闪电","⚡"],["雷","⛈️"],["雾","🌫️"],["霾","😷"],
+    ["台风","🌀"],["夜","🌙"],["月亮","🌙"],["星星","⭐"],["星空","🌌"],
+    /* 动物 */
+    ["猫","🐱"],["猫咪","🐱"],["狗","🐶"],["小狗","🐶"],["兔子","🐰"],
+    ["兔","🐰"],["熊猫","🐼"],["熊","🐻"],["狐狸","🦊"],["狼","🐺"],
+    ["马","🐴"],["牛","🐮"],["猪","🐷"],["羊","🐑"],["鸡","🐔"],
+    ["鸭子","🦆"],["鸟","🐦"],["企鹅","🐧"],["鱼","🐟"],["鲸鱼","🐋"],
+    ["海豚","🐬"],["螃蟹","🦀"],["虾","🦐"],["龙","🐲"],["独角兽","🦄"],
+    ["蜜蜂","🐝"],["蝴蝶","🦋"],["蜗牛","🐌"],["乌龟","🐢"],["蛇","🐍"],
+    ["狮子","🦁"],["老虎","🐯"],["大象","🐘"],["长颈鹿","🦒"],["猴子","🐒"],
+    /* 食物 */
+    ["苹果","🍎"],["香蕉","🍌"],["西瓜","🍉"],["草莓","🍓"],["葡萄","🍇"],
+    ["橙子","🍊"],["樱桃","🍒"],["桃子","🍑"],["芒果","🥭"],["菠萝","🍍"],
+    ["柠檬","🍋"],["梨","🍐"],["蓝莓","🫐"],["椰子","🥥"],
+    ["米饭","🍚"],["面条","🍜"],["包子","🥟"],["饺子","🥟"],["火锅","🍲"],
+    ["披萨","🍕"],["汉堡","🍔"],["薯条","🍟"],["热狗","🌭"],["寿司","🍣"],
+    ["蛋糕","🎂"],["饼干","🍪"],["冰淇淋","🍦"],["糖果","🍬"],["巧克力","🍫"],
+    ["咖啡","☕"],["茶","🍵"],["奶茶","🧋"],["果汁","🧃"],["啤酒","🍺"],
+    ["水","💧"],["牛奶","🥛"],
+    ["鸡蛋","🥚"],["面包","🍞"],["蔬菜","🥦"],["西红柿","🍅"],["玉米","🌽"],
+    ["胡萝卜","🥕"],["辣椒","🌶️"],["大蒜","🧄"],["洋葱","🧅"],
+    /* 自然/植物 */
+    ["花","🌸"],["玫瑰","🌹"],["向日葵","🌻"],["树","🌳"],["草","🌿"],
+    ["叶子","🍃"],["蘑菇","🍄"],["仙人掌","🌵"],["竹子","🎋"],["樱花","🌸"],
+    ["山","⛰️"],["大海","🌊"],["海","🌊"],["沙漠","🏜️"],["森林","🌲"],
+    ["火山","🌋"],["瀑布","💧"],["湖","🏞️"],
+    /* 活动/运动 */
+    ["跑步","🏃"],["走路","🚶"],["跳舞","💃"],["游泳","🏊"],["骑车","🚴"],
+    ["篮球","🏀"],["足球","⚽"],["棒球","⚾"],["网球","🎾"],["乒乓球","🏓"],
+    ["排球","🏐"],["橄榄球","🏈"],["羽毛球","🏸"],["高尔夫","⛳"],
+    ["爬山","🧗"],["钓鱼","🎣"],["射箭","🏹"],["滑雪","⛷️"],
+    ["唱歌","🎤"],["音乐","🎵"],["跳绳","🪢"],["瑜伽","🧘"],["健身","💪"],
+    /* 出行/交通 */
+    ["汽车","🚗"],["车","🚗"],["飞机","✈️"],["火车","🚂"],["地铁","🚇"],
+    ["轮船","🚢"],["自行车","🚲"],["摩托车","🏍️"],["出租车","🚕"],
+    ["火箭","🚀"],["直升机","🚁"],
+    /* 地点/建筑 */
+    ["家","🏠"],["学校","🏫"],["医院","🏥"],["银行","🏦"],["商店","🏪"],
+    ["餐厅","🍽️"],["公园","🌳"],["图书馆","📚"],["电影院","🎬"],
+    ["山顶","🏔️"],["海滩","🏖️"],["城市","🏙️"],
+    /* 物品/科技 */
+    ["手机","📱"],["电脑","💻"],["相机","📷"],["电视","📺"],["书","📖"],
+    ["笔","✏️"],["信","✉️"],["包","👜"],["帽子","🧢"],["眼镜","👓"],
+    ["钱","💰"],["礼物","🎁"],["气球","🎈"],["烟花","🎆"],["灯","💡"],
+    ["钥匙","🔑"],["锁","🔒"],["剪刀","✂️"],["药","💊"],["注射","💉"],
+    ["时钟","⏰"],["日历","📅"],["地图","🗺️"],["指南针","🧭"],
+    /* 节日/特殊 */
+    ["生日","🎂"],["新年","🎊"],["圣诞","🎄"],["万圣节","🎃"],["情人节","💝"],
+    ["毕业","🎓"],["婚礼","💒"],["祝福","🎉"],["派对","🎉"],["庆祝","🎊"],
+    /* 时间 */
+    ["早上","🌅"],["早晨","🌅"],["上午","🌤️"],["中午","☀️"],["下午","🌇"],
+    ["傍晚","🌆"],["晚上","🌙"],["夜晚","🌃"],["今天","📅"],["明天","📆"],
+    /* 颜色 */
+    ["红色","🔴"],["蓝色","🔵"],["绿色","🟢"],["黄色","🟡"],["紫色","🟣"],
+    ["橙色","🟠"],["黑色","⚫"],["白色","⚪"],["彩色","🌈"],
+    /* 其他 */
+    ["太棒了","🎉"],["厉害","💪"],["加油","💪"],["成功","🏆"],["失败","😞"],
+    ["工作","💼"],["学习","📚"],["睡","😴"],["梦","💭"],["健康","💪"],
+    ["生病","🤒"],["发烧","🤒"],["心","💖"],["爱心","💗"],["星","⭐"],
+    ["闪光","✨"],["火","🔥"],["水","💧"],["风","💨"],["地","🌍"]
+  ];
+
+  /* 按关键词长度从长到短排序（避免短词先匹配截断长词） */
+  emojiMap.sort(function(a, b) { return b[0].length - a[0].length; });
+
+  /* 随机例句 */
+  var examples = [
+    "今天天气晴朗，我和猫咪一起吃西瓜，心情很开心～",
+    "下雨天喝一杯热咖啡，听着音乐真的太幸福了！",
+    "明天要去爬山，需要带苹果和面包，希望别刮风。",
+    "小狗和兔子在公园里跑步，看到彩虹好激动！",
+    "今晚吃火锅，点了虾和螃蟹，简直太满足了！",
+    "熊猫吃竹子的样子真可爱，我好喜欢它！",
+    "夜晚的星空好美，月亮又大又圆，感觉很浪漫。",
+    "早晨跑步后喝一杯牛奶，精神满满去上班！",
+    "生日蛋糕和气球，派对好开心，谢谢大家的祝福！",
+    "下雪天穿着厚厚的衣服，喝热茶，感觉很温暖。",
+    "老虎、狮子和大象一起去海滩玩，遇上了台风好害怕！",
+    "我喜欢吃草莓冰淇淋，听音乐，这就是快乐！",
+    "玫瑰花和向日葵都好漂亮，心情一下子好了起来。",
+    "今天工作很累，回到家看书睡觉，需要好好休息。"
+  ];
+
+  /* ===== DOM 引用 ===== */
+  var inputText     = document.getElementById("inputText");
+  var charCount     = document.getElementById("charCount");
+  var btnConvert    = document.getElementById("btnConvert");
+  var btnRandom     = document.getElementById("btnRandom");
+  var btnCopy       = document.getElementById("btnCopy");
+  var resultSection = document.getElementById("resultSection");
+  var resultBox     = document.getElementById("resultBox");
+  var tagRow        = document.getElementById("tagRow");
+  var statsText     = document.getElementById("statsText");
+  var historySection= document.getElementById("historySection");
+  var historyList   = document.getElementById("historyList");
+  var btnClearHist  = document.getElementById("btnClearHist");
+  var toastEl       = document.getElementById("toast");
+
+  /* ===== 状态 ===== */
+  var lastResult = "";
+  var toastTimer = null;
+  var HIST_KEY   = "emoji_translate_history";
+  var MAX_HIST   = 8;
+
+  /* ===== 工具函数 ===== */
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 2000);
+  }
+
+  function loadHistory() {
+    try {
+      var raw = localStorage.getItem(HIST_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return []; }
+  }
+
+  function saveHistory(arr) {
+    try { localStorage.setItem(HIST_KEY, JSON.stringify(arr)); } catch (e) {}
+  }
+
+  function pushHistory(original, result) {
+    var arr = loadHistory();
+    /* 去重 */
+    arr = arr.filter(function(item) { return item.original !== original; });
+    arr.unshift({ original: original, result: result });
+    if (arr.length > MAX_HIST) arr.length = MAX_HIST;
+    saveHistory(arr);
+    renderHistory();
+  }
+
+  function renderHistory() {
+    var arr = loadHistory();
+    if (arr.length === 0) {
+      historySection.style.display = "none";
+      return;
+    }
+    historySection.style.display = "block";
+    historyList.innerHTML = "";
+    arr.forEach(function(item) {
+      var div = document.createElement("div");
+      div.className = "hist-item";
+      var p1 = document.createElement("div");
+      p1.className = "hist-original";
+      p1.textContent = item.original;
+      var p2 = document.createElement("div");
+      p2.className = "hist-result";
+      p2.textContent = item.result;
+      div.appendChild(p1);
+      div.appendChild(p2);
+      div.addEventListener("click", function() {
+        inputText.value = item.original;
+        updateCharCount();
+        doConvert();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+      historyList.appendChild(div);
+    });
+  }
+
+  function updateCharCount() {
+    var len = inputText.value.length;
+    charCount.textContent = len + " / 200";
+    if (len > 180) {
+      charCount.classList.add("warn");
+    } else {
+      charCount.classList.remove("warn");
+    }
+  }
+
+  /* ===== 核心转换 ===== */
+  function convertToEmoji(text) {
+    /* 标记已替换位置，避免重复替换 */
+    var result = text;
+    var matched = [];
+
+    /* 用占位符逐步替换（从长到短排好序的映射表） */
+    var placeholders = [];
+    var idx = 0;
+
+    emojiMap.forEach(function(pair) {
+      var word = pair[0];
+      var emoji = pair[1];
+      /* 检查是否存在（不区分大小写） */
+      if (result.indexOf(word) !== -1) {
+        var placeholder = "\x00" + idx + "\x00";
+        /* 替换所有出现 */
+        while (result.indexOf(word) !== -1) {
+          result = result.replace(word, placeholder);
+        }
+        placeholders.push({ ph: placeholder, emoji: emoji, word: word });
+        matched.push({ word: word, emoji: emoji });
+        idx++;
+      }
+    });
+
+    /* 还原占位符为 emoji */
+    placeholders.forEach(function(item) {
+      while (result.indexOf(item.ph) !== -1) {
+        result = result.replace(item.ph, item.emoji);
+      }
+    });
+
+    return { text: result, matched: matched };
+  }
+
+  function doConvert() {
+    var raw = inputText.value.trim();
+    if (!raw) {
+      showToast("请先输入一句话 ~");
+      return;
+    }
+
+    var conv = convertToEmoji(raw);
+    lastResult = conv.text;
+
+    /* 构建带动画 span 的 HTML */
+    var html = escapeHtml(conv.text);
+    /* 给 emoji 字符包裹 span（简单用 unicode range 检测） */
+    html = html.replace(/([\u{1F300}-\u{1FFFF}\u{2600}-\u{27BF}❤️🙏✨✈️☀️☁️⭐⚡⛈️⛷️⛰️⛳⚽⚾✂️✉️✏️⏰📅📆])/gu, '<span class="emoji-badge">$1</span>');
+
+    resultBox.innerHTML = html;
+
+    /* 标签 */
+    tagRow.innerHTML = "";
+    if (conv.matched.length === 0) {
+      tagRow.innerHTML = '<span style="font-size:13px;color:#aaa;">未匹配到关键词，试试其他词吧～</span>';
+    } else {
+      conv.matched.forEach(function(m, i) {
+        var span = document.createElement("span");
+        span.className = "tag";
+        span.textContent = m.word + " → " + m.emoji;
+        span.style.animationDelay = (i * 50) + "ms";
+        tagRow.appendChild(span);
+      });
+    }
+
+    statsText.textContent = "共匹配 " + conv.matched.length + " 个关键词";
+
+    /* 显示区域 */
+    resultSection.classList.remove("visible");
+    void resultSection.offsetWidth; /* reflow 触发动画 */
+    resultSection.classList.add("visible");
+
+    btnCopy.classList.add("visible");
+    btnCopy.classList.remove("copied");
+    btnCopy.textContent = "复制结果";
+
+    pushHistory(raw, conv.text);
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  /* ===== 事件绑定 ===== */
+  inputText.addEventListener("input", updateCharCount);
+
+  btnConvert.addEventListener("click", doConvert);
+
+  inputText.addEventListener("keydown", function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      doConvert();
+    }
+  });
+
+  btnRandom.addEventListener("click", function() {
+    var ex = examples[Math.floor(Math.random() * examples.length)];
+    inputText.value = ex;
+    updateCharCount();
+    doConvert();
+  });
+
+  btnCopy.addEventListener("click", function() {
+    if (!lastResult) return;
+    var success = false;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(lastResult).then(function() {
+        showToast("已复制到剪贴板 ✅");
+        btnCopy.classList.add("copied");
+        btnCopy.textContent = "已复制 ✓";
+      }).catch(function() {
+        fallbackCopy();
+      });
+    } else {
+      fallbackCopy();
+    }
+
+    function fallbackCopy() {
+      var ta = document.createElement("textarea");
+      ta.value = lastResult;
+      ta.style.position = "fixed";
+      ta.style.top = "-9999px";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        success = document.execCommand("copy");
+      } catch(e) { success = false; }
+      document.body.removeChild(ta);
+      if (success) {
+        showToast("已复制到剪贴板 ✅");
+        btnCopy.classList.add("copied");
+        btnCopy.textContent = "已复制 ✓";
+      } else {
+        showToast("复制失败，请手动复制");
+      }
+    }
+  });
+
+  btnClearHist.addEventListener("click", function() {
+    localStorage.removeItem(HIST_KEY);
+    renderHistory();
+    showToast("记录已清空");
+  });
+
+  /* ===== 初始化 ===== */
+  updateCharCount();
+  renderHistory();
+
+})();
+</script>
+</body>
+</html>
