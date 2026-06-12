@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>颜色考古 · 中国传统色</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f0e8;
+    --card-bg: #fffdf8;
+    --text: #2c2416;
+    --muted: #8a7a65;
+    --border: #e0d5c0;
+    --radius: 18px;
+    --shadow: 0 8px 40px rgba(0,0,0,0.10);
+    --transition: 0.35s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  body {
+    font-family: "PingFang SC","Hiragino Sans GB","Microsoft YaHei",
+                 "Noto Serif SC",serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 14px; left: 18px;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    z-index: 100;
+    transition: color 0.2s;
+    letter-spacing: 0.03em;
+  }
+  .back-link:hover { color: var(--text); }
+
+  header {
+    text-align: center;
+    padding: 52px 20px 32px;
+  }
+  header h1 {
+    font-size: clamp(26px, 6vw, 40px);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  header p {
+    font-size: 14px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 0 20px 32px;
+  }
+
+  .btn {
+    padding: 10px 22px;
+    border: 1.5px solid var(--border);
+    border-radius: 30px;
+    background: var(--card-bg);
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+    letter-spacing: 0.06em;
+    transition: all 0.22s;
+    outline: none;
+    font-family: inherit;
+  }
+  .btn:hover {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  }
+  .btn.active {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+  }
+  .btn-random {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+  }
+  .btn-random:hover {
+    opacity: 0.82;
+  }
+
+  .main-card {
+    max-width: 480px;
+    margin: 0 auto 36px;
+    padding: 0 20px;
+  }
+
+  .color-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: box-shadow var(--transition);
+  }
+
+  .color-swatch {
+    width: 100%;
+    height: 220px;
+    transition: background-color var(--transition);
+    position: relative;
+    cursor: pointer;
+  }
+  .color-swatch::after {
+    content: "点击复制色值";
+    position: absolute;
+    bottom: 14px; right: 16px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.75);
+    letter-spacing: 0.06em;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .color-swatch.dark-text::after {
+    color: rgba(0,0,0,0.4);
+    text-shadow: none;
+  }
+  .color-swatch:hover::after { opacity: 0.5; }
+
+  .copy-flash {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    letter-spacing: 0.1em;
+    color: #fff;
+    background: rgba(0,0,0,0.22);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .copy-flash.show { opacity: 1; }
+
+  .card-body {
+    padding: 28px 28px 24px;
+  }
+
+  .color-name-row {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .color-name {
+    font-size: clamp(32px, 9vw, 48px);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    transition: color var(--transition);
+  }
+  .color-pinyin {
+    font-size: 15px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    font-style: italic;
+  }
+
+  .color-hex-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .color-hex {
+    font-size: 18px;
+    font-family: "SF Mono","Fira Mono","Consolas",monospace;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    transition: color 0.2s;
+    user-select: all;
+  }
+  .color-hex:hover { color: var(--text); }
+
+  .hex-dot {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    transition: background-color var(--transition);
+  }
+
+  .color-desc {
+    font-size: 14.5px;
+    line-height: 1.85;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    border-top: 1px solid var(--border);
+    padding-top: 18px;
+  }
+
+  .copy-btn-row {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .copy-small {
+    padding: 7px 16px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: transparent;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    letter-spacing: 0.04em;
+  }
+  .copy-small:hover {
+    border-color: var(--text);
+    color: var(--text);
+  }
+
+  .divider {
+    text-align: center;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    margin: 4px 0 18px;
+    opacity: 0.7;
+  }
+
+  .palette-section {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+  .palette-title {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.14em;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+
+  .category-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 18px;
+  }
+  .tab {
+    padding: 5px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: transparent;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    letter-spacing: 0.06em;
+  }
+  .tab:hover, .tab.active {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+  }
+
+  .palette-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 10px;
+  }
+
+  .palette-chip {
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.18s, box-shadow 0.18s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .palette-chip:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.14);
+  }
+  .palette-chip.selected {
+    outline: 3px solid var(--text);
+    outline-offset: 2px;
+  }
+  .chip-color {
+    height: 52px;
+    width: 100%;
+    transition: background-color 0.2s;
+  }
+  .chip-label {
+    background: var(--card-bg);
+    text-align: center;
+    font-size: 11px;
+    padding: 4px 2px 5px;
+    color: var(--text);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .fav-section {
+    max-width: 920px;
+    margin: 32px auto 0;
+    padding: 0 20px;
+  }
+  .fav-title {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.14em;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .fav-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .fav-chip {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px 5px 8px;
+    border-radius: 20px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text);
+    font-family: inherit;
+    transition: all 0.2s;
+    letter-spacing: 0.04em;
+  }
+  .fav-chip:hover {
+    border-color: var(--text);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  }
+  .fav-dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .fav-remove {
+    margin-left: 4px;
+    opacity: 0.4;
+    font-size: 12px;
+    transition: opacity 0.2s;
+  }
+  .fav-chip:hover .fav-remove { opacity: 0.8; }
+
+  .fav-empty {
+    font-size: 13px;
+    color: var(--muted);
+    opacity: 0.6;
+    text-align: center;
+    width: 100%;
+    letter-spacing: 0.06em;
+  }
+
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-in {
+    animation: fadeSlide 0.38s cubic-bezier(0.4,0,0.2,1) both;
+  }
+
+  @keyframes swatchPop {
+    0%   { transform: scale(1); }
+    45%  { transform: scale(1.03); }
+    100% { transform: scale(1); }
+  }
+  .swatch-pop { animation: swatchPop 0.32s ease; }
+
+  @media (max-width: 480px) {
+    .card-body { padding: 22px 18px 20px; }
+    .palette-grid { grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<header>
+  <h1>颜色考古</h1>
+  <p>寻访中国传统色彩的古韵与诗意</p>
+</header>
+
+<div class="controls">
+  <button class="btn btn-random" id="btnRandom">随机一色</button>
+  <button class="btn" id="btnFav">收藏此色 ♡</button>
+</div>
+
+<div class="main-card">
+  <div class="color-card">
+    <div class="color-swatch" id="swatch">
+      <div class="copy-flash" id="copyFlash">已复制！</div>
+    </div>
+    <div class="card-body">
+      <div class="color-name-row">
+        <span class="color-name" id="colorName">—</span>
+        <span class="color-pinyin" id="colorPinyin"></span>
+      </div>
+      <div class="color-hex-row">
+        <div class="hex-dot" id="hexDot"></div>
+        <span class="color-hex" id="colorHex" title="点击复制">#000000</span>
+      </div>
+      <div class="color-desc" id="colorDesc">请选择或随机一个颜色。</div>
+      <div class="copy-btn-row">
+        <button class="copy-small" id="copyHex">复制 HEX</button>
+        <button class="copy-small" id="copyName">复制色名</button>
+        <button class="copy-small" id="copyRgb">复制 RGB</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider">— 传统色谱 —</div>
+
+<div class="palette-section">
+  <div class="category-tabs" id="categoryTabs"></div>
+  <div class="palette-grid" id="paletteGrid"></div>
+</div>
+
+<div class="fav-section" id="favSection">
+  <div class="fav-title">— 我的收藏 —</div>
+  <div class="fav-grid" id="favGrid"></div>
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  /* ===== 数据 ===== */
+  var COLORS = [
+    /* 红系 */
+    { name:"绛",   pinyin:"jiàng",  hex:"#8B1A1A", cat:"红",  desc:"绛，深红色也。《说文》云：大赤也。绛色如深秋霜叶，沉稳而热烈，历代帝王袍服多用此色，象征威仪与权贵。汉代百官朝服亦以绛为尊。" },
+    { name:"朱",   pinyin:"zhū",    hex:"#C03020", cat:"红",  desc:"朱，纯正赤色。《论语》有"恶朱之夺朱也"，朱与正红相近却更为鲜艳。朱砂矿物研磨而得，自古用于宫殿彩绘与印章，寓意吉祥辟邪。" },
+    { name:"緋",   pinyin:"fēi",    hex:"#CF1020", cat:"红",  desc:"緋，鲜红色。唐朝官服以緋色为四品、五品服色，"绯袍"因此成为中级官员的代称。白居易诗"江州司马青衫湿"，正因曾身着緋袍而感慨。" },
+    { name:"赭",   pinyin:"zhě",    hex:"#9E4639", cat:"红",  desc:"赭，赤土色也，近于棕红。古人以赭石入画，山水皴染用之。秦始皇令刑徒衣赭衣，故囚服亦称"赭衣"，后世以此泛指罪人之服。" },
+    { name:"胭脂", pinyin:"yānzhī", hex:"#A1293A", cat:"红",  desc:"胭脂源自"焉支山"（今祁连山一带），匈奴女子以此山花汁涂颊，汉军夺取焉支山后，汉女亦学其妆法。李白有"燕支落汉家，妇女无华色"之叹。" },
+    { name:"茜",   pinyin:"qiàn",   hex:"#C0392B", cat:"红",  desc:"茜，草名，其根可染红色，称茜草红。《诗经》有"茹藘在阪"，茜草红柔和温润，是古代女子衣裙常用染料，雅而不艳，带着草木的温柔气息。" },
+    { name:"枣红", pinyin:"zǎohóng",hex:"#6B1F1F", cat:"红",  desc:"枣红，形如成熟红枣之色，深沉暗红。秋日晒场，枣红铺满，令人联想到北方农家的丰收与温情。中国传统漆器、家具亦多用此色调。" },
+    { name:"银红", pinyin:"yínhóng",hex:"#E8847A", cat:"红",  desc:"银红，浅红带银光，如暮色中的云霞。《红楼梦》多次提及银红色衣物，贾府女眷常服银红绫袄，轻盈而不失富贵，是雅俗共赏的传统时髦色。" },
+
+    /* 黄系 */
+    { name:"明黄", pinyin:"mínghúang",hex:"#FFCC00", cat:"黄", desc:"明黄，鲜亮纯正之黄，自唐代起专属皇帝龙袍。武则天规定此色为帝王专用，此后历朝相沿，黄色成为皇权象征。民间不得擅用，否则以僭越论处。" },
+    { name:"缃",   pinyin:"xiāng",  hex:"#E8C97E", cat:"黄",  desc:"缃，浅黄色，如嫩叶初发之色。古籍中常以缃色形容书卷——"缃帙"即黄色书套，"缃素"指书信，故缃色自带书卷气，是文人雅士最爱的色调。" },
+    { name:"鹅黄", pinyin:"éhuáng", hex:"#FFEE99", cat:"黄",  desc:"鹅黄，初生雏鹅羽色，淡嫩明亮。白居易诗"日出江花红胜火，春来江水绿如蓝"，其间穿梭的鹅黄是江南春日最柔和的底色，象征新生与希望。" },
+    { name:"金",   pinyin:"jīn",    hex:"#DAA520", cat:"黄",  desc:"金色，五行之金，历来象征尊贵财富。中国传统建筑飞檐、佛像、器皿大量使用金色，故宫太和殿金碧辉煌，正是以金为魂的东方美学极致表达。" },
+    { name:"姜黄", pinyin:"jiānghuáng",hex:"#C8A84B", cat:"黄", desc:"姜黄，取自姜黄植物根茎，色介于黄与橙之间，温暖厚重。佛教文化中姜黄与大地、智慧相连，东南亚与中国西南少数民族织物常见此色。" },
+    { name:"栀黄", pinyin:"zhīhuáng",hex:"#FAD376", cat:"黄", desc:"栀黄，以栀子花果实汁液染成，温润如玉。栀子花香气馥郁，其果实染出的黄色略带橙调，唐宋宫廷织物常用栀黄，气质温雅，令人联想花香弥漫的夏日。" },
+
+    /* 绿系 */
+    { name:"碧",   pinyin:"bì",     hex:"#3EABA9", cat:"绿",  desc:"碧，青绿色，如碧玉、碧波。《诗经》"碧波荡漾"，碧色在中国文化中极具生命力，兼具蓝与绿的清透，是文人寄情山水最常吟诵的色彩意象。" },
+    { name:"缥",   pinyin:"piǎo",   hex:"#88B2A8", cat:"绿",  desc:"缥，淡青绿色，如远山薄雾。《古诗十九首》有"青青河畔草，郁郁园中柳"，缥色介于青与绿之间，清淡飘渺，若有若无，是最具诗意的朦胧色。" },
+    { name:"艾",   pinyin:"ài",     hex:"#6B8E6B", cat:"绿",  desc:"艾，艾草之色，灰绿沉静。端午时节，门前挂艾，满室草香。艾色是中国乡土生活最质朴的底色，带着草药的清苦与驱邪避祸的民俗温情。" },
+    { name:"松花", pinyin:"sōnghuā",hex:"#B3C58E", cat:"绿",  desc:"松花，松树花粉之色，淡黄偏绿，清雅宜人。古人将松花色织入丝帛，取其超凡脱俗之意。松花色在宋代尤为流行，与文人崇尚自然的审美契合。" },
+    { name:"葱青", pinyin:"cōngqīng",hex:"#4DAF7C", cat:"绿", desc:"葱青，如鲜葱之色，青翠欲滴。春日田间，葱绿盎然，生机勃发。葱青色明亮而富有生命力，在传统服饰中常见于少女春装，清新而充满朝气。" },
+    { name:"豆绿", pinyin:"dòulǜ",  hex:"#B0C78C", cat:"绿",  desc:"豆绿，嫩豌豆之色，黄绿相融，柔和自然。宋代青瓷以豆绿釉著称，温润如玉，素淡中见精致。苏东坡曾以豆绿形容梅子初熟时的色泽。" },
+
+    /* 蓝系 */
+    { name:"靛",   pinyin:"diàn",   hex:"#1A5276", cat:"蓝",  desc:"靛，靛蓝色，以蓼蓝植物发酵提取，是古代最重要的蓝色染料。《荀子》"青出于蓝而胜于蓝"即以靛蓝为喻，靛色深沉内敛，是布衣百姓最常见的衣色。" },
+    { name:"蔚蓝", pinyin:"wèilán", hex:"#4899CA", cat:"蓝",  desc:"蔚蓝，如晴天碧空之色，明朗开阔。蔚，云盛之貌，蔚蓝因此得名，意为蓝天满云时的颜色。《离骚》中楚辞的浪漫气质，正如这片蔚蓝的南国天空。" },
+    { name:"石青", pinyin:"shíqīng",hex:"#2471A3", cat:"蓝",  desc:"石青，以天然石青矿物研磨制成颜料，是传统国画山水的重要蓝色。敦煌壁画中的青金石蓝与石青交相辉映，历千年而不褪，令观者叹为观止。" },
+    { name:"天蓝", pinyin:"tiānlán",hex:"#87CEEB", cat:"蓝",  desc:"天蓝，晴空之色，清澈明净。汝窑瓷器以天蓝釉著称，宋徽宗命工匠"雨过天青云破处，这般颜色作将来"，遂成传世绝色，被誉为天下第一名瓷。" },
+    { name:"群青", pinyin:"qúnqīng",hex:"#1C3A6E", cat:"蓝",  desc:"群青，深邃浓郁的蓝，源自青金石研磨。在西方称Ultramarine，由丝绸之路传入中国。传统唐卡、壁画中大量使用群青，象征神圣、永恒与无限的宇宙。" },
+
+    /* 紫系 */
+    { name:"紫",   pinyin:"zǐ",     hex:"#6B3FA0", cat:"紫",  desc:"紫，五色之外的杂色，却备受崇尚。《论语》孔子"恶紫之夺朱也"，说明紫色之流行已令孔子忧虑。北斗星居于天之中央，称"紫微"，故皇宫亦名紫禁城。" },
+    { name:"黛紫", pinyin:"dàizǐ",  hex:"#594D80", cat:"紫",  desc:"黛紫，深沉的蓝紫色调，如黛山暮色。黛是古代女子描眉之色，黛紫将女性的婉约与深邃融为一体，令人联想到古典仕女图中那一抹远山眉黛。" },
+    { name:"茄",   pinyin:"qié",    hex:"#7D4698", cat:"紫",  desc:"茄，茄皮之色，红紫深沉。茄色在明清织物中颇为常见，庄重而不失华贵，常见于富贵人家的帷幔与坐褥。《红楼梦》描写晴雯病中仍爱茄色衣裳。" },
+    { name:"雪青", pinyin:"xuěqīng",hex:"#B09FCA", cat:"紫",  desc:"雪青，淡雅的紫蓝色，如雪地映出的幽蓝晨光。雪青色含蓄内敛，不张扬，是中国传统审美中"藏而不露"的典型用色，多见于文人书斋的陈设。" },
+
+    /* 黑白灰 */
+    { name:"墨",   pinyin:"mò",     hex:"#2C2C2C", cat:"黑白", desc:"墨，研墨之色，深黑如夜。中国文化以墨为书、为画，"墨分五色"（焦浓重淡清）是国画的核心技法。一支毛笔，一砚浓墨，承载了中华文明数千年的记忆。" },
+    { name:"玄",   pinyin:"xuán",   hex:"#1A1A2E", cat:"黑白", desc:"玄，黑中透红的深色。老子《道德经》以玄喻道，"玄之又玄，众妙之门"。玄色在道家哲学中象征宇宙本原，含蓄神秘，是最具哲学深度的中国传统色。" },
+    { name:"缟",   pinyin:"gǎo",    hex:"#F5F0E8", cat:"黑白", desc:"缟，白色生绢之色，素净洁白。古代丧礼以缟素为服，以示哀悼。《诗经》有"素衣朱绣"，缟与朱的对比，在视觉上形成最鲜明的中国式审美张力。" },
+    { name:"灰",   pinyin:"huī",    hex:"#808080", cat:"黑白", desc:"灰，介于黑白之间，不偏不倚。中国禅宗寺院以灰为主色，粉墙黛瓦，大道至简。江南水乡的灰瓦白墙，是中国建筑美学中最令人心旷神怡的色彩组合。" },
+    { name:"铅白", pinyin:"qiānbái",hex:"#E8E4DC", cat:"黑白", desc:"铅白，用铅粉制成的白色颜料，略带冷调。古代仕女图中以铅白敷面，呈现出瓷质肌肤之感。唐代张萱《捣练图》中仕女肌肤所用，正是这温润铅白。" },
+
+    /* 棕褐 */
+    { name:"棕",   pinyin:"zōng",   hex:"#7B5B3A", cat:"棕褐", desc:"棕，棕榈树皮之色，温暖厚实。棕色是大地的颜色，中国农耕文明以土为本，棕褐色的陶器、木器贯穿了整个文明史，质朴中蕴含着无尽的生活智慧。" },
+    { name:"驼",   pinyin:"tuó",    hex:"#C19A6B", cat:"棕褐", desc:"驼，骆驼毛色，温暖的黄棕色。丝绸之路上，骆驼是连接东西文明的使者，驼色因此也带着远方的气息。这是沙漠与草原交界处最动人的颜色。" },
+    { name:"秋香", pinyin:"qiūxiāng",hex:"#A08040", cat:"棕褐", desc:"秋香，秋日草木凋零时的枯黄绿色，兼具黄、绿、棕三色之韵。明代织锦常用秋香色，沉稳中带着岁月的沧桑感，是文人笔下"一叶知秋"的色彩注脚。" },
+    { name:"琥珀", pinyin:"hǔpò",   hex:"#CC7722", cat:"棕褐", desc:"琥珀，松脂亿年凝固而成的化石，橙黄透亮。古人认为琥珀是虎死魄入地化成，故名。琥珀色温润发光，寓意岁月凝华，是生命在时光中的最美馈赠。" },
+
+    /* 特色 */
+    { name:"月白", pinyin:"yuèbái", hex:"#E8F4F8", cat:"特色", desc:"月白，月光映照下白中带蓝的色调，清冷脱俗。宋代文人尤爱月白，苏东坡"但愿人长久，千里共婵娟"，月白正是那轮明月最诗意的人间投影。" },
+    { name:"黛",   pinyin:"dài",    hex:"#445569", cat:"特色", desc:"黛，青黑色，古代女子描眉所用。"远山黛眉"是古典美人的标志性特征。白居易《长恨歌》"回眸一笑百媚生"，那双黛眉之后是令帝王倾心的万种风情。" },
+    { name:"水红", pinyin:"shuǐhóng",hex:"#F4A8B0", cat:"特色", desc:"水红，浅淡粉红如水中玫瑰，轻盈透明。《红楼梦》中林黛玉曾着水红色衫裙，与她清冷脱俗的气质相衬。水红是春日桃花凋谢后漂浮水面的那一抹余色。" },
+    { name:"青",   pinyin:"qīng",   hex:"#1A6B72", cat:"特色", desc:"青，介于蓝与绿之间，是最难定义也最具东方特质的颜色。《诗经》"青青子衿"，李白"青冥浩荡不见底"，青色既是自然之色，也是中国哲学最爱的意象。" },
+    { name:"湖蓝", pinyin:"húlán",  hex:"#2196A8", cat:"特色", desc:"湖蓝，如西湖秋水，清澈中带着幽深。杏花春雨江南，湖蓝是苏杭水乡最迷人的水色。景德镇瓷器以湖蓝釉闻名，清脆如歌，是瓷都最爱的传统釉色之一。" },
+    { name:"藕荷", pinyin:"ǒuhé",   hex:"#DAB8D0", cat:"特色", desc:"藕荷，莲藕与荷花共同孕育的粉紫色，带着莲池的清幽。藕荷色柔美而不失风骨，《红楼梦》大观园中常见此色帷幕，是古典贵族生活最雅致的底色之一。" },
+  ];
+
+  var CATS = ["全部","红","黄","绿","蓝","紫","黑白","棕褐","特色"];
+
+  /* ===== 状态 ===== */
+  var currentColor = null;
+  var currentCat = "全部";
+  var favorites = [];
+
+  /* ===== 工具函数 ===== */
+  function hexToRgb(hex) {
+    var r = parseInt(hex.slice(1,3),16);
+    var g = parseInt(hex.slice(3,5),16);
+    var b = parseInt(hex.slice(5,7),16);
+    return { r: r, g: g, b: b };
+  }
+
+  function luminance(hex) {
+    var rgb = hexToRgb(hex);
+    return 0.2126*rgb.r + 0.7152*rgb.g + 0.0722*rgb.b;
+  }
+
+  function isDark(hex) {
+    return luminance(hex) < 128;
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(function() { fallbackCopy(text); });
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+  }
+
+  function saveFavs() {
+    localStorage.setItem("colorArch_favs", JSON.stringify(favorites));
+  }
+
+  function loadFavs() {
+    try {
+      var raw = localStorage.getItem("colorArch_favs");
+      if (raw) { favorites = JSON.parse(raw); }
+    } catch(e) { favorites = []; }
+  }
+
+  /* ===== DOM 引用 ===== */
+  var swatch      = document.getElementById("swatch");
+  var copyFlash   = document.getElementById("copyFlash");
+  var colorName   = document.getElementById("colorName");
+  var colorPinyin = document.getElementById("colorPinyin");
+  var hexDot      = document.getElementById("hexDot");
+  var colorHex    = document.getElementById("colorHex");
+  var colorDesc   = document.getElementById("colorDesc");
+  var btnRandom   = document.getElementById("btnRandom");
+  var btnFav      = document.getElementById("btnFav");
+  var copyHexBtn  = document.getElementById("copyHex");
+  var copyNameBtn = document.getElementById("copyName");
+  var copyRgbBtn  = document.getElementById("copyRgb");
+  var categoryTabs= document.getElementById("categoryTabs");
+  var paletteGrid = document.getElementById("paletteGrid");
+  var favGrid     = document.getElementById("favGrid");
+
+  /* ===== 渲染函数 ===== */
+  function showColor(c) {
+    currentColor = c;
+
+    swatch.style.backgroundColor = c.hex;
+    if (isDark(c.hex)) {
+      swatch.classList.remove("dark-text");
+    } else {
+      swatch.classList.add("dark-text");
+    }
+
+    colorName.textContent = c.name;
+    colorName.style.color = c.hex;
+    colorPinyin.textContent = c.pinyin;
+    colorHex.textContent = c.hex.toUpperCase();
+    hexDot.style.backgroundColor = c.hex;
+    colorDesc.textContent = c.desc;
+
+    // pop animation
+    swatch.classList.remove("swatch-pop");
+    void swatch.offsetWidth;
+    swatch.classList.add("swatch-pop");
+
+    // update fav button
+    updateFavBtn();
+
+    // highlight in grid
+    var chips = paletteGrid.querySelectorAll(".palette-chip");
+    chips.forEach(function(chip) {
+      chip.classList.toggle("selected", chip.dataset.hex === c.hex);
+    });
+  }
+
+  function flashCopied() {
+    copyFlash.classList.add("show");
+    setTimeout(function() { copyFlash.classList.remove("show"); }, 900);
+  }
+
+  function buildCategoryTabs() {
+    categoryTabs.innerHTML = "";
+    CATS.forEach(function(cat) {
+      var btn = document.createElement("button");
+      btn.className = "tab" + (cat === currentCat ? " active" : "");
+      btn.textContent = cat;
+      btn.addEventListener("click", function() {
+        currentCat = cat;
+        document.querySelectorAll(".tab").forEach(function(t) {
+          t.classList.remove("active");
+        });
+        btn.classList.add("active");
+        buildPaletteGrid();
+      });
+      categoryTabs.appendChild(btn);
+    });
+  }
+
+  function buildPaletteGrid() {
+    paletteGrid.innerHTML = "";
+    var list = currentCat === "全部"
+      ? COLORS
+      : COLORS.filter(function(c) { return c.cat === currentCat; });
+
+    list.forEach(function(c) {
+      var chip = document.createElement("div");
+      chip.className = "palette-chip" + (currentColor && currentColor.hex === c.hex ? " selected" : "");
+      chip.dataset.hex = c.hex;
+
+      var colorDiv = document.createElement("div");
+      colorDiv.className = "chip-color";
+      colorDiv.style.backgroundColor = c.hex;
+
+      var label = document.createElement("div");
+      label.className = "chip-label";
+      label.textContent = c.name;
+
+      chip.appendChild(colorDiv);
+      chip.appendChild(label);
+      chip.addEventListener("click", function() {
+        showColor(c);
+        chip.closest(".palette-section").scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+      paletteGrid.appendChild(chip);
+    });
+  }
+
+  function updateFavBtn() {
+    if (!currentColor) { return; }
+    var inFav = favorites.some(function(f) { return f.hex === currentColor.hex; });
+    btnFav.textContent = inFav ? "取消收藏 ♥" : "收藏此色 ♡";
+  }
+
+  function buildFavGrid() {
+    favGrid.innerHTML = "";
+    if (favorites.length === 0) {
+      var empty = document.createElement("div");
+      empty.className = "fav-empty";
+      empty.textContent = "还没有收藏，快去探索吧～";
+      favGrid.appendChild(empty);
+      return;
+    }
+    favorites.forEach(function(f) {
+      var chip = document.createElement("button");
+      chip.className = "fav-chip";
+
+      var dot = document.createElement("span");
+      dot.className = "fav-dot";
+      dot.style.backgroundColor = f.hex;
+
+      var label = document.createTextNode(f.name);
+
+      var remove = document.createElement("span");
+      remove.className = "fav-remove";
+      remove.textContent = "×";
+
+      chip.appendChild(dot);
+      chip.appendChild(label);
+      chip.appendChild(remove);
+
+      chip.addEventListener("click", function(e) {
+        if (e.target === remove) {
+          favorites = favorites.filter(function(x) { return x.hex !== f.hex; });
+          saveFavs();
+          buildFavGrid();
+          updateFavBtn();
+        } else {
+          var found = COLORS.find(function(c) { return c.hex === f.hex; });
+          if (found) { showColor(found); }
+        }
+      });
+      favGrid.appendChild(chip);
+    });
+  }
+
+  /* ===== 事件绑定 ===== */
+  btnRandom.addEventListener("click", function() {
+    var idx = Math.floor(Math.random() * COLORS.length);
+    showColor(COLORS[idx]);
+  });
+
+  btnFav.addEventListener("click", function() {
+    if (!currentColor) { return; }
+    var idx = favorites.findIndex(function(f) { return f.hex === currentColor.hex; });
+    if (idx >= 0) {
+      favorites.splice(idx, 1);
+    } else {
+      favorites.push({ name: currentColor.name, hex: currentColor.hex });
+    }
+    saveFavs();
+    buildFavGrid();
+    updateFavBtn();
+  });
+
+  swatch.addEventListener("click", function() {
+    if (!currentColor) { return; }
+    copyText(currentColor.hex.toUpperCase());
+    flashCopied();
+  });
+
+  colorHex.addEventListener("click", function() {
+    if (!currentColor) { return; }
+    copyText(currentColor.hex.toUpperCase());
+    flashCopied();
+  });
+
+  copyHexBtn.addEventListener("click", function() {
+    if (!currentColor) { return; }
+    copyText(currentColor.hex.toUpperCase());
+    copyHexBtn.textContent = "已复制！";
+    setTimeout(function() { copyHexBtn.textContent = "复制 HEX"; }, 1200);
+  });
+
+  copyNameBtn.addEventListener("click", function() {
+    if (!currentColor) { return; }
+    copyText(currentColor.name);
+    copyNameBtn.textContent = "已复制！";
+    setTimeout(function() { copyNameBtn.textContent = "复制色名"; }, 1200);
+  });
+
+  copyRgbBtn.addEventListener("click", function() {
+    if (!currentColor) { return; }
+    var rgb = hexToRgb(currentColor.hex);
+    copyText("rgb(" + rgb.r + ", " + rgb.g + ", " + rgb.b + ")");
+    copyRgbBtn.textContent = "已复制！";
+    setTimeout(function() { copyRgbBtn.textContent = "复制 RGB"; }, 1200);
+  });
+
+  /* ===== 初始化（所有声明/定义之后） ===== */
+  loadFavs();
+  buildCategoryTabs();
+  buildPaletteGrid();
+  buildFavGrid();
+
+  // 随机展示一个初始颜色
+  var initIdx = Math.floor(Math.random() * COLORS.length);
+  showColor(COLORS[initIdx]);
+
+})();
+</script>
+</body>
+</html>
