@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>记忆翻牌</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --card-bg: #242838;
+    --card-front: #2d3250;
+    --accent: #7c6af7;
+    --accent2: #f7a26a;
+    --text: #e8eaf6;
+    --text-muted: #8891b4;
+    --matched: #3d6b52;
+    --matched-border: #5ecb8c;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    --radius: 16px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    background-image: radial-gradient(ellipse at 20% 20%, rgba(124,106,247,0.08) 0%, transparent 60%),
+                      radial-gradient(ellipse at 80% 80%, rgba(247,162,106,0.06) 0%, transparent 60%);
+  }
+
+  .back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    z-index: 100;
+  }
+  .back-link:hover { opacity: 1; }
+
+  header {
+    margin-top: 20px;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+  header h1 {
+    font-size: clamp(1.6rem, 5vw, 2.2rem);
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+  header p {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-top: 6px;
+  }
+
+  .stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .stat-card {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 12px 24px;
+    text-align: center;
+    min-width: 100px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .stat-card .label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 4px;
+  }
+  .stat-card .value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  #timer-value { color: var(--accent2); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 480px;
+    perspective: 1000px;
+  }
+
+  .card {
+    aspect-ratio: 1;
+    cursor: pointer;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: var(--radius);
+  }
+  .card.flipped { transform: rotateY(180deg); }
+  .card.matched { transform: rotateY(180deg); cursor: default; }
+  .card.matched .card-front { background: var(--matched); border-color: var(--matched-border); }
+  .card.matched .card-front::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at 50% 50%, rgba(94,203,140,0.25), transparent 70%);
+  }
+  .card.no-select { pointer-events: none; }
+
+  .card-face {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    user-select: none;
+  }
+
+  .card-back {
+    background: var(--card-bg);
+    border: 2px solid rgba(124,106,247,0.25);
+    box-shadow: var(--shadow);
+    font-size: 1.6rem;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .card:not(.flipped):not(.matched):hover .card-back {
+    background: #2e3347;
+    border-color: rgba(124,106,247,0.6);
+    box-shadow: 0 4px 20px rgba(124,106,247,0.2);
+  }
+  .card-back-pattern {
+    width: 56%;
+    height: 56%;
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(124,106,247,0.5), rgba(247,162,106,0.5));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+  }
+
+  .card-front {
+    background: var(--card-front);
+    border: 2px solid rgba(255,255,255,0.08);
+    box-shadow: var(--shadow);
+    font-size: clamp(1.8rem, 6vw, 2.4rem);
+    transform: rotateY(180deg);
+    transition: background 0.3s, border-color 0.3s;
+  }
+
+  .btn-restart {
+    margin-top: 28px;
+    padding: 12px 36px;
+    background: linear-gradient(135deg, var(--accent), #9b8bf8);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(124,106,247,0.4);
+    transition: transform 0.15s, box-shadow 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .btn-restart:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(124,106,247,0.5);
+  }
+  .btn-restart:active { transform: translateY(0); }
+
+  /* Victory overlay */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,17,23,0.85);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+  }
+  .overlay.show { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes popIn {
+    0% { transform: scale(0.7) translateY(20px); opacity: 0; }
+    70% { transform: scale(1.05) translateY(-4px); }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .victory-box {
+    background: var(--surface);
+    border: 1px solid rgba(124,106,247,0.3);
+    border-radius: 24px;
+    padding: 40px 48px;
+    text-align: center;
+    max-width: 360px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    animation: popIn 0.45s cubic-bezier(0.4,0,0.2,1) forwards;
+  }
+  .victory-emoji {
+    font-size: 4rem;
+    display: block;
+    margin-bottom: 12px;
+    animation: float 2s ease-in-out infinite;
+  }
+  .victory-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+  .victory-sub {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+  .victory-stats {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 28px;
+  }
+  .vstat {
+    background: rgba(124,106,247,0.1);
+    border: 1px solid rgba(124,106,247,0.2);
+    border-radius: 12px;
+    padding: 10px 20px;
+    flex: 1;
+  }
+  .vstat .vl { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .vstat .vv { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+  .vstat:last-child .vv { color: var(--accent2); }
+
+  .best-badge {
+    font-size: 12px;
+    color: var(--accent2);
+    margin-bottom: 16px;
+    min-height: 18px;
+  }
+
+  @media (max-width: 420px) {
+    .grid { gap: 8px; }
+    .card-front { font-size: 1.5rem; }
+    .victory-box { padding: 28px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<header>
+  <h1>记忆翻牌</h1>
+  <p>找出所有 8 对相同的卡片</p>
+</header>
+
+<div class="stats">
+  <div class="stat-card">
+    <div class="label">步数</div>
+    <div class="value" id="steps-value">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">用时</div>
+    <div class="value" id="timer-value">00:00</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">最佳步数</div>
+    <div class="value" id="best-value">—</div>
+  </div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<button class="btn-restart" id="btn-restart">重新开始</button>
+
+<div class="overlay" id="overlay">
+  <div class="victory-box">
+    <span class="victory-emoji">🎉</span>
+    <div class="victory-title">全部配对！</div>
+    <div class="victory-sub">太棒了，你的记忆力真不错！</div>
+    <div class="victory-stats">
+      <div class="vstat">
+        <div class="vl">本局步数</div>
+        <div class="vv" id="v-steps">0</div>
+      </div>
+      <div class="vstat">
+        <div class="vl">本局用时</div>
+        <div class="vv" id="v-time">00:00</div>
+      </div>
+    </div>
+    <div class="best-badge" id="best-badge"></div>
+    <button class="btn-restart" id="btn-restart2" style="margin-top:0">再来一局</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ── Constants ── */
+  const EMOJIS = ["🐶","🐱","🦊","🐸","🐼","🦁","🦋","🌸"];
+  const STORAGE_BEST_STEPS = "memory_best_steps";
+  const STORAGE_BEST_TIME  = "memory_best_time";
+
+  /* ── State ── */
+  let cards = [];
+  let flipped = [];
+  let matchedCount = 0;
+  let steps = 0;
+  let seconds = 0;
+  let timerInterval = null;
+  let locked = false;
+  let gameStarted = false;
+
+  /* ── DOM refs ── */
+  const gridEl       = document.getElementById("grid");
+  const stepsEl      = document.getElementById("steps-value");
+  const timerEl      = document.getElementById("timer-value");
+  const bestEl       = document.getElementById("best-value");
+  const overlayEl    = document.getElementById("overlay");
+  const vStepsEl     = document.getElementById("v-steps");
+  const vTimeEl      = document.getElementById("v-time");
+  const bestBadgeEl  = document.getElementById("best-badge");
+  const btnRestart   = document.getElementById("btn-restart");
+  const btnRestart2  = document.getElementById("btn-restart2");
+
+  /* ── Helpers ── */
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  function formatTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return String(m).padStart(2, "0") + ":" + String(sec).padStart(2, "0");
+  }
+
+  function getBest() {
+    const s = parseInt(localStorage.getItem(STORAGE_BEST_STEPS), 10);
+    const t = parseInt(localStorage.getItem(STORAGE_BEST_TIME), 10);
+    return { steps: isNaN(s) ? null : s, time: isNaN(t) ? null : t };
+  }
+
+  function saveBest(s, t) {
+    const prev = getBest();
+    let newBest = false;
+    if (prev.steps === null || s < prev.steps) {
+      localStorage.setItem(STORAGE_BEST_STEPS, String(s));
+      newBest = true;
+    }
+    if (prev.time === null || t < prev.time) {
+      localStorage.setItem(STORAGE_BEST_TIME, String(t));
+    }
+    return newBest;
+  }
+
+  function renderBestDisplay() {
+    const { steps: bs } = getBest();
+    bestEl.textContent = bs !== null ? String(bs) : "—";
+  }
+
+  function startTimer() {
+    if (timerInterval) return;
+    timerInterval = setInterval(function () {
+      seconds++;
+      timerEl.textContent = formatTime(seconds);
+    }, 1000);
+  }
+
+  function stopTimer() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+
+  /* ── Card click handler ── */
+  function onCardClick(index) {
+    if (locked) return;
+    const card = cards[index];
+    if (!card || card.matched || card.flipped) return;
+
+    if (!gameStarted) {
+      gameStarted = true;
+      startTimer();
+    }
+
+    card.flipped = true;
+    renderCard(index);
+
+    flipped.push(index);
+
+    if (flipped.length === 2) {
+      locked = true;
+      steps++;
+      stepsEl.textContent = String(steps);
+
+      const [a, b] = flipped;
+      if (cards[a].emoji === cards[b].emoji) {
+        // Match
+        setTimeout(function () {
+          cards[a].matched = true;
+          cards[b].matched = true;
+          renderCard(a);
+          renderCard(b);
+          flipped = [];
+          locked = false;
+          matchedCount++;
+          if (matchedCount === EMOJIS.length) {
+            onVictory();
+          }
+        }, 300);
+      } else {
+        // No match — flip back
+        setTimeout(function () {
+          cards[a].flipped = false;
+          cards[b].flipped = false;
+          renderCard(a);
+          renderCard(b);
+          flipped = [];
+          locked = false;
+        }, 900);
+      }
+    }
+  }
+
+  /* ── Render individual card ── */
+  function renderCard(index) {
+    const card = cards[index];
+    const el = gridEl.querySelectorAll(".card")[index];
+    if (!el) return;
+    el.classList.toggle("flipped", card.flipped || card.matched);
+    el.classList.toggle("matched", card.matched);
+  }
+
+  /* ── Build grid ── */
+  function buildGrid() {
+    const deck = shuffle(EMOJIS.concat(EMOJIS));
+    cards = deck.map(function (emoji) {
+      return { emoji: emoji, flipped: false, matched: false };
+    });
+
+    gridEl.innerHTML = "";
+    cards.forEach(function (card, i) {
+      const el = document.createElement("div");
+      el.className = "card";
+      el.setAttribute("role", "button");
+      el.setAttribute("aria-label", "翻牌");
+      el.innerHTML =
+        '<div class="card-face card-back"><div class="card-back-pattern">✦</div></div>' +
+        '<div class="card-face card-front">' + card.emoji + '</div>';
+      el.addEventListener("click", function () { onCardClick(i); });
+      gridEl.appendChild(el);
+    });
+  }
+
+  /* ── Victory ── */
+  function onVictory() {
+    stopTimer();
+    const isNewBest = saveBest(steps, seconds);
+    vStepsEl.textContent = String(steps);
+    vTimeEl.textContent = formatTime(seconds);
+    bestBadgeEl.textContent = isNewBest ? "🏆 新纪录！最佳步数已更新" : "最佳步数：" + (getBest().steps || steps) + " 步";
+    overlayEl.classList.add("show");
+    renderBestDisplay();
+  }
+
+  /* ── Init / Restart ── */
+  function init() {
+    stopTimer();
+    steps = 0;
+    seconds = 0;
+    matchedCount = 0;
+    flipped = [];
+    locked = false;
+    gameStarted = false;
+    stepsEl.textContent = "0";
+    timerEl.textContent = "00:00";
+    overlayEl.classList.remove("show");
+    buildGrid();
+    renderBestDisplay();
+  }
+
+  /* ── Event listeners ── */
+  btnRestart.addEventListener("click", init);
+  btnRestart2.addEventListener("click", init);
+
+  /* ── Bootstrap ── */
+  init();
+
+})();
+</script>
+</body>
+</html>
