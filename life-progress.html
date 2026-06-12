@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生命进度条</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --surface2: #16213e;
+    --accent: #e94560;
+    --accent2: #f5a623;
+    --text: #e8e8f0;
+    --text-muted: #8888aa;
+    --border: #2a2a4a;
+    --radius: 16px;
+    --radius-sm: 8px;
+  }
+
+  html, body {
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height: 1.6;
+  }
+
+  body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 12px;
+    left: 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+    z-index: 100;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--text); }
+
+  .container {
+    width: 100%;
+    max-width: 560px;
+    padding-top: 48px;
+    padding-bottom: 40px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .header h1 {
+    font-size: clamp(22px, 5vw, 30px);
+    font-weight: 700;
+    background: linear-gradient(135deg, #e94560, #f5a623);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 2px;
+  }
+  .header p {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 18px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .input-group {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .input-group label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .input-group input[type="date"],
+  .input-group input[type="number"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 14px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+    color-scheme: dark;
+  }
+  .input-group input:focus {
+    border-color: var(--accent);
+  }
+
+  .slider-wrap {
+    margin-top: 18px;
+  }
+  .slider-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .slider-label-row span:first-child {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .slider-val {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent2);
+  }
+  .slider-val small {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e94560, #f5a623);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(233,69,96,0.4);
+    transition: transform 0.15s;
+  }
+  input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(1.25);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e94560, #f5a623);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 8px rgba(233,69,96,0.4);
+  }
+
+  /* Progress card */
+  .progress-section {
+    text-align: center;
+  }
+
+  .pct-display {
+    font-size: clamp(52px, 14vw, 80px);
+    font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(135deg, #e94560, #f5a623);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -2px;
+    margin-bottom: 6px;
+    transition: opacity 0.3s;
+  }
+
+  .pct-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+
+  .progress-bar-outer {
+    width: 100%;
+    height: 22px;
+    background: var(--surface2);
+    border-radius: 11px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    position: relative;
+  }
+
+  .progress-bar-inner {
+    height: 100%;
+    border-radius: 11px;
+    background: linear-gradient(90deg, #e94560, #f5a623);
+    transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    min-width: 4px;
+  }
+
+  .progress-bar-inner::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 8px;
+    right: 8px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.25);
+  }
+
+  .progress-shine {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(90deg, transparent 60%, rgba(255,255,255,0.08) 100%);
+    pointer-events: none;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .stat-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 12px;
+    text-align: center;
+    transition: transform 0.15s;
+  }
+  .stat-box:hover { transform: translateY(-2px); }
+
+  .stat-val {
+    font-size: clamp(20px, 5vw, 26px);
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+  .stat-val.lived { color: #e94560; }
+  .stat-val.remain { color: #4ecdc4; }
+  .stat-val.years { color: var(--accent2); }
+  .stat-val.weeks { color: #a78bfa; }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+
+  .quote-box {
+    margin-top: 20px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(233,69,96,0.08), rgba(245,166,35,0.08));
+    border: 1px solid rgba(233,69,96,0.2);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    font-style: italic;
+    text-align: center;
+    transition: opacity 0.5s;
+  }
+
+  .dot-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 20px;
+    justify-content: flex-start;
+  }
+  .dot-grid-title {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    text-align: left;
+  }
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    transition: background 0.3s;
+  }
+  .dot.lived { background: linear-gradient(135deg, #e94560, #f5a623); }
+  .dot.future { background: var(--border); }
+
+  .placeholder-msg {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .realtime-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+  .realtime-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4ecdc4;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  @media (max-width: 400px) {
+    .card { padding: 18px 14px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat-box { padding: 12px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<div class="container">
+  <div class="header">
+    <h1>生命进度条</h1>
+    <p>时间流逝，每一刻都弥足珍贵</p>
+  </div>
+
+  <!-- 输入区 -->
+  <div class="card">
+    <div class="card-title">基本信息</div>
+    <div class="input-row">
+      <div class="input-group">
+        <label for="birthdate">出生日期</label>
+        <input type="date" id="birthdate" />
+      </div>
+    </div>
+    <div class="slider-wrap">
+      <div class="slider-label-row">
+        <span>预期寿命</span>
+        <span class="slider-val" id="lifespan-display">80 <small>岁</small></span>
+      </div>
+      <input type="range" id="lifespan-slider" min="50" max="120" value="80" step="1" />
+    </div>
+  </div>
+
+  <!-- 进度展示区 -->
+  <div class="card" id="result-card">
+    <div class="placeholder-msg" id="placeholder">
+      请填写出生日期以开始计算
+    </div>
+    <div id="result-content" style="display:none;">
+      <div class="progress-section">
+        <div class="pct-display" id="pct-display">0%</div>
+        <div class="pct-label">的人生已经走过</div>
+        <div class="progress-bar-outer">
+          <div class="progress-bar-inner" id="progress-bar" style="width:0%">
+            <div class="progress-shine"></div>
+          </div>
+        </div>
+        <div class="realtime-badge">
+          <div class="realtime-dot"></div>
+          实时更新中
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-val lived" id="stat-lived-days">0</div>
+          <div class="stat-label">已活天数</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val remain" id="stat-remain-days">0</div>
+          <div class="stat-label">剩余天数</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val years" id="stat-lived-years">0</div>
+          <div class="stat-label">已活年数</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val weeks" id="stat-lived-weeks">0</div>
+          <div class="stat-label">已活周数</div>
+        </div>
+      </div>
+
+      <div class="quote-box" id="quote-box"></div>
+
+      <div style="margin-top:20px;">
+        <div class="dot-grid-title">人生周数可视化（每点 = 1周，共 <span id="total-weeks-label">4160</span> 周）</div>
+        <div class="dot-grid" id="dot-grid"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "life_progress_v1";
+
+  var QUOTES = [
+    "人生天地之间，若白驹之过隙，忽然而已。——庄子",
+    "莫等闲，白了少年头，空悲切。——岳飞",
+    "花有重开日，人无再少年。——关汉卿",
+    "一寸光阴一寸金，寸金难买寸光阴。——增广贤文",
+    "时间是最公平的，每个人每天都只有二十四小时。",
+    "我们无法延长生命的长度，但可以决定它的宽度与深度。",
+    "今日事今日毕，莫将未来负今朝。",
+    "珍惜每一个当下，它将成为你最美的回忆。",
+    "生命不在于活得长，而在于活得值。",
+    "逝者如斯夫，不舍昼夜。——孔子"
+  ];
+
+  var birthdateInput = document.getElementById("birthdate");
+  var lifespanSlider = document.getElementById("lifespan-slider");
+  var lifespanDisplay = document.getElementById("lifespan-display");
+  var placeholder = document.getElementById("placeholder");
+  var resultContent = document.getElementById("result-content");
+  var pctDisplay = document.getElementById("pct-display");
+  var progressBar = document.getElementById("progress-bar");
+  var statLivedDays = document.getElementById("stat-lived-days");
+  var statRemainDays = document.getElementById("stat-remain-days");
+  var statLivedYears = document.getElementById("stat-lived-years");
+  var statLivedWeeks = document.getElementById("stat-lived-weeks");
+  var quoteBox = document.getElementById("quote-box");
+  var dotGrid = document.getElementById("dot-grid");
+  var totalWeeksLabel = document.getElementById("total-weeks-label");
+
+  var currentQuoteIndex = 0;
+  var updateTimer = null;
+
+  function formatNumber(n) {
+    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
+  function computeStats(birthDate, lifespanYears) {
+    var now = new Date();
+    var endDate = new Date(birthDate);
+    endDate.setFullYear(endDate.getFullYear() + lifespanYears);
+
+    var totalMs = endDate.getTime() - birthDate.getTime();
+    var livedMs = now.getTime() - birthDate.getTime();
+
+    var totalDays = Math.floor(totalMs / 86400000);
+    var livedDays = Math.floor(livedMs / 86400000);
+    var remainDays = totalDays - livedDays;
+    if (remainDays < 0) remainDays = 0;
+
+    var pct = totalDays > 0 ? (livedDays / totalDays) : 0;
+    if (pct > 1) pct = 1;
+    if (pct < 0) pct = 0;
+
+    var livedYears = (livedMs / (365.25 * 86400000));
+    var livedWeeks = Math.floor(livedDays / 7);
+    var totalWeeks = Math.floor(totalDays / 7);
+
+    return {
+      pct: pct,
+      livedDays: livedDays,
+      remainDays: remainDays,
+      livedYears: livedYears,
+      livedWeeks: livedWeeks,
+      totalWeeks: totalWeeks,
+      totalDays: totalDays
+    };
+  }
+
+  function renderDotGrid(livedWeeks, totalWeeks) {
+    var capped = Math.min(totalWeeks, 1200);
+    var livedCapped = Math.min(livedWeeks, capped);
+    var frag = document.createDocumentFragment();
+
+    for (var i = 0; i < capped; i++) {
+      var dot = document.createElement("div");
+      dot.className = "dot " + (i < livedCapped ? "lived" : "future");
+      frag.appendChild(dot);
+    }
+    dotGrid.innerHTML = "";
+    dotGrid.appendChild(frag);
+  }
+
+  function render() {
+    var birthVal = birthdateInput.value;
+    var lifespan = parseInt(lifespanSlider.value, 10);
+
+    lifespanDisplay.innerHTML = lifespan + ' <small>岁</small>';
+
+    if (!birthVal) {
+      placeholder.style.display = "";
+      resultContent.style.display = "none";
+      return;
+    }
+
+    var birthDate = new Date(birthVal + "T00:00:00");
+    if (isNaN(birthDate.getTime())) {
+      placeholder.style.display = "";
+      resultContent.style.display = "none";
+      return;
+    }
+
+    var now = new Date();
+    if (birthDate > now) {
+      placeholder.innerHTML = "出生日期不能是未来日期";
+      placeholder.style.display = "";
+      resultContent.style.display = "none";
+      return;
+    }
+
+    placeholder.style.display = "none";
+    resultContent.style.display = "";
+
+    var s = computeStats(birthDate, lifespan);
+
+    var pctText = (s.pct * 100).toFixed(4) + "%";
+    pctDisplay.textContent = (s.pct * 100).toFixed(2) + "%";
+    progressBar.style.width = (s.pct * 100).toFixed(4) + "%";
+    progressBar.setAttribute("aria-valuenow", pctText);
+
+    statLivedDays.textContent = formatNumber(s.livedDays);
+    statRemainDays.textContent = formatNumber(s.remainDays);
+    statLivedYears.textContent = s.livedYears.toFixed(2);
+    statLivedWeeks.textContent = formatNumber(s.livedWeeks);
+
+    totalWeeksLabel.textContent = formatNumber(Math.min(s.totalWeeks, 1200)) + (s.totalWeeks > 1200 ? "（截取前1200）" : "");
+
+    renderDotGrid(s.livedWeeks, s.totalWeeks);
+  }
+
+  function cycleQuote() {
+    currentQuoteIndex = (currentQuoteIndex + 1) % QUOTES.length;
+    quoteBox.style.opacity = "0";
+    setTimeout(function () {
+      quoteBox.textContent = QUOTES[currentQuoteIndex];
+      quoteBox.style.opacity = "1";
+    }, 300);
+  }
+
+  function saveToStorage() {
+    try {
+      var data = {
+        birthdate: birthdateInput.value,
+        lifespan: lifespanSlider.value
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {}
+  }
+
+  function loadFromStorage() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      if (data.birthdate) birthdateInput.value = data.birthdate;
+      if (data.lifespan) lifespanSlider.value = data.lifespan;
+    } catch (e) {}
+  }
+
+  function startAutoUpdate() {
+    if (updateTimer) clearInterval(updateTimer);
+    updateTimer = setInterval(render, 1000);
+  }
+
+  function init() {
+    loadFromStorage();
+    quoteBox.textContent = QUOTES[0];
+    render();
+    startAutoUpdate();
+    setInterval(cycleQuote, 8000);
+  }
+
+  birthdateInput.addEventListener("input", function () {
+    saveToStorage();
+    render();
+  });
+
+  lifespanSlider.addEventListener("input", function () {
+    saveToStorage();
+    render();
+  });
+
+  init();
+
+}());
+</script>
+</body>
+</html>
