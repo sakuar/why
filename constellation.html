@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星座物语</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a1a;
+    --card-bg: rgba(20, 20, 50, 0.85);
+    --accent: #a78bfa;
+    --accent2: #f472b6;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --border: rgba(167, 139, 250, 0.25);
+    --glow: rgba(167, 139, 250, 0.15);
+    --radius: 16px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* 星空背景 */
+  #starfield {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 14px; left: 16px;
+    z-index: 100;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+  .back-link:hover { opacity: 1; color: var(--accent); }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 60px 20px 40px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  header h1 {
+    font-size: clamp(28px, 6vw, 48px);
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 4px;
+    text-shadow: none;
+  }
+  header p {
+    color: var(--muted);
+    margin-top: 10px;
+    font-size: 15px;
+    letter-spacing: 1px;
+  }
+
+  /* 星座选择网格 */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .sign-btn {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 6px 10px;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    color: var(--text);
+    user-select: none;
+    backdrop-filter: blur(8px);
+  }
+  .sign-btn:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent);
+    box-shadow: 0 8px 24px var(--glow);
+  }
+  .sign-btn.active {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(167,139,250,0.2), rgba(244,114,182,0.15));
+    box-shadow: 0 0 20px var(--glow);
+    transform: translateY(-3px);
+  }
+  .sign-btn .symbol {
+    font-size: 28px;
+    display: block;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .sign-btn .name {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* 详情卡片 */
+  #detail-area {
+    animation: fadeIn 0.4s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .detail-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px var(--border);
+  }
+
+  .detail-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+  .detail-symbol {
+    font-size: 64px;
+    line-height: 1;
+    filter: drop-shadow(0 0 12px var(--accent));
+  }
+  .detail-title h2 {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .detail-title .date-range {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+  }
+  .detail-title .element-badge {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .info-item {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .info-item .label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+  }
+  .info-item .value {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .traits-section {
+    margin-bottom: 24px;
+  }
+  .section-title {
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+  .trait-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .trait-tag {
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    background: rgba(167,139,250,0.12);
+    border: 1px solid rgba(167,139,250,0.25);
+    color: var(--accent);
+    font-weight: 500;
+    transition: background 0.2s;
+  }
+  .trait-tag:hover {
+    background: rgba(167,139,250,0.22);
+  }
+
+  .lucky-section {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .lucky-item {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+  }
+  .lucky-item .lucky-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .lucky-item .lucky-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .color-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+
+  .compatible-section { margin-bottom: 8px; }
+  .compat-signs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .compat-sign {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    background: rgba(244,114,182,0.1);
+    border: 1px solid rgba(244,114,182,0.25);
+    color: var(--accent2);
+    font-weight: 500;
+  }
+  .compat-sign span:first-child { font-size: 18px; }
+
+  .desc-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
+  /* 今日运势 */
+  .fortune-card {
+    margin-top: 20px;
+    background: linear-gradient(135deg, rgba(167,139,250,0.1), rgba(244,114,182,0.08));
+    border: 1px solid rgba(167,139,250,0.2);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .fortune-card .section-title { margin-bottom: 10px; }
+  .fortune-stars {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+  .fortune-text {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  /* 收藏按钮 */
+  .fav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 20px;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+  .fav-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .fav-btn.fav-active { background: rgba(244,114,182,0.15); border-color: var(--accent2); color: var(--accent2); }
+
+  .placeholder {
+    text-align: center;
+    color: var(--muted);
+    padding: 60px 20px;
+    font-size: 15px;
+  }
+  .placeholder .big-icon { font-size: 48px; margin-bottom: 16px; }
+
+  @media (max-width: 480px) {
+    .grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .sign-btn { padding: 10px 4px 8px; }
+    .sign-btn .symbol { font-size: 22px; }
+    .sign-btn .name { font-size: 11px; }
+    .detail-card { padding: 20px; }
+    .detail-symbol { font-size: 48px; }
+    .lucky-section { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .info-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .detail-header { gap: 14px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<a class="back-link" href="index.html">← 入口</a>
+
+<div class="container">
+  <header>
+    <h1>✦ 星座物语 ✦</h1>
+    <p>探索十二星座的神秘世界</p>
+  </header>
+
+  <div class="grid" id="sign-grid"></div>
+
+  <div id="detail-area">
+    <div class="placeholder">
+      <div class="big-icon">✨</div>
+      <p>选择一个星座，探索它的秘密</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============ 数据 ============ */
+  var SIGNS = [
+    {
+      id: "aries",
+      name: "白羊座",
+      symbol: "♈",
+      dates: "3月21日 — 4月19日",
+      element: "火象",
+      elementColor: "#ff6b6b",
+      planet: "火星",
+      traits: ["热情", "勇敢", "冲动", "活力四射", "领导力强", "直接坦率"],
+      luckyColor: "红色",
+      luckyColorHex: "#e53e3e",
+      luckyNumber: "9",
+      luckyDay: "周二",
+      compatible: ["狮子座", "射手座", "双子座"],
+      compatSymbols: ["♌", "♐", "♊"],
+      desc: "白羊座是黄道十二宫的第一个星座，象征着新生与开始。他们生来就有一股勇往直前的冲劲，敢于面对挑战，是天生的开拓者。白羊座的人充满活力，做事雷厉风行，有时显得过于冲动，但这也正是他们迷人之处——真实而不做作。",
+      fortunes: [
+        "今天运势不错，适合大胆表达自己的想法，机会就在眼前。",
+        "贵人运旺盛，多与朋友沟通交流，意外收获良多。",
+        "适合开展新项目，你的热情会感染周围所有人。",
+        "感情上需要多一些耐心，冲动之下容易伤了对方。"
+      ]
+    },
+    {
+      id: "taurus",
+      name: "金牛座",
+      symbol: "♉",
+      dates: "4月20日 — 5月20日",
+      element: "土象",
+      elementColor: "#68d391",
+      planet: "金星",
+      traits: ["稳重", "务实", "固执", "享受生活", "忠诚", "耐心十足"],
+      luckyColor: "绿色",
+      luckyColorHex: "#38a169",
+      luckyNumber: "6",
+      luckyDay: "周五",
+      compatible: ["处女座", "摩羯座", "巨蟹座"],
+      compatSymbols: ["♍", "♑", "♋"],
+      desc: "金牛座由金星守护，是十二星座中最注重物质享受与内心安全感的星座。他们做事脚踏实地，意志坚定，一旦认定目标便绝不轻易放弃。金牛座的人热爱美食、音乐与一切美好事物，是最懂得享受生活的星座之一。",
+      fortunes: [
+        "财运稳定，适合做长期投资规划，不要轻信捷径。",
+        "今天最适合在家享受宁静，给自己充个电。",
+        "工作上的坚持终于得到认可，坚守本心有回报。",
+        "感情温馨，珍惜当下，陪伴胜过一切。"
+      ]
+    },
+    {
+      id: "gemini",
+      name: "双子座",
+      symbol: "♊",
+      dates: "5月21日 — 6月21日",
+      element: "风象",
+      elementColor: "#76e4f7",
+      planet: "水星",
+      traits: ["机智", "善变", "好奇", "口才出众", "社交达人", "思维敏捷"],
+      luckyColor: "黄色",
+      luckyColorHex: "#ecc94b",
+      luckyNumber: "5",
+      luckyDay: "周三",
+      compatible: ["天秤座", "水瓶座", "白羊座"],
+      compatSymbols: ["♎", "♒", "♈"],
+      desc: "双子座由水星守护，是十二星座中最富变化与创意的星座。他们思维活跃，善于表达，总能在人群中成为焦点。双子座的人天生好奇，对一切新鲜事物都充满热情，但也因为兴趣太广泛，有时显得三心二意。",
+      fortunes: [
+        "今天灵感如泉涌，把那些创意都记下来，未来会用到。",
+        "社交运佳，多参加聚会，会遇到志同道合的新朋友。",
+        "思维跳跃，注意整理思路，避免重要事项遗漏。",
+        "感情需要专一，多重选择只会让你和对方都感到迷茫。"
+      ]
+    },
+    {
+      id: "cancer",
+      name: "巨蟹座",
+      symbol: "♋",
+      dates: "6月22日 — 7月22日",
+      element: "水象",
+      elementColor: "#90cdf4",
+      planet: "月亮",
+      traits: ["感性", "顾家", "直觉敏锐", "善良体贴", "情绪化", "保护欲强"],
+      luckyColor: "银白色",
+      luckyColorHex: "#a0aec0",
+      luckyNumber: "2",
+      luckyDay: "周一",
+      compatible: ["天蝎座", "双鱼座", "金牛座"],
+      compatSymbols: ["♏", "♓", "♉"],
+      desc: "巨蟹座由月亮守护，是十二星座中最感性、最重视家庭的星座。他们有着丰富细腻的内心世界，直觉极强，能够敏锐感知他人的情绪变化。巨蟹座的人将家人与挚友视为生命中最重要的事，是最温暖可靠的伴侣与朋友。",
+      fortunes: [
+        "家庭运势温暖，适合和家人共度美好时光。",
+        "直觉告诉你的事情要相信，今天的第六感很准。",
+        "情绪有些波动，学会表达内心感受，别憋在心里。",
+        "感情深厚，真诚付出终会得到同样珍贵的回应。"
+      ]
+    },
+    {
+      id: "leo",
+      name: "狮子座",
+      symbol: "♌",
+      dates: "7月23日 — 8月22日",
+      element: "火象",
+      elementColor: "#ff6b6b",
+      planet: "太阳",
+      traits: ["自信", "慷慨", "表现欲强", "霸气", "忠诚", "戏剧感十足"],
+      luckyColor: "金色",
+      luckyColorHex: "#f6ad55",
+      luckyNumber: "1",
+      luckyDay: "周日",
+      compatible: ["白羊座", "射手座", "双子座"],
+      compatSymbols: ["♈", "♐", "♊"],
+      desc: "狮子座由太阳守护，是最具王者气质的星座。他们天生自带光芒，走进任何场合都能成为焦点。狮子座慷慨大方，极度忠诚，对待朋友和爱人都会全力以赴。他们渴望被认可与赞美，这是他们力量的来源，也是其软肋。",
+      fortunes: [
+        "今天你的气场强大，适合出席重要场合展示自己。",
+        "创造力爆棚，艺术与表达方面有惊喜。",
+        "领导能力受到肯定，机遇就在你的光芒之中。",
+        "感情方面，给予对方更多空间，爱不是占有。"
+      ]
+    },
+    {
+      id: "virgo",
+      name: "处女座",
+      symbol: "♍",
+      dates: "8月23日 — 9月22日",
+      element: "土象",
+      elementColor: "#68d391",
+      planet: "水星",
+      traits: ["完美主义", "细心", "分析力强", "谦逊", "挑剔", "勤劳踏实"],
+      luckyColor: "米白色",
+      luckyColorHex: "#f7fafc",
+      luckyNumber: "4",
+      luckyDay: "周三",
+      compatible: ["金牛座", "摩羯座", "天蝎座"],
+      compatSymbols: ["♉", "♑", "♏"],
+      desc: "处女座由水星守护，是十二星座中最追求完美、最注重细节的星座。他们头脑清晰，分析能力超强，对工作极度认真负责。处女座有时会因为标准太高而显得挑剔，但其出发点始终是希望一切更好——包括对自己和对身边的人。",
+      fortunes: [
+        "工作细节处见成效，今天的认真会让领导刮目相看。",
+        "健康运势提醒你注意作息规律，养成好习惯。",
+        "适合整理和规划，清晰的计划会让你更有安全感。",
+        "感情中学会接受不完美，真实比完美更珍贵。"
+      ]
+    },
+    {
+      id: "libra",
+      name: "天秤座",
+      symbol: "♎",
+      dates: "9月23日 — 10月23日",
+      element: "风象",
+      elementColor: "#76e4f7",
+      planet: "金星",
+      traits: ["公平", "优雅", "社交能力强", "优柔寡断", "爱好和平", "艺术感强"],
+      luckyColor: "粉色",
+      luckyColorHex: "#ed64a6",
+      luckyNumber: "7",
+      luckyDay: "周五",
+      compatible: ["双子座", "水瓶座", "狮子座"],
+      compatSymbols: ["♊", "♒", "♌"],
+      desc: "天秤座由金星守护，是十二星座中最具优雅气质与审美品味的星座。他们天性追求和谐与平衡，讨厌冲突，总是努力在各方之间寻求公平解决方案。天秤座的人极具魅力，善于交际，是公认的外交家，但在决策时往往难以取舍。",
+      fortunes: [
+        "人际关系顺畅，今天适合化解过往的误会与矛盾。",
+        "审美灵感涌现，可以在艺术创作上有所表达。",
+        "保持内心的平衡，不要因外界评价而动摇自我。",
+        "感情甜蜜，共同规划未来的事情让彼此更亲密。"
+      ]
+    },
+    {
+      id: "scorpio",
+      name: "天蝎座",
+      symbol: "♏",
+      dates: "10月24日 — 11月22日",
+      element: "水象",
+      elementColor: "#90cdf4",
+      planet: "冥王星",
+      traits: ["神秘", "深刻", "洞察力强", "意志坚定", "占有欲强", "爱憎分明"],
+      luckyColor: "深红色",
+      luckyColorHex: "#c53030",
+      luckyNumber: "8",
+      luckyDay: "周二",
+      compatible: ["巨蟹座", "双鱼座", "处女座"],
+      compatSymbols: ["♋", "♓", "♍"],
+      desc: "天蝎座由冥王星守护，是十二星座中最神秘、最具深度的星座。他们拥有超凡的洞察力，能看穿人心，绝不轻易吐露真实想法。天蝎座感情浓烈，爱起来全力以赴，一旦被背叛则绝不手软。他们是最危险的敌人，也是最忠诚的盟友。",
+      fortunes: [
+        "直觉极其准确，信任内心的感应，尤其在财务上。",
+        "隐藏的机会正在浮现，耐心等待最佳时机出手。",
+        "内心深处的转变正在发生，允许自己蜕变。",
+        "感情需要信任，放下控制欲，才能真正靠近对方。"
+      ]
+    },
+    {
+      id: "sagittarius",
+      name: "射手座",
+      symbol: "♐",
+      dates: "11月23日 — 12月21日",
+      element: "火象",
+      elementColor: "#ff6b6b",
+      planet: "木星",
+      traits: ["乐观", "自由", "哲学思维", "坦率直接", "好冒险", "不羁"],
+      luckyColor: "紫色",
+      luckyColorHex: "#805ad5",
+      luckyNumber: "3",
+      luckyDay: "周四",
+      compatible: ["白羊座", "狮子座", "天秤座"],
+      compatSymbols: ["♈", "♌", "♎"],
+      desc: "射手座由木星守护，是十二星座中最热爱自由与冒险的星座。他们乐观开朗，对世界充满好奇，渴望探索未知领域。射手座有着深刻的哲学思考，说话直接不拐弯抹角，有时言语太过直白会伤人，但绝无恶意——诚实是他们的本色。",
+      fortunes: [
+        "冒险运势大开，适合尝试新事物或规划一次旅行。",
+        "哲学思维活跃，阅读或学习会给你带来深刻启示。",
+        "乐观的态度今天特别有感召力，带动周围的人。",
+        "感情中给彼此自由空间，爱在自由中才能长久。"
+      ]
+    },
+    {
+      id: "capricorn",
+      name: "摩羯座",
+      symbol: "♑",
+      dates: "12月22日 — 1月19日",
+      element: "土象",
+      elementColor: "#68d391",
+      planet: "土星",
+      traits: ["野心勃勃", "自律", "责任感强", "实际", "耐力超强", "成熟稳重"],
+      luckyColor: "墨绿色",
+      luckyColorHex: "#276749",
+      luckyNumber: "8",
+      luckyDay: "周六",
+      compatible: ["金牛座", "处女座", "天蝎座"],
+      compatSymbols: ["♉", "♍", "♏"],
+      desc: "摩羯座由土星守护，是十二星座中最具雄心与自律精神的星座。他们将目标视为生命意义，脚踏实地、一步一步向上攀登。摩羯座表面冷峻，实则内心深情，对家人和挚友极度负责。时间是他们最好的朋友——年龄越大，他们越懂得享受生活。",
+      fortunes: [
+        "事业运势稳步上升，今天的努力是明天成功的基石。",
+        "财务规划执行有序，投资眼光准确，稳中有进。",
+        "长期坚持的事情开始显现成果，坚持就是胜利。",
+        "感情中多一些温柔表达，别让对方猜测你的心意。"
+      ]
+    },
+    {
+      id: "aquarius",
+      name: "水瓶座",
+      symbol: "♒",
+      dates: "1月20日 — 2月18日",
+      element: "风象",
+      elementColor: "#76e4f7",
+      planet: "天王星",
+      traits: ["独立", "前卫", "人道主义", "思维独特", "不走寻常路", "理性冷静"],
+      luckyColor: "天蓝色",
+      luckyColorHex: "#3182ce",
+      luckyNumber: "11",
+      luckyDay: "周六",
+      compatible: ["双子座", "天秤座", "射手座"],
+      compatSymbols: ["♊", "♎", "♐"],
+      desc: "水瓶座由天王星守护，是十二星座中最具革命精神与前瞻眼光的星座。他们思想超前，拒绝被条框束缚，总是以独特的视角审视世界。水瓶座有强烈的人道主义情怀，关注社会与未来，但在私人感情上往往显得疏离，需要大量独处空间。",
+      fortunes: [
+        "创新思维今天格外活跃，大胆提出你的不同想法。",
+        "科技与未来相关的事情运势极佳，把握机遇。",
+        "人道主义行动获得回报，善意会以意想不到的方式回归。",
+        "感情中主动靠近，别让独立成为隔绝亲密的借口。"
+      ]
+    },
+    {
+      id: "pisces",
+      name: "双鱼座",
+      symbol: "♓",
+      dates: "2月19日 — 3月20日",
+      element: "水象",
+      elementColor: "#90cdf4",
+      planet: "海王星",
+      traits: ["富有同情心", "浪漫", "直觉敏锐", "善良无私", "爱幻想", "容易迷失"],
+      luckyColor: "海蓝色",
+      luckyColorHex: "#2b6cb0",
+      luckyNumber: "7",
+      luckyDay: "周四",
+      compatible: ["巨蟹座", "天蝎座", "摩羯座"],
+      compatSymbols: ["♋", "♏", "♑"],
+      desc: "双鱼座由海王星守护，是十二星座中最富浪漫色彩与灵性深度的星座。他们善良无私，感同身受的能力极强，是天生的艺术家与治愈者。双鱼座活在半梦半醒之间，现实与幻想的界限对他们来说往往模糊，需要学会保护自己敏感的内心世界。",
+      fortunes: [
+        "艺术灵感丰沛，今天创作的东西会带有独特的美感。",
+        "直觉与梦境都在传递信息，留意这些微妙的信号。",
+        "善意的帮助今天会产生意想不到的涟漪效应。",
+        "感情浪漫升温，给彼此制造一个小小的惊喜吧。"
+      ]
+    }
+  ];
+
+  /* ============ 状态 ============ */
+  var currentSign = null;
+  var favorites = [];
+  var detailKey = null;
+
+  /* ============ 工具函数 ============ */
+  function loadFavorites() {
+    try {
+      var raw = localStorage.getItem("constellation_favorites");
+      favorites = raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      favorites = [];
+    }
+  }
+
+  function saveFavorites() {
+    try {
+      localStorage.setItem("constellation_favorites", JSON.stringify(favorites));
+    } catch (e) {}
+  }
+
+  function isFavorite(id) {
+    return favorites.indexOf(id) !== -1;
+  }
+
+  function toggleFavorite(id) {
+    var idx = favorites.indexOf(id);
+    if (idx === -1) {
+      favorites.push(id);
+    } else {
+      favorites.splice(idx, 1);
+    }
+    saveFavorites();
+  }
+
+  function getDailyFortune(sign) {
+    var today = new Date();
+    var seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate() + sign.id.length;
+    return sign.fortunes[seed % sign.fortunes.length];
+  }
+
+  function getFortuneStars(sign) {
+    var today = new Date();
+    var seed = today.getFullYear() * 100 + today.getDate() + sign.name.charCodeAt(0);
+    var count = (seed % 3) + 3;
+    var stars = "";
+    for (var i = 0; i < 5; i++) {
+      stars += i < count ? "★" : "☆";
+    }
+    return stars;
+  }
+
+  function getElementLabel(element) {
+    return element;
+  }
+
+  /* ============ 渲染 ============ */
+  function renderGrid() {
+    var grid = document.getElementById("sign-grid");
+    if (!grid) return;
+    var html = "";
+    for (var i = 0; i < SIGNS.length; i++) {
+      var s = SIGNS[i];
+      html += '<button class="sign-btn" data-id="' + s.id + '" aria-label="' + s.name + '">'
+        + '<span class="symbol">' + s.symbol + '</span>'
+        + '<span class="name">' + s.name + '</span>'
+        + '</button>';
+    }
+    grid.innerHTML = html;
+
+    var btns = grid.querySelectorAll(".sign-btn");
+    for (var j = 0; j < btns.length; j++) {
+      btns[j].addEventListener("click", function () {
+        var id = this.getAttribute("data-id");
+        selectSign(id);
+      });
+    }
+  }
+
+  function selectSign(id) {
+    currentSign = null;
+    for (var i = 0; i < SIGNS.length; i++) {
+      if (SIGNS[i].id === id) { currentSign = SIGNS[i]; break; }
+    }
+    if (!currentSign) return;
+
+    try { localStorage.setItem("constellation_last", id); } catch (e) {}
+
+    var btns = document.querySelectorAll(".sign-btn");
+    for (var j = 0; j < btns.length; j++) {
+      btns[j].classList.toggle("active", btns[j].getAttribute("data-id") === id);
+    }
+
+    renderDetail(currentSign);
+  }
+
+  function renderDetail(sign) {
+    var area = document.getElementById("detail-area");
+    if (!area) return;
+
+    var fav = isFavorite(sign.id);
+    var fortune = getDailyFortune(sign);
+    var stars = getFortuneStars(sign);
+
+    var compatHTML = "";
+    for (var i = 0; i < sign.compatible.length; i++) {
+      compatHTML += '<span class="compat-sign"><span>' + sign.compatSymbols[i] + '</span><span>' + sign.compatible[i] + '</span></span>';
+    }
+
+    var traitHTML = "";
+    for (var k = 0; k < sign.traits.length; k++) {
+      traitHTML += '<span class="trait-tag">' + sign.traits[k] + '</span>';
+    }
+
+    var html = '<div class="detail-card" id="detail-card">'
+      + '<div class="detail-header">'
+      + '<div class="detail-symbol">' + sign.symbol + '</div>'
+      + '<div class="detail-title">'
+      + '<h2>' + sign.name + '</h2>'
+      + '<div class="date-range">' + sign.dates + '</div>'
+      + '<span class="element-badge" style="background:' + sign.elementColor + '22;color:' + sign.elementColor + ';border:1px solid ' + sign.elementColor + '44">' + sign.element + '</span>'
+      + '</div>'
+      + '</div>'
+
+      + '<div class="info-grid">'
+      + '<div class="info-item"><div class="label">守护星</div><div class="value">🪐 ' + sign.planet + '</div></div>'
+      + '<div class="info-item"><div class="label">元素</div><div class="value">' + getElementLabel(sign.element) + '</div></div>'
+      + '<div class="info-item"><div class="label">幸运日</div><div class="value">📅 ' + sign.luckyDay + '</div></div>'
+      + '<div class="info-item"><div class="label">幸运数字</div><div class="value">🔢 ' + sign.luckyNumber + '</div></div>'
+      + '</div>'
+
+      + '<div class="lucky-section">'
+      + '<div class="lucky-item"><div class="lucky-label">幸运色</div><div class="lucky-value"><span class="color-dot" style="background:' + sign.luckyColorHex + '"></span>' + sign.luckyColor + '</div></div>'
+      + '<div class="lucky-item"><div class="lucky-label">幸运数</div><div class="lucky-value">' + sign.luckyNumber + '</div></div>'
+      + '<div class="lucky-item"><div class="lucky-label">守护星</div><div class="lucky-value">' + sign.planet + '</div></div>'
+      + '</div>'
+
+      + '<div class="traits-section"><div class="section-title">性格特点</div><div class="trait-tags">' + traitHTML + '</div></div>'
+
+      + '<div class="compatible-section"><div class="section-title">最配星座</div><div class="compat-signs">' + compatHTML + '</div></div>'
+
+      + '<div class="desc-section">' + sign.desc + '</div>'
+
+      + '<div class="fortune-card">'
+      + '<div class="section-title">今日运势</div>'
+      + '<div class="fortune-stars" style="color:#f6ad55">' + stars + '</div>'
+      + '<div class="fortune-text">' + fortune + '</div>'
+      + '</div>'
+
+      + '<button class="fav-btn' + (fav ? ' fav-active' : '') + '" id="fav-btn" aria-label="收藏">'
+      + (fav ? '♥ 已收藏' : '♡ 加入收藏')
+      + '</button>'
+      + '</div>';
+
+    area.innerHTML = html;
+
+    var favBtn = document.getElementById("fav-btn");
+    if (favBtn) {
+      detailKey = sign.id;
+      favBtn.addEventListener("click", function () {
+        toggleFavorite(detailKey);
+        var isFav = isFavorite(detailKey);
+        this.textContent = isFav ? "♥ 已收藏" : "♡ 加入收藏";
+        this.classList.toggle("fav-active", isFav);
+      });
+    }
+  }
+
+  /* ============ 星空画布 ============ */
+  function initStarfield() {
+    var canvas = document.getElementById("starfield");
+    if (!canvas) return;
+    var ctx = canvas.getContext("2d");
+
+    var stars = [];
+    var W = 0;
+    var H = 0;
+    var animFrame = null;
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+
+    function createStars() {
+      stars = [];
+      var count = Math.floor((W * H) / 8000);
+      for (var i = 0; i < count; i++) {
+        stars.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          r: Math.random() * 1.5 + 0.2,
+          alpha: Math.random() * 0.8 + 0.2,
+          speed: Math.random() * 0.004 + 0.001,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+    }
+
+    var t = 0;
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      t += 0.015;
+      for (var i = 0; i < stars.length; i++) {
+        var s = stars[i];
+        var a = s.alpha * (0.6 + 0.4 * Math.sin(t * s.speed * 80 + s.phase));
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(200, 200, 255, " + a + ")";
+        ctx.fill();
+      }
+      animFrame = requestAnimationFrame(draw);
+    }
+
+    window.addEventListener("resize", function () {
+      resize();
+      createStars();
+    });
+
+    resize();
+    createStars();
+    draw();
+  }
+
+  /* ============ 初始化 ============ */
+  function init() {
+    loadFavorites();
+    renderGrid();
+    initStarfield();
+
+    try {
+      var last = localStorage.getItem("constellation_last");
+      if (last) { selectSign(last); }
+    } catch (e) {}
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>
