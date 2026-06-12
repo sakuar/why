@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>随机冷知识</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f0f4ff;
+    --surface: #ffffff;
+    --primary: #4f6ef7;
+    --primary-dark: #3a57e8;
+    --accent: #ff6b6b;
+    --text: #1a1a2e;
+    --text-muted: #6b7280;
+    --card-front: linear-gradient(135deg, #4f6ef7 0%, #7c3aed 100%);
+    --card-back: #ffffff;
+    --shadow: 0 8px 32px rgba(79,110,247,0.15);
+    --radius: 20px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 60px;
+    color: var(--text);
+    background-image: radial-gradient(circle at 20% 20%, rgba(79,110,247,0.08) 0%, transparent 50%),
+                      radial-gradient(circle at 80% 80%, rgba(124,58,237,0.08) 0%, transparent 50%);
+  }
+
+  .back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    z-index: 100;
+  }
+  .back-link:hover { opacity: 1; }
+
+  header {
+    margin-top: 16px;
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  header h1 {
+    font-size: clamp(24px, 6vw, 36px);
+    font-weight: 800;
+    background: linear-gradient(135deg, #4f6ef7, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+  header p {
+    margin-top: 8px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .counter-row {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .counter-item {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 10px 20px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    min-width: 90px;
+  }
+  .counter-item .num {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .counter-item .label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* Card flip */
+  .scene {
+    width: 100%;
+    max-width: 480px;
+    height: 280px;
+    perspective: 1000px;
+    margin-bottom: 36px;
+  }
+  .card {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+  }
+  .card.flipped { transform: rotateY(180deg); }
+  .card-face {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 28px;
+  }
+  .card-front {
+    background: var(--card-front);
+    box-shadow: var(--shadow);
+    flex-direction: column;
+    gap: 12px;
+  }
+  .card-front .icon {
+    font-size: 48px;
+    line-height: 1;
+  }
+  .card-front .hint {
+    color: rgba(255,255,255,0.85);
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .card-front .tap-hint {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    margin-top: 4px;
+  }
+
+  .card-back {
+    background: var(--card-back);
+    transform: rotateY(180deg);
+    box-shadow: var(--shadow);
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 12px;
+  }
+  .card-back .cat-tag {
+    font-size: 11px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #4f6ef7, #7c3aed);
+    color: #fff;
+    border-radius: 20px;
+    padding: 3px 10px;
+    letter-spacing: 0.5px;
+  }
+  .card-back .fact-text {
+    font-size: clamp(14px, 3.5vw, 17px);
+    line-height: 1.75;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .card-back .fact-source {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .btn {
+    border: none;
+    border-radius: 50px;
+    padding: 14px 32px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
+    outline: none;
+    letter-spacing: 0.3px;
+  }
+  .btn:active { transform: scale(0.96); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #4f6ef7, #7c3aed);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(79,110,247,0.4);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 6px 28px rgba(79,110,247,0.55);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--primary);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    border: 2px solid rgba(79,110,247,0.2);
+  }
+  .btn-secondary:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 16px rgba(79,110,247,0.2);
+    transform: translateY(-1px);
+  }
+
+  .history-section {
+    width: 100%;
+    max-width: 480px;
+    margin-top: 48px;
+  }
+  .history-section h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .history-item {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.6;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    border-left: 3px solid var(--primary);
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .clear-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: 8px;
+    text-decoration: underline;
+    padding: 0;
+  }
+  .clear-btn:hover { color: var(--accent); }
+
+  .history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  @media (max-width: 480px) {
+    .scene { height: 260px; }
+    .card-face { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<header>
+  <h1>随机冷知识</h1>
+  <p>每次一条，打开新世界的大门</p>
+</header>
+
+<div class="counter-row">
+  <div class="counter-item">
+    <div class="num" id="totalCount">0</div>
+    <div class="label">已刷条数</div>
+  </div>
+  <div class="counter-item">
+    <div class="num" id="todayCount">0</div>
+    <div class="label">今日已刷</div>
+  </div>
+</div>
+
+<div class="scene">
+  <div class="card" id="card">
+    <div class="card-face card-front" id="cardFront">
+      <div class="icon">🧠</div>
+      <div class="hint">点击"来一条"获取冷知识</div>
+      <div class="tap-hint">或点击卡片翻转</div>
+    </div>
+    <div class="card-face card-back" id="cardBack">
+      <span class="cat-tag" id="factCat">冷知识</span>
+      <div class="fact-text" id="factText"></div>
+      <div class="fact-source" id="factSource"></div>
+    </div>
+  </div>
+</div>
+
+<div class="btn-row">
+  <button class="btn btn-primary" id="btnNew">来一条 ✨</button>
+  <button class="btn btn-secondary" id="btnAgain">再来一条 🔄</button>
+</div>
+
+<div class="history-section">
+  <div class="history-header">
+    <h2>最近浏览</h2>
+    <button class="clear-btn" id="btnClear">清除记录</button>
+  </div>
+  <div class="history-list" id="historyList"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var facts = [
+    { text: "章鱼有三个心脏，两个用于将血液泵到鳃部，一个将血液泵到全身。", cat: "动物", source: "海洋生物学" },
+    { text: "蜂鸟是唯一能向后飞行的鸟类。", cat: "动物", source: "鸟类学" },
+    { text: "人类一生中平均要走约 16 万公里的路，相当于绕地球四圈。", cat: "人体", source: "统计学" },
+    { text: "香蕉从植物学上来说是浆果，而草莓却不是。", cat: "植物", source: "植物学" },
+    { text: "海马是自然界中极少数由雄性负责怀孕生育的动物。", cat: "动物", source: "海洋生物学" },
+    { text: "猫咪发出呼噜声的频率（25–150Hz）与促进骨骼愈合的频率范围重叠。", cat: "动物", source: "兽医学" },
+    { text: "人体内的细菌数量与人体细胞数量大致相当，约各 38 万亿个。", cat: "人体", source: "微生物学" },
+    { text: "蜗牛可以在壳内冬眠长达三年。", cat: "动物", source: "动物学" },
+    { text: "一天中大约有 1000 亿个神经元在你的大脑里相互传递信号。", cat: "人体", source: "神经科学" },
+    { text: "鲨鱼比恐龙出现的时间还要早约两亿年。", cat: "动物", source: "古生物学" },
+    { text: "蓝鲸的心脏大约有一辆小汽车那么大，心跳慢至每分钟 2 次。", cat: "动物", source: "海洋生物学" },
+    { text: "人在打喷嚏时眼睛会不自觉地闭上，这是保护性反射，并非真的会飞出眼球。", cat: "人体", source: "生理学" },
+    { text: "土星的密度比水还低，如果有足够大的浴缸，土星可以漂浮在水上。", cat: "天文", source: "天文学" },
+    { text: "蚂蚁没有肺，它们通过身体侧面的小孔（气孔）呼吸。", cat: "动物", source: "昆虫学" },
+    { text: "世界上最古老的树木是一棵名叫"玛士撒拉"的狐尾松，已超过 4800 岁。", cat: "植物", source: "树木学" },
+    { text: "章鱼的血液是蓝色的，因为含有铜基血蓝蛋白而非铁基血红蛋白。", cat: "动物", source: "生物化学" },
+    { text: "人类的指纹在受孕后约 3 个月就已形成，且终身不变。", cat: "人体", source: "法医学" },
+    { text: "澳大利亚有一种"睡眠鲨"，它们呼吸时会吸入海底的水并在游动中入睡。", cat: "动物", source: "海洋生物学" },
+    { text: "月球正在以每年约 3.8 厘米的速度远离地球。", cat: "天文", source: "天文学" },
+    { text: "人类是唯一会脸红的动物，达尔文曾称其为"最独特且最具人类特色的表情"。", cat: "人体", source: "进化生物学" },
+    { text: "水母没有大脑、心脏、血液或骨骼，身体 95% 以上是水。", cat: "动物", source: "海洋生物学" },
+    { text: "地球上的闪电每秒发生约 100 次，一年约有 31.5 亿次。", cat: "自然", source: "气象学" },
+    { text: "鹦鹉螺是世界上最古老的动物之一，已在地球上存活超过 5 亿年，几乎没有进化。", cat: "动物", source: "古生物学" },
+    { text: "人的眼睛能分辨约 1000 万种不同颜色。", cat: "人体", source: "视觉科学" },
+    { text: "北极熊的皮毛实际上是透明的，看起来是白色是因为光的折射。", cat: "动物", source: "动物学" },
+    { text: "一个正常成年人每天平均会产生约 1 至 1.5 升的唾液。", cat: "人体", source: "生理学" },
+    { text: "珊瑚虽然看起来像植物，但其实是动物，由数百万个微小的珊瑚虫构成。", cat: "动物", source: "海洋生物学" },
+    { text: "如果把人类 DNA 完全展开，长度可达约 20 光年。", cat: "人体", source: "分子生物学" },
+    { text: "冰岛没有蚊子，是世界上极少数几乎没有蚊子的有人居住地之一。", cat: "地理", source: "地理学" },
+    { text: "火烈鸟天生是白色的，其粉红色是由食物中的类胡萝卜素色素造成的。", cat: "动物", source: "鸟类学" },
+    { text: "人类基因组与香蕉的基因组有约 60% 相似度。", cat: "人体", source: "基因组学" },
+    { text: "乌鸦能记住人脸，并会将威胁它们的人的信息传递给后代。", cat: "动物", source: "行为学" },
+    { text: "一只蜗牛有约 14000 颗牙齿，全部长在舌头上。", cat: "动物", source: "动物学" },
+    { text: "最深的已知海沟——马里亚纳海沟，比珠穆朗玛峰还要深约 2000 米。", cat: "地理", source: "地理学" },
+    { text: "蜻蜓的飞行命中率高达 95%，是自然界最精准的猎手之一。", cat: "动物", source: "昆虫学" },
+    { text: "人一生中平均要花约 26 年时间睡觉，另外花约 7 年时间试图入睡。", cat: "人体", source: "睡眠研究" },
+    { text: "大象是唯一无法跳跃的哺乳动物（考拉也几乎不跳）。", cat: "动物", source: "动物学" },
+    { text: "光从太阳到达地球需要约 8 分 20 秒。", cat: "天文", source: "天文学" },
+    { text: "玻璃实际上是液体，只不过流动速度极慢，这是一个常见但有争议的说法——现代玻璃是无定形固体。", cat: "科学", source: "材料科学" },
+    { text: "鸡在恐龙灭绝后演化而来，是迄今最接近霸王龙的现存生物之一。", cat: "动物", source: "古生物学" },
+    { text: "人体每平方厘米皮肤上约有 1900 种不同的细菌。", cat: "人体", source: "微生物学" },
+    { text: "金鱼的记忆时间实际上超过 3 个月，"7 秒记忆"是个流传已久的谣言。", cat: "动物", source: "动物行为学" },
+    { text: "秃鹫通过将头伸入尸体内来保持体温，且其胃酸能杀死炭疽等致命细菌。", cat: "动物", source: "鸟类学" },
+    { text: "一个人的大脑处理一秒钟视觉信息所需的运算量，相当于目前最快计算机运行 100 年。", cat: "人体", source: "神经科学" },
+    { text: "土拨鼠日（Groundhog Day）这一传统可追溯至 1887 年，土拨鼠能否预测春天从未被科学验证。", cat: "文化", source: "民俗学" },
+    { text: "人类每小时会从皮肤脱落约 30000 至 40000 个死皮细胞。", cat: "人体", source: "皮肤学" },
+    { text: "蜜蜂能识别人类面孔，它们用与识别花朵相同的"格式塔"方式来记忆人脸。", cat: "动物", source: "昆虫学" },
+    { text: "地球不是正圆形，由于自转，它在赤道处略微鼓出，是一个"扁球体"。", cat: "天文", source: "地球科学" },
+    { text: "你每次呼吸，都可能吸入了曾属于恺撒大帝、克里奥帕特拉等历史人物呼出过的分子。", cat: "科学", source: "统计物理" },
+    { text: "大脑对疼痛本身没有痛觉感受器，外科手术可在患者清醒时进行脑部手术。", cat: "人体", source: "神经外科" },
+    { text: "世界上最高的树是加利福尼亚的一棵红杉，高约 115.9 米，比自由女神像还高。", cat: "植物", source: "树木学" },
+    { text: "猫从高处落下时会用"右旋效应"调整姿势，通常四脚着地且存活率极高。", cat: "动物", source: "兽医学" },
+    { text: "科学家在南极洲冰层下约 4 公里处发现了液态水湖，湖水已与大气隔绝超过 1500 万年。", cat: "自然", source: "极地科学" }
+  ];
+
+  var STORAGE_KEY = "cold_fact_stats";
+  var HISTORY_KEY = "cold_fact_history";
+  var TODAY_KEY = "cold_fact_today";
+
+  var cardEl = document.getElementById("card");
+  var cardFrontEl = document.getElementById("cardFront");
+  var factTextEl = document.getElementById("factText");
+  var factCatEl = document.getElementById("factCat");
+  var factSourceEl = document.getElementById("factSource");
+  var totalCountEl = document.getElementById("totalCount");
+  var todayCountEl = document.getElementById("todayCount");
+  var historyListEl = document.getElementById("historyList");
+  var btnNew = document.getElementById("btnNew");
+  var btnAgain = document.getElementById("btnAgain");
+  var btnClear = document.getElementById("btnClear");
+
+  var isFlipped = false;
+  var lastIndex = -1;
+  var stats = { total: 0 };
+  var todayInfo = { date: "", count: 0 };
+  var history = [];
+
+  function getTodayStr() {
+    var d = new Date();
+    return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+  }
+
+  function loadData() {
+    try {
+      var s = localStorage.getItem(STORAGE_KEY);
+      if (s) stats = JSON.parse(s);
+    } catch (e) { stats = { total: 0 }; }
+
+    try {
+      var t = localStorage.getItem(TODAY_KEY);
+      if (t) todayInfo = JSON.parse(t);
+    } catch (e) { todayInfo = { date: "", count: 0 }; }
+
+    if (todayInfo.date !== getTodayStr()) {
+      todayInfo = { date: getTodayStr(), count: 0 };
+    }
+
+    try {
+      var h = localStorage.getItem(HISTORY_KEY);
+      if (h) history = JSON.parse(h);
+    } catch (e) { history = []; }
+
+    if (!Array.isArray(history)) history = [];
+  }
+
+  function saveData() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+      localStorage.setItem(TODAY_KEY, JSON.stringify(todayInfo));
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch (e) {}
+  }
+
+  function updateCounters() {
+    totalCountEl.textContent = stats.total;
+    todayCountEl.textContent = todayInfo.count;
+  }
+
+  function renderHistory() {
+    historyListEl.innerHTML = "";
+    var show = history.slice(0, 5);
+    for (var i = 0; i < show.length; i++) {
+      var item = document.createElement("div");
+      item.className = "history-item";
+      item.textContent = show[i];
+      historyListEl.appendChild(item);
+    }
+  }
+
+  function getRandomIndex() {
+    if (facts.length === 1) return 0;
+    var idx;
+    do {
+      idx = Math.floor(Math.random() * facts.length);
+    } while (idx === lastIndex);
+    return idx;
+  }
+
+  function showFact() {
+    var idx = getRandomIndex();
+    lastIndex = idx;
+    var fact = facts[idx];
+
+    factTextEl.textContent = fact.text;
+    factCatEl.textContent = fact.cat;
+    factSourceEl.textContent = "来源参考：" + fact.source;
+
+    stats.total = (stats.total || 0) + 1;
+    todayInfo.count = (todayInfo.count || 0) + 1;
+
+    history.unshift(fact.text);
+    if (history.length > 20) history = history.slice(0, 20);
+
+    saveData();
+    updateCounters();
+    renderHistory();
+
+    if (!isFlipped) {
+      cardEl.classList.add("flipped");
+      isFlipped = true;
+    } else {
+      cardEl.classList.remove("flipped");
+      isFlipped = false;
+      setTimeout(function () {
+        cardEl.classList.add("flipped");
+        isFlipped = true;
+      }, 640);
+    }
+  }
+
+  function clearHistory() {
+    history = [];
+    try { localStorage.removeItem(HISTORY_KEY); } catch (e) {}
+    renderHistory();
+  }
+
+  cardEl.addEventListener("click", function () {
+    if (isFlipped) {
+      cardEl.classList.remove("flipped");
+      isFlipped = false;
+    }
+  });
+
+  btnNew.addEventListener("click", showFact);
+  btnAgain.addEventListener("click", showFact);
+  btnClear.addEventListener("click", clearHistory);
+
+  loadData();
+  updateCounters();
+  renderHistory();
+
+}());
+</script>
+</body>
+</html>
