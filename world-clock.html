@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世界时钟墙</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --card: #161a23;
+    --card-border: #252a38;
+    --accent: #4f8ef7;
+    --accent2: #a78bfa;
+    --text-primary: #e8eaf0;
+    --text-secondary: #8890a8;
+    --text-dim: #4a5168;
+    --day-glow: rgba(255, 200, 60, 0.18);
+    --night-glow: rgba(79, 142, 247, 0.12);
+    --hand-hour: #e8eaf0;
+    --hand-min: #4f8ef7;
+    --hand-sec: #f97316;
+    --tick: #2e3447;
+    --tick-major: #4a5168;
+  }
+
+  html, body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    z-index: 100;
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--text-secondary); }
+
+  header {
+    padding: 52px 24px 24px;
+    text-align: center;
+  }
+  header h1 {
+    font-size: clamp(22px, 4vw, 34px);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    background: linear-gradient(135deg, #e8eaf0 0%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+  }
+
+  #local-time-bar {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 20px;
+    padding: 8px 20px 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .clock-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    padding: 20px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.3s;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+  .clock-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 18px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .clock-card.is-day::before { background: var(--day-glow); }
+  .clock-card.is-night::before { background: var(--night-glow); }
+  .clock-card.is-day { border-color: rgba(255, 200, 60, 0.2); }
+  .clock-card.is-night { border-color: rgba(79, 142, 247, 0.2); }
+  .clock-card::before { opacity: 1; }
+  .clock-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+  }
+
+  .clock-canvas {
+    display: block;
+    border-radius: 50%;
+  }
+
+  .clock-info {
+    text-align: center;
+    width: 100%;
+  }
+  .city-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.04em;
+  }
+  .city-region {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+    letter-spacing: 0.06em;
+  }
+  .digital-time {
+    margin-top: 6px;
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    font-family: "SF Mono", "Fira Mono", "Consolas", monospace;
+  }
+  .date-str {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+  .day-night-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .badge-day {
+    background: rgba(255, 200, 60, 0.15);
+    color: #ffd040;
+    border: 1px solid rgba(255, 200, 60, 0.25);
+  }
+  .badge-night {
+    background: rgba(79, 142, 247, 0.12);
+    color: #7aabff;
+    border: 1px solid rgba(79, 142, 247, 0.2);
+  }
+  .tz-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    letter-spacing: 0.06em;
+  }
+
+  footer {
+    text-align: center;
+    padding: 16px;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+  }
+
+  @media (max-width: 500px) {
+    .grid { grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 8px 12px 32px; }
+    .digital-time { font-size: 15px; }
+    .clock-card { padding: 14px 10px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<header>
+  <h1>世界时钟墙</h1>
+  <p>WORLD CLOCK</p>
+</header>
+
+<div id="local-time-bar">正在加载...</div>
+
+<div class="grid" id="clock-grid"></div>
+
+<footer>实时更新 · 基于本地系统时间计算</footer>
+
+<script>
+(function() {
+  "use strict";
+
+  var CITIES = [
+    { name: "北京",    region: "中国",        tz: "Asia/Shanghai",       utcOffset: 8   },
+    { name: "东京",    region: "日本",        tz: "Asia/Tokyo",          utcOffset: 9   },
+    { name: "首尔",    region: "韩国",        tz: "Asia/Seoul",          utcOffset: 9   },
+    { name: "新加坡",  region: "新加坡",      tz: "Asia/Singapore",      utcOffset: 8   },
+    { name: "迪拜",    region: "阿联酋",      tz: "Asia/Dubai",          utcOffset: 4   },
+    { name: "莫斯科",  region: "俄罗斯",      tz: "Europe/Moscow",       utcOffset: 3   },
+    { name: "巴黎",    region: "法国",        tz: "Europe/Paris",        utcOffset: 1   },
+    { name: "伦敦",    region: "英国",        tz: "Europe/London",       utcOffset: 0   },
+    { name: "纽约",    region: "美国",        tz: "America/New_York",    utcOffset: -5  },
+    { name: "洛杉矶",  region: "美国",        tz: "America/Los_Angeles", utcOffset: -8  },
+    { name: "圣保罗",  region: "巴西",        tz: "America/Sao_Paulo",   utcOffset: -3  },
+    { name: "悉尼",    region: "澳大利亚",    tz: "Australia/Sydney",    utcOffset: 10  }
+  ];
+
+  var WEEK_DAYS = ["日","一","二","三","四","五","六"];
+  var MONTHS = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+
+  var canvases = [];
+  var cardEls = [];
+
+  function getCityTime(city) {
+    var now = new Date();
+    try {
+      var str = now.toLocaleString("en-US", { timeZone: city.tz,
+        hour: "numeric", minute: "numeric", second: "numeric",
+        hour12: false, year: "numeric", month: "numeric", day: "numeric"
+      });
+      var parts = str.split(", ");
+      var dateParts = parts[0].split("/");
+      var timeParts = parts[1].split(":");
+      var month = parseInt(dateParts[0], 10) - 1;
+      var day = parseInt(dateParts[1], 10);
+      var year = parseInt(dateParts[2], 10);
+      var hours = parseInt(timeParts[0], 10);
+      var minutes = parseInt(timeParts[1], 10);
+      var seconds = parseInt(timeParts[2], 10);
+      if (hours === 24) hours = 0;
+      var d = new Date(year, month, day, hours, minutes, seconds);
+      return { h: hours, m: minutes, s: seconds, date: d, valid: true };
+    } catch(e) {
+      var utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+      var localMs = utcMs + city.utcOffset * 3600000;
+      var d2 = new Date(localMs);
+      return { h: d2.getHours(), m: d2.getMinutes(), s: d2.getSeconds(), date: d2, valid: true };
+    }
+  }
+
+  function isDay(hours) {
+    return hours >= 6 && hours < 20;
+  }
+
+  function pad2(n) {
+    return n < 10 ? "0" + n : "" + n;
+  }
+
+  function drawClock(canvas, t) {
+    var dpr = window.devicePixelRatio || 1;
+    var size = canvas.offsetWidth;
+    if (!size) size = 130;
+    if (canvas.width !== size * dpr) {
+      canvas.width = size * dpr;
+      canvas.height = size * dpr;
+    }
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var cx = size / 2;
+    var cy = size / 2;
+    var r = size / 2 - 2;
+
+    ctx.clearRect(0, 0, size, size);
+
+    // Face
+    var grad = ctx.createRadialGradient(cx, cy - r * 0.2, r * 0.1, cx, cy, r);
+    grad.addColorStop(0, "#1e2233");
+    grad.addColorStop(1, "#0d0f14");
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Rim glow
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = isDay(t.h) ? "rgba(255,200,60,0.3)" : "rgba(79,142,247,0.35)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Outer ring
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - 0.5, 0, Math.PI * 2);
+    ctx.strokeStyle = "#252a38";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Tick marks
+    for (var i = 0; i < 60; i++) {
+      var angle = (i / 60) * Math.PI * 2 - Math.PI / 2;
+      var isMajor = i % 5 === 0;
+      var tickOuter = r - 4;
+      var tickInner = isMajor ? r - 13 : r - 8;
+      var lw = isMajor ? 2 : 1;
+      var color = isMajor ? "#4a5168" : "#2e3447";
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(angle) * tickOuter, cy + Math.sin(angle) * tickOuter);
+      ctx.lineTo(cx + Math.cos(angle) * tickInner, cy + Math.sin(angle) * tickInner);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lw;
+      ctx.stroke();
+    }
+
+    // Hour numerals (just 12, 3, 6, 9)
+    ctx.fillStyle = "#4a5168";
+    ctx.font = "bold " + Math.round(size * 0.09) + "px -apple-system, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    var numerals = [
+      { n: "12", a: -Math.PI / 2 },
+      { n: "3",  a: 0 },
+      { n: "6",  a: Math.PI / 2 },
+      { n: "9",  a: Math.PI }
+    ];
+    var numR = r - 20;
+    for (var ni = 0; ni < numerals.length; ni++) {
+      var nx = cx + Math.cos(numerals[ni].a) * numR;
+      var ny = cy + Math.sin(numerals[ni].a) * numR;
+      ctx.fillText(numerals[ni].n, nx, ny);
+    }
+
+    // Hour hand
+    var hAngle = ((t.h % 12) / 12 + t.m / 720 + t.s / 43200) * Math.PI * 2 - Math.PI / 2;
+    drawHand(ctx, cx, cy, hAngle, r * 0.52, 4, "#e8eaf0", true);
+
+    // Minute hand
+    var mAngle = (t.m / 60 + t.s / 3600) * Math.PI * 2 - Math.PI / 2;
+    drawHand(ctx, cx, cy, mAngle, r * 0.72, 2.5, "#4f8ef7", true);
+
+    // Second hand
+    var sAngle = (t.s / 60) * Math.PI * 2 - Math.PI / 2;
+    drawHand(ctx, cx, cy, sAngle, r * 0.78, 1.2, "#f97316", false);
+    // Second tail
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(sAngle + Math.PI) * r * 0.22, cy + Math.sin(sAngle + Math.PI) * r * 0.22);
+    ctx.strokeStyle = "#f97316";
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    // Center dot
+    ctx.beginPath();
+    ctx.arc(cx, cy, 4.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#f97316";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, 2, 0, Math.PI * 2);
+    ctx.fillStyle = "#e8eaf0";
+    ctx.fill();
+  }
+
+  function drawHand(ctx, cx, cy, angle, length, width, color, rounded) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(angle) * length, cy + Math.sin(angle) * length);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = rounded ? "round" : "butt";
+    // Shadow
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 6;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  function buildCards() {
+    var grid = document.getElementById("clock-grid");
+    grid.innerHTML = "";
+    canvases = [];
+    cardEls = [];
+    for (var i = 0; i < CITIES.length; i++) {
+      var city = CITIES[i];
+      var card = document.createElement("div");
+      card.className = "clock-card";
+
+      var cSize = 130;
+      var canvas = document.createElement("canvas");
+      canvas.className = "clock-canvas";
+      canvas.style.width = cSize + "px";
+      canvas.style.height = cSize + "px";
+      canvas.width = cSize;
+      canvas.height = cSize;
+
+      var info = document.createElement("div");
+      info.className = "clock-info";
+
+      var nameEl = document.createElement("div");
+      nameEl.className = "city-name";
+      nameEl.textContent = city.name;
+
+      var regionEl = document.createElement("div");
+      regionEl.className = "city-region";
+      regionEl.textContent = city.region;
+
+      var digitalEl = document.createElement("div");
+      digitalEl.className = "digital-time";
+      digitalEl.id = "dt-" + i;
+
+      var dateEl = document.createElement("div");
+      dateEl.className = "date-str";
+      dateEl.id = "dd-" + i;
+
+      var badgeEl = document.createElement("div");
+      badgeEl.className = "day-night-badge";
+      badgeEl.id = "badge-" + i;
+
+      var tzEl = document.createElement("div");
+      tzEl.className = "tz-label";
+      var sign = city.utcOffset >= 0 ? "+" : "";
+      tzEl.textContent = "UTC" + sign + city.utcOffset;
+
+      info.appendChild(nameEl);
+      info.appendChild(regionEl);
+      info.appendChild(digitalEl);
+      info.appendChild(dateEl);
+      info.appendChild(badgeEl);
+      info.appendChild(tzEl);
+
+      card.appendChild(canvas);
+      card.appendChild(info);
+      grid.appendChild(card);
+
+      canvases.push(canvas);
+      cardEls.push(card);
+    }
+  }
+
+  function updateAll() {
+    var now = new Date();
+    var localStr = "本地时间：" + now.getFullYear() + "年" +
+      (now.getMonth() + 1) + "月" + now.getDate() + "日 " +
+      "周" + WEEK_DAYS[now.getDay()] + " " +
+      pad2(now.getHours()) + ":" + pad2(now.getMinutes()) + ":" + pad2(now.getSeconds());
+    var bar = document.getElementById("local-time-bar");
+    if (bar) bar.textContent = localStr;
+
+    for (var i = 0; i < CITIES.length; i++) {
+      var city = CITIES[i];
+      var t = getCityTime(city);
+      var canvas = canvases[i];
+      var card = cardEls[i];
+
+      drawClock(canvas, t);
+
+      var day = isDay(t.h);
+      card.className = "clock-card " + (day ? "is-day" : "is-night");
+
+      var dtEl = document.getElementById("dt-" + i);
+      if (dtEl) dtEl.textContent = pad2(t.h) + ":" + pad2(t.m) + ":" + pad2(t.s);
+
+      var ddEl = document.getElementById("dd-" + i);
+      if (ddEl) {
+        var d = t.date;
+        ddEl.textContent = d.getFullYear() + "年" + MONTHS[d.getMonth()] + d.getDate() + "日 周" + WEEK_DAYS[d.getDay()];
+      }
+
+      var badgeEl = document.getElementById("badge-" + i);
+      if (badgeEl) {
+        if (day) {
+          badgeEl.className = "day-night-badge badge-day";
+          badgeEl.textContent = "☀ 白天";
+        } else {
+          badgeEl.className = "day-night-badge badge-night";
+          badgeEl.textContent = "☾ 夜晚";
+        }
+      }
+    }
+  }
+
+  function init() {
+    buildCards();
+    updateAll();
+    setInterval(updateAll, 1000);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>
