@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>禅意沙盘</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --sand: #e8dcc8;
+    --sand-dark: #d4c5a9;
+    --sand-light: #f0e8d8;
+    --stone: #7a7068;
+    --stone-dark: #5a5248;
+    --ink: #3d3530;
+    --muted: #9a8e84;
+    --bg: #f5efe4;
+    --panel: #ede4d4;
+    --accent: #8b7355;
+    --accent-light: #b09870;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    z-index: 100;
+    transition: color 0.3s;
+    letter-spacing: 0.5px;
+  }
+  .back-link:hover { color: var(--accent); }
+
+  header {
+    margin-top: 48px;
+    margin-bottom: 8px;
+    text-align: center;
+    user-select: none;
+  }
+  header h1 {
+    font-size: clamp(20px, 4vw, 28px);
+    font-weight: 400;
+    color: var(--accent);
+    letter-spacing: 6px;
+  }
+  header p {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 2px;
+  }
+
+  .garden-wrap {
+    position: relative;
+    width: min(720px, 96vw);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(100,80,50,0.18), 0 2px 8px rgba(100,80,50,0.10);
+    background: var(--sand);
+    margin: 16px 0 0;
+    border: 2px solid var(--sand-dark);
+  }
+
+  #gardenCanvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    cursor: crosshair;
+    touch-action: none;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    background: var(--panel);
+    border-top: 1px solid var(--sand-dark);
+  }
+
+  .tool-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: 20px;
+    border: 1.5px solid var(--sand-dark);
+    background: var(--sand-light);
+    color: var(--ink);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+    user-select: none;
+  }
+  .tool-btn:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(139,115,85,0.3);
+  }
+  .tool-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(139,115,85,0.35);
+  }
+  .tool-btn:active { transform: translateY(0); }
+
+  .sep {
+    width: 1px;
+    height: 28px;
+    background: var(--sand-dark);
+    margin: 0 4px;
+  }
+
+  .hint {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    margin: 8px 0 20px;
+    user-select: none;
+    opacity: 0.8;
+  }
+
+  .stone-size-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .stone-size-wrap input[type=range] {
+    -webkit-appearance: none;
+    width: 70px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--sand-dark);
+    outline: none;
+    cursor: pointer;
+  }
+  .stone-size-wrap input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .stone-size-wrap input[type=range]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+  }
+
+  @media (max-width: 480px) {
+    header { margin-top: 40px; }
+    .toolbar { gap: 8px; padding: 12px 10px; }
+    .tool-btn { padding: 7px 13px; font-size: 12px; }
+    .sep { display: none; }
+  }
+
+  /* fade-in */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .garden-wrap { animation: fadeUp 0.6s ease both; }
+  .toolbar     { animation: fadeUp 0.7s ease 0.1s both; }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<header>
+  <h1>禅 意 沙 盘</h1>
+  <p>静心 · 当下 · 枯山水</p>
+</header>
+
+<div class="garden-wrap">
+  <canvas id="gardenCanvas"></canvas>
+  <div class="toolbar">
+    <button class="tool-btn active" id="btnRake" title="耙纹工具">&#12736; 耙痕</button>
+    <button class="tool-btn" id="btnStone" title="放置石头">&#9679; 置石</button>
+    <div class="stone-size-wrap">
+      <span>石径</span>
+      <input type="range" id="stoneSize" min="12" max="48" value="24">
+    </div>
+    <div class="sep"></div>
+    <button class="tool-btn" id="btnClear" title="清空重耙">&#10006; 清空</button>
+    <button class="tool-btn" id="btnSave" title="保存当前">&#10003; 保存</button>
+  </div>
+</div>
+<p class="hint">拖动鼠标 · 耙出纹路 · 随心置石 · 静观自在</p>
+
+<script>
+(function() {
+  "use strict";
+
+  /* ── 常量 & 配置 ── */
+  var STORAGE_KEY = "zen-garden-v1";
+  var RAKE_COLOR_BASE = "rgba(180,155,110,";
+  var RAKE_LINES = 5;
+  var RAKE_SPACING = 6;
+  var MIN_DIST = 3;
+
+  /* ── DOM refs ── */
+  var canvas    = document.getElementById("gardenCanvas");
+  var ctx       = canvas.getContext("2d");
+  var btnRake   = document.getElementById("btnRake");
+  var btnStone  = document.getElementById("btnStone");
+  var btnClear  = document.getElementById("btnClear");
+  var btnSave   = document.getElementById("btnSave");
+  var stoneSize = document.getElementById("stoneSize");
+
+  /* ── 状态 ── */
+  var W = 720;
+  var H = 440;
+  var tool     = "rake";
+  var drawing  = false;
+  var lastX    = 0;
+  var lastY    = 0;
+  var stones   = [];        // [{x,y,r,shape}]
+  var rakeTrail = [];       // [{x,y}] current stroke
+  var allStrokes = [];      // [[ {x,y}, ... ]] saved strokes
+
+  /* ── 尺寸初始化 ── */
+  function initCanvas() {
+    var dpr = window.devicePixelRatio || 1;
+    var wrap = canvas.parentElement;
+    var ww = wrap.clientWidth;
+    var scale = ww / W;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width  = W * scale + "px";
+    canvas.style.height = H * scale + "px";
+    ctx.scale(dpr, dpr);
+  }
+
+  /* ── 沙面底纹 ── */
+  function drawSandBase() {
+    // 主色填充
+    ctx.fillStyle = "#e8dcc8";
+    ctx.fillRect(0, 0, W, H);
+
+    // 细腻噪点纹理
+    var id = ctx.getImageData(0, 0, W, H);
+    var data = id.data;
+    for (var i = 0; i < data.length; i += 4) {
+      var n = (Math.random() - 0.5) * 18;
+      data[i]   = Math.min(255, Math.max(0, data[i]   + n));
+      data[i+1] = Math.min(255, Math.max(0, data[i+1] + n * 0.9));
+      data[i+2] = Math.min(255, Math.max(0, data[i+2] + n * 0.6));
+    }
+    ctx.putImageData(id, 0, 0);
+
+    // 边缘阴影框
+    var grad = ctx.createRadialGradient(W/2, H/2, H*0.3, W/2, H/2, H*0.8);
+    grad.addColorStop(0, "rgba(0,0,0,0)");
+    grad.addColorStop(1, "rgba(60,40,20,0.12)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  /* ── 绘制单条耙纹 ── */
+  function drawRakeStroke(points) {
+    if (points.length < 2) return;
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    for (var li = 0; li < RAKE_LINES; li++) {
+      var offset = (li - (RAKE_LINES - 1) / 2) * RAKE_SPACING;
+      ctx.beginPath();
+      var first = points[0];
+      var dx0 = points[1].x - first.x;
+      var dy0 = points[1].y - first.y;
+      var len0 = Math.sqrt(dx0 * dx0 + dy0 * dy0) || 1;
+      var perpX = -dy0 / len0;
+      var perpY =  dx0 / len0;
+      ctx.moveTo(first.x + perpX * offset, first.y + perpY * offset);
+
+      for (var pi = 1; pi < points.length; pi++) {
+        var p = points[pi];
+        var pp = points[pi - 1];
+        var dx = p.x - pp.x;
+        var dy = p.y - pp.y;
+        var len = Math.sqrt(dx * dx + dy * dy) || 1;
+        var px2 = -dy / len;
+        var py2 =  dx / len;
+        ctx.lineTo(p.x + px2 * offset, p.y + py2 * offset);
+      }
+
+      // 主槽（深）
+      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = RAKE_COLOR_BASE + "0.55)";
+      ctx.stroke();
+
+      // 高光（浅）
+      ctx.lineWidth = 0.7;
+      ctx.strokeStyle = "rgba(255,245,225,0.35)";
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* ── 石头形状生成 ── */
+  function makeStonePoints(cx, cy, r, sides, irregularity) {
+    var pts = [];
+    for (var i = 0; i < sides; i++) {
+      var angle = (i / sides) * Math.PI * 2 - Math.PI / 2;
+      var rr = r * (1 + (Math.random() - 0.5) * irregularity);
+      pts.push({ x: cx + Math.cos(angle) * rr, y: cy + Math.sin(angle) * rr });
+    }
+    return pts;
+  }
+
+  /* ── 绘制一块石头 ── */
+  function drawStone(s) {
+    var pts = s.shape;
+    if (!pts || pts.length < 3) return;
+
+    ctx.save();
+
+    // 阴影
+    ctx.shadowColor = "rgba(60,40,20,0.4)";
+    ctx.shadowBlur  = 12;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 4;
+
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (var i = 1; i < pts.length; i++) {
+      var prev = pts[i - 1];
+      var curr = pts[i];
+      var next = pts[(i + 1) % pts.length];
+      var cpx = (curr.x + next.x) / 2;
+      var cpy = (curr.y + next.y) / 2;
+      ctx.quadraticCurveTo(curr.x, curr.y, cpx, cpy);
+    }
+    ctx.closePath();
+
+    // 石头渐变
+    var grd = ctx.createRadialGradient(
+      s.x - s.r * 0.25, s.y - s.r * 0.25, s.r * 0.1,
+      s.x, s.y, s.r * 1.2
+    );
+    grd.addColorStop(0, "#a09488");
+    grd.addColorStop(0.4, "#7a7068");
+    grd.addColorStop(1, "#4a4540");
+
+    ctx.fillStyle = grd;
+    ctx.fill();
+    ctx.shadowColor = "transparent";
+
+    // 高光
+    ctx.beginPath();
+    ctx.ellipse(
+      s.x - s.r * 0.2, s.y - s.r * 0.25,
+      s.r * 0.3, s.r * 0.15,
+      -Math.PI / 6, 0, Math.PI * 2
+    );
+    ctx.fillStyle = "rgba(255,255,255,0.18)";
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  /* ── 全量重绘 ── */
+  function redrawAll() {
+    ctx.clearRect(0, 0, W, H);
+    drawSandBase();
+
+    // 历史耙纹（需绕石）
+    for (var si = 0; si < allStrokes.length; si++) {
+      drawRakeStroke(allStrokes[si]);
+    }
+    // 当前正在画的耙纹
+    if (rakeTrail.length > 1) {
+      drawRakeStroke(rakeTrail);
+    }
+
+    // 石头
+    for (var i = 0; i < stones.length; i++) {
+      drawStone(stones[i]);
+    }
+  }
+
+  /* ── 判断点是否在石头内 ── */
+  function pointInStone(x, y, s) {
+    var dx = x - s.x;
+    var dy = y - s.y;
+    return Math.sqrt(dx * dx + dy * dy) < s.r * 1.1;
+  }
+
+  function nearAnyStone(x, y) {
+    for (var i = 0; i < stones.length; i++) {
+      if (pointInStone(x, y, stones[i])) return true;
+    }
+    return false;
+  }
+
+  /* ── 坐标转换 ── */
+  function getPos(e) {
+    var rect = canvas.getBoundingClientRect();
+    var scaleX = W / rect.width;
+    var scaleY = H / rect.height;
+    var clientX, clientY;
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top)  * scaleY
+    };
+  }
+
+  /* ── 耙纹插值（让拖动更流畅）── */
+  function addRakePoint(x, y) {
+    if (nearAnyStone(x, y)) return;
+    var last = rakeTrail[rakeTrail.length - 1];
+    if (last) {
+      var dx = x - last.x;
+      var dy = y - last.y;
+      if (Math.sqrt(dx*dx + dy*dy) < MIN_DIST) return;
+    }
+    rakeTrail.push({ x: x, y: y });
+    redrawAll();
+  }
+
+  /* ── 工具切换 ── */
+  function setTool(t) {
+    tool = t;
+    btnRake.classList.toggle("active",  t === "rake");
+    btnStone.classList.toggle("active", t === "stone");
+    canvas.style.cursor = t === "stone" ? "cell" : "crosshair";
+  }
+
+  /* ── 保存到 localStorage ── */
+  function saveState() {
+    try {
+      var state = { strokes: allStrokes, stones: stones };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      // 按钮反馈
+      btnSave.textContent = "✓ 已存";
+      setTimeout(function() { btnSave.textContent = "✓ 保存"; }, 1200);
+    } catch(e) {}
+  }
+
+  /* ── 读取 localStorage ── */
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      var state = JSON.parse(raw);
+      if (state.strokes) allStrokes = state.strokes;
+      if (state.stones)  stones     = state.stones;
+    } catch(e) {}
+  }
+
+  /* ── 事件：鼠标/触摸 ── */
+  function onPointerDown(e) {
+    e.preventDefault();
+    var pos = getPos(e);
+    drawing = true;
+    lastX = pos.x;
+    lastY = pos.y;
+
+    if (tool === "rake") {
+      if (!nearAnyStone(pos.x, pos.y)) {
+        rakeTrail = [{ x: pos.x, y: pos.y }];
+      }
+    } else if (tool === "stone") {
+      // 检查是否点在已有石头上 → 移除
+      var hit = -1;
+      for (var i = 0; i < stones.length; i++) {
+        if (pointInStone(pos.x, pos.y, stones[i])) { hit = i; break; }
+      }
+      if (hit >= 0) {
+        stones.splice(hit, 1);
+      } else {
+        var r  = parseInt(stoneSize.value, 10);
+        var sides = 7 + Math.floor(Math.random() * 4);
+        var irr = 0.3 + Math.random() * 0.25;
+        var shape = makeStonePoints(pos.x, pos.y, r, sides, irr);
+        stones.push({ x: pos.x, y: pos.y, r: r, shape: shape });
+      }
+      redrawAll();
+    }
+  }
+
+  function onPointerMove(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    var pos = getPos(e);
+    if (tool === "rake") {
+      addRakePoint(pos.x, pos.y);
+    }
+    lastX = pos.x;
+    lastY = pos.y;
+  }
+
+  function onPointerUp(e) {
+    if (!drawing) return;
+    drawing = false;
+    if (tool === "rake" && rakeTrail.length > 1) {
+      allStrokes.push(rakeTrail.slice());
+      rakeTrail = [];
+      redrawAll();
+    }
+  }
+
+  canvas.addEventListener("mousedown",  onPointerDown, { passive: false });
+  canvas.addEventListener("mousemove",  onPointerMove, { passive: false });
+  canvas.addEventListener("mouseup",    onPointerUp);
+  canvas.addEventListener("mouseleave", onPointerUp);
+
+  canvas.addEventListener("touchstart", onPointerDown, { passive: false });
+  canvas.addEventListener("touchmove",  onPointerMove, { passive: false });
+  canvas.addEventListener("touchend",   onPointerUp);
+
+  btnRake.addEventListener("click", function()  { setTool("rake"); });
+  btnStone.addEventListener("click", function() { setTool("stone"); });
+
+  btnClear.addEventListener("click", function() {
+    allStrokes = [];
+    stones     = [];
+    rakeTrail  = [];
+    drawing    = false;
+    redrawAll();
+    try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  });
+
+  btnSave.addEventListener("click", saveState);
+
+  window.addEventListener("resize", function() {
+    initCanvas();
+    redrawAll();
+  });
+
+  /* ── 启动 ── */
+  initCanvas();
+  loadState();
+  redrawAll();
+
+})();
+</script>
+</body>
+</html>
