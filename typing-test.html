@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>打字速度测试</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #263348;
+    --border: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #6366f1;
+    --accent2: #818cf8;
+    --success: #22c55e;
+    --error: #ef4444;
+    --warning: #f59e0b;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 40px;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    z-index: 100;
+  }
+  .back-link:hover { opacity: 1; }
+
+  .container {
+    width: 100%;
+    max-width: 760px;
+    margin-top: 48px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  header h1 {
+    font-size: clamp(22px, 5vw, 32px);
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent2) 0%, #a5b4fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+  header p {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 6px;
+  }
+
+  .stats-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    flex: 1;
+    min-width: 80px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    text-align: center;
+    transition: border-color 0.3s;
+  }
+  .stat-card.active { border-color: var(--accent); }
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-size: clamp(18px, 4vw, 26px);
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    transition: color 0.3s;
+  }
+  .stat-unit {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .progress-bar-wrap {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.2s ease;
+  }
+
+  .text-display {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+    font-size: clamp(15px, 2.5vw, 18px);
+    line-height: 1.9;
+    letter-spacing: 0.3px;
+    position: relative;
+    overflow: hidden;
+  }
+  .text-display::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(99,102,241,0.04), transparent);
+    pointer-events: none;
+  }
+
+  .char {
+    display: inline;
+    position: relative;
+    transition: color 0.1s;
+  }
+  .char.correct { color: var(--success); }
+  .char.wrong { color: var(--error); background: rgba(239,68,68,0.15); border-radius: 2px; }
+  .char.pending { color: var(--muted); }
+  .char.current {
+    color: var(--text);
+    position: relative;
+  }
+  .char.current::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 100%;
+    height: 2px;
+    background: var(--accent2);
+    border-radius: 1px;
+    animation: blink 0.8s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .input-area {
+    position: relative;
+    margin-bottom: 16px;
+  }
+  .typing-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 16px;
+    padding: 14px 16px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    caret-color: var(--accent2);
+    font-family: inherit;
+    resize: none;
+    min-height: 52px;
+  }
+  .typing-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+  }
+  .typing-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    letter-spacing: 0.2px;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  .btn:active { transform: translateY(0); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #4f46e5);
+    color: #fff;
+  }
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .result-panel {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    margin-bottom: 16px;
+    text-align: center;
+    animation: slideIn 0.4s ease;
+  }
+  .result-panel.show { display: block; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-panel h2 {
+    font-size: 20px;
+    margin-bottom: 20px;
+    color: var(--accent2);
+  }
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .result-item {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 16px 12px;
+  }
+  .result-item .val {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent2);
+    display: block;
+    font-variant-numeric: tabular-nums;
+  }
+  .result-item .lbl {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .grade {
+    display: inline-block;
+    padding: 6px 18px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+
+  .history-section {
+    margin-top: 28px;
+  }
+  .history-title {
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .clear-btn {
+    background: none;
+    border: none;
+    color: var(--error);
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+  .clear-btn:hover { opacity: 1; }
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .history-item .h-wpm { font-weight: 700; color: var(--accent2); min-width: 55px; }
+  .history-item .h-acc { color: var(--success); min-width: 50px; }
+  .history-item .h-time { color: var(--muted); }
+  .history-item .h-date { color: var(--muted); margin-left: auto; font-size: 11px; }
+
+  .tip-bar {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+    min-height: 18px;
+    transition: opacity 0.3s;
+  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  @media (max-width: 480px) {
+    .stats-bar { gap: 8px; }
+    .stat-card { padding: 10px 8px; }
+    .text-display { padding: 16px 14px; font-size: 15px; }
+    .controls { gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<div class="container">
+  <header>
+    <h1>打字速度测试</h1>
+    <p>测试你的英文打字速度与准确率</p>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat-card" id="card-wpm">
+      <div class="stat-label">速度</div>
+      <div class="stat-value" id="stat-wpm">0</div>
+      <div class="stat-unit">WPM</div>
+    </div>
+    <div class="stat-card" id="card-acc">
+      <div class="stat-label">正确率</div>
+      <div class="stat-value" id="stat-acc">—</div>
+      <div class="stat-unit">%</div>
+    </div>
+    <div class="stat-card" id="card-time">
+      <div class="stat-label">用时</div>
+      <div class="stat-value" id="stat-time">0</div>
+      <div class="stat-unit">秒</div>
+    </div>
+    <div class="stat-card" id="card-chars">
+      <div class="stat-label">字符</div>
+      <div class="stat-value" id="stat-chars">0</div>
+      <div class="stat-unit">已输入</div>
+    </div>
+  </div>
+
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progress-fill"></div>
+  </div>
+
+  <div class="text-display" id="text-display"></div>
+
+  <div class="result-panel" id="result-panel">
+    <h2>测试完成！</h2>
+    <div class="result-grid">
+      <div class="result-item">
+        <span class="val" id="res-wpm">0</span>
+        <div class="lbl">WPM 速度</div>
+      </div>
+      <div class="result-item">
+        <span class="val" id="res-acc">0%</span>
+        <div class="lbl">正确率</div>
+      </div>
+      <div class="result-item">
+        <span class="val" id="res-time">0s</span>
+        <div class="lbl">用时</div>
+      </div>
+      <div class="result-item">
+        <span class="val" id="res-errors">0</span>
+        <div class="lbl">错误数</div>
+      </div>
+    </div>
+    <div id="grade-badge" class="grade"></div>
+  </div>
+
+  <div class="input-area">
+    <input
+      type="text"
+      class="typing-input"
+      id="typing-input"
+      placeholder="点击此处开始打字..."
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+    />
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-secondary" id="btn-change">换一段</button>
+    <button class="btn btn-primary" id="btn-restart">重新开始</button>
+  </div>
+
+  <div class="tip-bar" id="tip-bar">准备好后开始打字即可自动计时</div>
+
+  <div class="history-section" id="history-section">
+    <div class="history-title">
+      <span>历史记录</span>
+      <button class="clear-btn" id="btn-clear-history">清除记录</button>
+    </div>
+    <div class="history-list" id="history-list"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ==================== DATA ==================== */
+  const SENTENCES = [
+    "The quick brown fox jumps over the lazy dog near the riverbank on a sunny afternoon.",
+    "Success is not final, failure is not fatal. It is the courage to continue that counts.",
+    "In the middle of every difficulty lies opportunity. Keep pushing forward with confidence.",
+    "To be yourself in a world that is constantly trying to make you something else is the greatest achievement.",
+    "The only way to do great work is to love what you do. If you have not found it yet, keep looking.",
+    "Life is what happens when you are busy making other plans. Live every moment to the fullest.",
+    "It does not matter how slowly you go as long as you do not stop making progress each day.",
+    "Believe you can and you are halfway there. The rest is hard work, dedication, and persistence.",
+    "The best time to plant a tree was twenty years ago. The second best time is now.",
+    "Do not watch the clock; do what it does. Keep going and never give up on your dreams.",
+    "A journey of a thousand miles begins with a single step taken with great courage and determination.",
+    "We know what we are but know not what we may be. The future holds endless possibilities.",
+    "The future belongs to those who believe in the beauty of their dreams and work hard for them.",
+    "You miss one hundred percent of the shots you do not take. Always give it your best shot.",
+    "Happiness is not something ready made. It comes from your own actions and your mindset.",
+  ];
+
+  const STORAGE_KEY = "typing_test_history";
+
+  /* ==================== STATE ==================== */
+  let currentText = "";
+  let charSpans = [];
+  let currentIndex = 0;
+  let startTime = null;
+  let timerInterval = null;
+  let elapsedSeconds = 0;
+  let errorCount = 0;
+  let totalTyped = 0;
+  let isRunning = false;
+  let isFinished = false;
+  let usedSentences = [];
+
+  /* ==================== DOM REFS ==================== */
+  const textDisplay = document.getElementById("text-display");
+  const typingInput = document.getElementById("typing-input");
+  const statWpm = document.getElementById("stat-wpm");
+  const statAcc = document.getElementById("stat-acc");
+  const statTime = document.getElementById("stat-time");
+  const statChars = document.getElementById("stat-chars");
+  const progressFill = document.getElementById("progress-fill");
+  const resultPanel = document.getElementById("result-panel");
+  const resWpm = document.getElementById("res-wpm");
+  const resAcc = document.getElementById("res-acc");
+  const resTime = document.getElementById("res-time");
+  const resErrors = document.getElementById("res-errors");
+  const gradeBadge = document.getElementById("grade-badge");
+  const btnChange = document.getElementById("btn-change");
+  const btnRestart = document.getElementById("btn-restart");
+  const btnClearHistory = document.getElementById("btn-clear-history");
+  const tipBar = document.getElementById("tip-bar");
+  const historyList = document.getElementById("history-list");
+  const cardWpm = document.getElementById("card-wpm");
+  const cardAcc = document.getElementById("card-acc");
+
+  /* ==================== HELPERS ==================== */
+  function pickSentence(avoidCurrent) {
+    var pool = SENTENCES.filter(function (s) { return s !== avoidCurrent; });
+    if (usedSentences.length >= SENTENCES.length - 1) {
+      usedSentences = [];
+    }
+    var available = pool.filter(function (s) { return usedSentences.indexOf(s) === -1; });
+    if (available.length === 0) { available = pool; }
+    var idx = Math.floor(Math.random() * available.length);
+    var chosen = available[idx];
+    usedSentences.push(chosen);
+    return chosen;
+  }
+
+  function buildDisplay(text) {
+    textDisplay.innerHTML = "";
+    charSpans = [];
+    for (var i = 0; i < text.length; i++) {
+      var span = document.createElement("span");
+      span.className = "char pending";
+      span.textContent = text[i];
+      textDisplay.appendChild(span);
+      charSpans.push(span);
+    }
+    if (charSpans.length > 0) {
+      charSpans[0].className = "char current";
+    }
+  }
+
+  function calcWpm(elapsed, correctChars) {
+    if (elapsed <= 0) { return 0; }
+    var words = correctChars / 5;
+    var minutes = elapsed / 60;
+    return Math.round(words / minutes);
+  }
+
+  function calcAccuracy() {
+    if (totalTyped === 0) { return 100; }
+    var correct = totalTyped - errorCount;
+    return Math.max(0, Math.round((correct / totalTyped) * 100));
+  }
+
+  function getGrade(wpm, acc) {
+    if (acc < 80) { return { label: "需要加油", color: "#ef4444", bg: "rgba(239,68,68,0.15)" }; }
+    if (wpm >= 80 && acc >= 95) { return { label: "打字达人", color: "#f59e0b", bg: "rgba(245,158,11,0.15)" }; }
+    if (wpm >= 60 && acc >= 90) { return { label: "优秀", color: "#22c55e", bg: "rgba(34,197,94,0.15)" }; }
+    if (wpm >= 40 && acc >= 85) { return { label: "良好", color: "#6366f1", bg: "rgba(99,102,241,0.15)" }; }
+    return { label: "继续练习", color: "#94a3b8", bg: "rgba(148,163,184,0.15)" };
+  }
+
+  function updateStats() {
+    var acc = calcAccuracy();
+    var elapsed = elapsedSeconds;
+    var correctChars = 0;
+    for (var i = 0; i < charSpans.length; i++) {
+      if (charSpans[i].className.indexOf("correct") !== -1) { correctChars++; }
+    }
+    var wpm = calcWpm(elapsed, correctChars);
+    statWpm.textContent = wpm;
+    statAcc.textContent = totalTyped > 0 ? acc : "—";
+    statTime.textContent = elapsed;
+    statChars.textContent = currentIndex;
+    var pct = currentText.length > 0 ? (currentIndex / currentText.length) * 100 : 0;
+    progressFill.style.width = pct + "%";
+
+    if (wpm > 0) {
+      cardWpm.classList.add("active");
+    }
+    if (acc < 80 && totalTyped > 10) {
+      statAcc.style.color = "var(--error)";
+      cardAcc.style.borderColor = "rgba(239,68,68,0.4)";
+    } else {
+      statAcc.style.color = "var(--text)";
+      cardAcc.style.borderColor = "";
+    }
+  }
+
+  function startTimer() {
+    if (timerInterval) { return; }
+    startTime = Date.now();
+    timerInterval = setInterval(function () {
+      elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+      updateStats();
+    }, 250);
+    tipBar.textContent = "计时中… 专注打字！";
+  }
+
+  function stopTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    elapsedSeconds = startTime ? Math.max(1, Math.floor((Date.now() - startTime) / 1000)) : 0;
+  }
+
+  function showResult() {
+    var acc = calcAccuracy();
+    var correctChars = 0;
+    for (var i = 0; i < charSpans.length; i++) {
+      if (charSpans[i].className.indexOf("correct") !== -1) { correctChars++; }
+    }
+    var wpm = calcWpm(elapsedSeconds, correctChars);
+    var grade = getGrade(wpm, acc);
+
+    resWpm.textContent = wpm;
+    resAcc.textContent = acc + "%";
+    resTime.textContent = elapsedSeconds + "s";
+    resErrors.textContent = errorCount;
+    gradeBadge.textContent = grade.label;
+    gradeBadge.style.color = grade.color;
+    gradeBadge.style.background = grade.bg;
+    gradeBadge.style.border = "1px solid " + grade.color + "55";
+
+    resultPanel.classList.add("show");
+    tipBar.textContent = "太棒了！点击「重新开始」或「换一段」再来一次。";
+
+    saveHistory(wpm, acc, elapsedSeconds);
+    renderHistory();
+  }
+
+  function saveHistory(wpm, acc, elapsed) {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    var history = [];
+    try { history = raw ? JSON.parse(raw) : []; } catch (e) { history = []; }
+    var now = new Date();
+    var dateStr = (now.getMonth() + 1) + "/" + now.getDate() + " " +
+      String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+    history.unshift({ wpm: wpm, acc: acc, elapsed: elapsed, date: dateStr });
+    if (history.length > 20) { history = history.slice(0, 20); }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(history)); } catch (e) {}
+  }
+
+  function renderHistory() {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    var history = [];
+    try { history = raw ? JSON.parse(raw) : []; } catch (e) { history = []; }
+    historyList.innerHTML = "";
+    if (history.length === 0) {
+      historyList.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">暂无记录</div>';
+      return;
+    }
+    for (var i = 0; i < history.length; i++) {
+      var item = history[i];
+      var div = document.createElement("div");
+      div.className = "history-item";
+      div.innerHTML =
+        '<span class="h-wpm">' + item.wpm + ' WPM</span>' +
+        '<span class="h-acc">' + item.acc + '%</span>' +
+        '<span class="h-time">' + item.elapsed + '秒</span>' +
+        '<span class="h-date">' + (item.date || "") + '</span>';
+      historyList.appendChild(div);
+    }
+  }
+
+  function resetTest(newSentence) {
+    stopTimer();
+    currentText = newSentence || currentText;
+    currentIndex = 0;
+    startTime = null;
+    elapsedSeconds = 0;
+    errorCount = 0;
+    totalTyped = 0;
+    isRunning = false;
+    isFinished = false;
+
+    resultPanel.classList.remove("show");
+    typingInput.value = "";
+    typingInput.disabled = false;
+    typingInput.focus();
+
+    cardWpm.classList.remove("active");
+    statWpm.textContent = "0";
+    statAcc.textContent = "—";
+    statAcc.style.color = "var(--text)";
+    cardAcc.style.borderColor = "";
+    statTime.textContent = "0";
+    statChars.textContent = "0";
+    progressFill.style.width = "0%";
+    tipBar.textContent = "准备好后开始打字即可自动计时";
+
+    buildDisplay(currentText);
+  }
+
+  /* ==================== INPUT HANDLER ==================== */
+  function handleInput(e) {
+    if (isFinished) { return; }
+
+    var val = typingInput.value;
+    if (val.length === 0) { return; }
+
+    if (!isRunning) {
+      isRunning = true;
+      startTimer();
+    }
+
+    var typedChar = val[val.length - 1];
+    var expectedChar = currentText[currentIndex];
+
+    totalTyped++;
+
+    if (typedChar === expectedChar) {
+      charSpans[currentIndex].className = "char correct";
+    } else {
+      charSpans[currentIndex].className = "char wrong";
+      errorCount++;
+    }
+
+    currentIndex++;
+    typingInput.value = "";
+
+    if (currentIndex < charSpans.length) {
+      charSpans[currentIndex].className = "char current";
+      charSpans[currentIndex].scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+
+    updateStats();
+
+    if (currentIndex >= currentText.length) {
+      isFinished = true;
+      stopTimer();
+      updateStats();
+      typingInput.disabled = true;
+      setTimeout(showResult, 300);
+    }
+  }
+
+  function handleKeydown(e) {
+    if (e.key === "Backspace") {
+      e.preventDefault();
+    }
+  }
+
+  /* ==================== EVENTS ==================== */
+  typingInput.addEventListener("input", handleInput);
+  typingInput.addEventListener("keydown", handleKeydown);
+
+  btnRestart.addEventListener("click", function () {
+    resetTest(currentText);
+  });
+
+  btnChange.addEventListener("click", function () {
+    var newSentence = pickSentence(currentText);
+    resetTest(newSentence);
+  });
+
+  btnClearHistory.addEventListener("click", function () {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    renderHistory();
+  });
+
+  textDisplay.addEventListener("click", function () {
+    if (!isFinished) { typingInput.focus(); }
+  });
+
+  /* ==================== INIT ==================== */
+  currentText = pickSentence("");
+  buildDisplay(currentText);
+  renderHistory();
+  typingInput.focus();
+
+})();
+</script>
+</body>
+</html>
