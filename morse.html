@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>摩斯电码机</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --warn: #f78166;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --flash: #ffd700;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  .back-link {
+    display: inline-block;
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 13px;
+    margin-bottom: 20px;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--text); }
+
+  h1 {
+    font-size: clamp(20px, 5vw, 28px);
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+
+  .subtitle {
+    color: var(--text2);
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    color: var(--text2);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .tab:hover { border-color: var(--accent); color: var(--text); }
+  .tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 2px 12px rgba(88,166,255,0.3);
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.6;
+    padding: 12px 14px;
+    resize: vertical;
+    min-height: 100px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+  }
+  textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(88,166,255,0.12);
+  }
+  textarea.mono {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+  }
+
+  .arrow-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 12px 0;
+  }
+
+  .convert-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #1f6feb);
+    color: #fff;
+    box-shadow: 0 2px 12px rgba(88,166,255,0.3);
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(88,166,255,0.4);
+  }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover {
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+
+  .btn-icon {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+  }
+  .btn-icon:hover { color: var(--text); border-color: var(--text2); }
+
+  .output-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .output-row textarea { flex: 1; }
+  .copy-btn {
+    padding: 8px 10px;
+    margin-top: 2px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { color: var(--accent2); border-color: var(--accent2); }
+  .copy-btn.copied { color: var(--accent2); border-color: var(--accent2); }
+
+  /* Player */
+  .player-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .flash-screen {
+    width: 100%;
+    height: 70px;
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-family: 'Consolas', monospace;
+    letter-spacing: 4px;
+    color: var(--text2);
+    margin-bottom: 14px;
+    transition: background 0.04s, box-shadow 0.04s;
+    position: relative;
+    overflow: hidden;
+  }
+  .flash-screen.lit {
+    background: var(--flash);
+    box-shadow: 0 0 40px rgba(255,215,0,0.6), 0 0 80px rgba(255,215,0,0.3);
+    color: #000;
+  }
+
+  .current-char {
+    font-size: 13px;
+    color: var(--text2);
+    min-width: 60px;
+    text-align: center;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .speed-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .speed-label {
+    font-size: 13px;
+    color: var(--text2);
+    white-space: nowrap;
+  }
+  input[type="range"] {
+    flex: 1;
+    min-width: 100px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .speed-val {
+    font-size: 13px;
+    color: var(--accent);
+    min-width: 40px;
+    text-align: right;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    margin-top: 12px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.1s linear;
+    width: 0%;
+  }
+
+  /* Reference table */
+  .ref-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 6px;
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .ref-grid::-webkit-scrollbar { width: 4px; }
+  .ref-grid::-webkit-scrollbar-track { background: transparent; }
+  .ref-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .ref-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .ref-item:hover {
+    border-color: var(--accent);
+    background: rgba(88,166,255,0.08);
+  }
+  .ref-char {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    min-width: 20px;
+  }
+  .ref-code {
+    font-family: 'Consolas', monospace;
+    font-size: 13px;
+    color: var(--accent2);
+    letter-spacing: 1px;
+  }
+
+  .status-msg {
+    font-size: 12px;
+    color: var(--text2);
+    min-height: 18px;
+    margin-top: 6px;
+  }
+  .status-msg.ok { color: var(--accent2); }
+  .status-msg.err { color: var(--warn); }
+
+  .divider {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+  }
+
+  @media (max-width: 480px) {
+    .tabs { flex-direction: column; }
+    .controls { justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">← 入口</a>
+
+<h1>摩斯电码机</h1>
+<p class="subtitle">英文 / 数字 ↔ 摩斯码互转，支持声音播放与屏幕闪光</p>
+
+<!-- Mode Tabs -->
+<div class="tabs">
+  <div class="tab active" id="tab-encode" onclick="switchMode('encode')">文字 → 摩斯码</div>
+  <div class="tab" id="tab-decode" onclick="switchMode('decode')">摩斯码 → 文字</div>
+</div>
+
+<!-- Encode Panel -->
+<div id="panel-encode">
+  <div class="card">
+    <div class="card-title">输入文字（支持英文字母、数字、常用标点）</div>
+    <textarea id="input-text" placeholder="例如：Hello World 123" rows="4" oninput="onTextInput()"></textarea>
+    <div class="arrow-row">
+      <button class="convert-btn btn-primary" onclick="encodeText()">⚡ 转换为摩斯码</button>
+      <button class="convert-btn btn-secondary btn-icon" onclick="clearEncode()">清空</button>
+    </div>
+    <div class="card-title">摩斯码输出（· 点，— 划，空格分隔字母，/ 分隔单词）</div>
+    <div class="output-row">
+      <textarea id="output-morse" class="mono" readonly rows="4" placeholder="摩斯码将显示在这里…"></textarea>
+      <button class="copy-btn" id="copy-morse-btn" onclick="copyMorse()">复制</button>
+    </div>
+    <div class="status-msg" id="encode-status"></div>
+  </div>
+</div>
+
+<!-- Decode Panel -->
+<div id="panel-decode" style="display:none">
+  <div class="card">
+    <div class="card-title">输入摩斯码（· 或 . 为点，- 或 — 为划，空格分隔字母，/ 分隔单词）</div>
+    <textarea id="input-morse" class="mono" placeholder="例如：.... . .-.. .-.. --- / .-- --- .-. .-.. -.." rows="4" oninput="onMorseInput()"></textarea>
+    <div class="arrow-row">
+      <button class="convert-btn btn-primary" onclick="decodeMorse()">⚡ 解码为文字</button>
+      <button class="convert-btn btn-secondary btn-icon" onclick="clearDecode()">清空</button>
+    </div>
+    <div class="card-title">解码结果</div>
+    <div class="output-row">
+      <textarea id="output-text" readonly rows="4" placeholder="解码后的文字将显示在这里…"></textarea>
+      <button class="copy-btn" id="copy-text-btn" onclick="copyText()">复制</button>
+    </div>
+    <div class="status-msg" id="decode-status"></div>
+  </div>
+</div>
+
+<!-- Player -->
+<div class="player-card">
+  <div class="card-title">播放器 — 声音 + 闪光演示</div>
+  <div class="flash-screen" id="flash-screen">
+    <span id="flash-symbol">···</span>
+  </div>
+  <div class="controls">
+    <button class="convert-btn btn-primary" id="play-btn" onclick="togglePlay()">▶ 播放</button>
+    <button class="convert-btn btn-secondary btn-icon" onclick="stopPlay()">■ 停止</button>
+    <div class="divider"></div>
+    <span class="current-char" id="current-char-label">—</span>
+  </div>
+  <div class="speed-row">
+    <span class="speed-label">速度</span>
+    <input type="range" id="speed-slider" min="1" max="10" value="5" oninput="onSpeedChange()">
+    <span class="speed-val" id="speed-val">5</span>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progress-fill"></div>
+  </div>
+</div>
+
+<!-- Reference Table -->
+<div class="card">
+  <div class="card-title">摩斯码对照表（点击字符可填入输入框）</div>
+  <div class="ref-grid" id="ref-grid"></div>
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  /* ============ MORSE TABLE ============ */
+  var MORSE_MAP = {
+    'A': '.-',    'B': '-...',  'C': '-.-.',  'D': '-..',
+    'E': '.',     'F': '..-.',  'G': '--.',   'H': '....',
+    'I': '..',    'J': '.---',  'K': '-.-',   'L': '.-..',
+    'M': '--',    'N': '-.',    'O': '---',   'P': '.--.',
+    'Q': '--.-',  'R': '.-.',   'S': '...',   'T': '-',
+    'U': '..-',   'V': '...-',  'W': '.--',   'X': '-..-',
+    'Y': '-.--',  'Z': '--..',
+    '0': '-----', '1': '.----', '2': '..---', '3': '...--',
+    '4': '....-', '5': '.....', '6': '-....', '7': '--...',
+    '8': '---..',  '9': '----.',
+    '.': '.-.-.-', ',': '--..--', '?': '..--..', "'": '.----.',
+    '!': '-.-.--', '/': '-..-.', '(': '-.--.', ')': '-.--.-',
+    '&': '.-...', ':': '---...', ';': '-.-.-.', '=': '-...-',
+    '+': '.-.-.', '-': '-....-', '_': '..--.-', '"': '.-..-.',
+    '$': '...-..-', '@': '.--.-.'
+  };
+
+  var REVERSE_MAP = {};
+  for (var k in MORSE_MAP) {
+    if (MORSE_MAP.hasOwnProperty(k)) {
+      REVERSE_MAP[MORSE_MAP[k]] = k;
+    }
+  }
+
+  /* ============ STATE ============ */
+  var currentMode = 'encode';
+  var audioCtx = null;
+  var isPlaying = false;
+  var playSequence = [];
+  var playIndex = 0;
+  var playTimeoutId = null;
+  var speedLevel = 5;
+
+  /* ============ DOM HELPERS ============ */
+  function $(id) { return document.getElementById(id); }
+
+  function setStatus(id, msg, type) {
+    var el = $(id);
+    el.textContent = msg;
+    el.className = 'status-msg' + (type ? ' ' + type : '');
+  }
+
+  /* ============ MODE SWITCH ============ */
+  function switchMode(mode) {
+    currentMode = mode;
+    $('tab-encode').classList.toggle('active', mode === 'encode');
+    $('tab-decode').classList.toggle('active', mode === 'decode');
+    $('panel-encode').style.display = mode === 'encode' ? 'block' : 'none';
+    $('panel-decode').style.display = mode === 'decode' ? 'block' : 'none';
+    try { localStorage.setItem('morse_mode', mode); } catch(e) {}
+  }
+
+  /* ============ ENCODE ============ */
+  function encodeText() {
+    var input = $('input-text').value.trim();
+    if (!input) { setStatus('encode-status', '请先输入文字', 'err'); return; }
+    var words = input.toUpperCase().split(' ');
+    var result = [];
+    var unknown = [];
+    for (var wi = 0; wi < words.length; wi++) {
+      var word = words[wi];
+      if (!word) continue;
+      var letters = [];
+      for (var ci = 0; ci < word.length; ci++) {
+        var ch = word[ci];
+        if (MORSE_MAP[ch]) {
+          letters.push(MORSE_MAP[ch]);
+        } else {
+          letters.push('?');
+          if (unknown.indexOf(ch) === -1) unknown.push(ch);
+        }
+      }
+      result.push(letters.join(' '));
+    }
+    var output = result.join(' / ');
+    $('output-morse').value = output;
+    if (unknown.length > 0) {
+      setStatus('encode-status', '未识别字符：' + unknown.join(', ') + '（以 ? 替代）', 'err');
+    } else {
+      setStatus('encode-status', '转换完成，共 ' + input.replace(/ /g,'').length + ' 个字符', 'ok');
+    }
+    try { localStorage.setItem('morse_last_text', input); } catch(e) {}
+  }
+
+  function onTextInput() {
+    // auto-encode on input with slight debounce handled by button
+  }
+
+  function clearEncode() {
+    $('input-text').value = '';
+    $('output-morse').value = '';
+    setStatus('encode-status', '');
+  }
+
+  function copyMorse() {
+    var val = $('output-morse').value;
+    if (!val) return;
+    navigator.clipboard.writeText(val).then(function() {
+      var btn = $('copy-morse-btn');
+      btn.textContent = '已复制';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = '复制'; btn.classList.remove('copied'); }, 1500);
+    }).catch(function() {
+      $('output-morse').select();
+      document.execCommand('copy');
+    });
+  }
+
+  /* ============ DECODE ============ */
+  function decodeMorse() {
+    var input = $('input-morse').value.trim();
+    if (!input) { setStatus('decode-status', '请先输入摩斯码', 'err'); return; }
+    // normalize: replace em-dash and en-dash with hyphen, replace · with .
+    var normalized = input.replace(/[–—]/g, '-').replace(/·/g, '.').replace(/\s*\/\s*/g, ' / ');
+    var words = normalized.split(/\s*\/\s*/);
+    var result = [];
+    var errors = 0;
+    for (var wi = 0; wi < words.length; wi++) {
+      var word = words[wi].trim();
+      if (!word) continue;
+      var tokens = word.split(/\s+/);
+      var decoded = '';
+      for (var ti = 0; ti < tokens.length; ti++) {
+        var token = tokens[ti].trim();
+        if (!token) continue;
+        if (REVERSE_MAP[token]) {
+          decoded += REVERSE_MAP[token];
+        } else {
+          decoded += '[?]';
+          errors++;
+        }
+      }
+      result.push(decoded);
+    }
+    var output = result.join(' ');
+    $('output-text').value = output;
+    if (errors > 0) {
+      setStatus('decode-status', '解码完成，有 ' + errors + ' 处无法识别（[?]）', 'err');
+    } else {
+      setStatus('decode-status', '解码完成', 'ok');
+    }
+  }
+
+  function onMorseInput() {}
+
+  function clearDecode() {
+    $('input-morse').value = '';
+    $('output-text').value = '';
+    setStatus('decode-status', '');
+  }
+
+  function copyText() {
+    var val = $('output-text').value;
+    if (!val) return;
+    navigator.clipboard.writeText(val).then(function() {
+      var btn = $('copy-text-btn');
+      btn.textContent = '已复制';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = '复制'; btn.classList.remove('copied'); }, 1500);
+    }).catch(function() {
+      $('output-text').select();
+      document.execCommand('copy');
+    });
+  }
+
+  /* ============ AUDIO ============ */
+  function ensureAudioCtx() {
+    if (!audioCtx) {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch(e) { audioCtx = null; }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playTone(duration, callback) {
+    ensureAudioCtx();
+    if (!audioCtx) { setTimeout(callback, duration); return; }
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(700, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.005);
+    gain.gain.setValueAtTime(0.5, audioCtx.currentTime + duration / 1000 - 0.005);
+    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration / 1000);
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + duration / 1000);
+    osc.onended = callback;
+  }
+
+  function silence(duration, callback) {
+    playTimeoutId = setTimeout(callback, duration);
+  }
+
+  /* ============ PLAYER ============ */
+  function getMorseString() {
+    if (currentMode === 'encode') {
+      return $('output-morse').value.trim();
+    } else {
+      return $('input-morse').value.trim();
+    }
+  }
+
+  function buildSequence(morseStr) {
+    // Returns array of {type: 'dot'|'dash'|'letterGap'|'wordGap'|'charGap', char}
+    var seq = [];
+    if (!morseStr) return seq;
+    var normalized = morseStr.replace(/[–—]/g, '-').replace(/·/g, '.');
+    var words = normalized.split(/\s*\/\s*/);
+    for (var wi = 0; wi < words.length; wi++) {
+      if (wi > 0) seq.push({ type: 'wordGap', label: '/' });
+      var word = words[wi].trim();
+      var tokens = word.split(/\s+/);
+      for (var ti = 0; ti < tokens.length; ti++) {
+        if (ti > 0) seq.push({ type: 'letterGap', label: '' });
+        var token = tokens[ti];
+        var charLabel = REVERSE_MAP[token] || '?';
+        for (var si = 0; si < token.length; si++) {
+          if (si > 0) seq.push({ type: 'charGap', label: charLabel });
+          seq.push({ type: token[si] === '.' ? 'dot' : 'dash', label: charLabel });
+        }
+      }
+    }
+    return seq;
+  }
+
+  function getUnitMs() {
+    // speed 1-10 → unit 200ms - 40ms
+    return Math.round(200 - (speedLevel - 1) * (160 / 9));
+  }
+
+  function setFlash(on, symbol, charLabel) {
+    var el = $('flash-screen');
+    var sym = $('flash-symbol');
+    var charEl = $('current-char-label');
+    if (on) {
+      el.classList.add('lit');
+      sym.textContent = symbol;
+    } else {
+      el.classList.remove('lit');
+      sym.textContent = symbol || '···';
+    }
+    if (charLabel !== undefined) charEl.textContent = charLabel || '—';
+  }
+
+  function updateProgress() {
+    var pct = playSequence.length > 0 ? Math.round((playIndex / playSequence.length) * 100) : 0;
+    $('progress-fill').style.width = pct + '%';
+  }
+
+  function playStep() {
+    if (!isPlaying) return;
+    if (playIndex >= playSequence.length) {
+      finishPlay();
+      return;
+    }
+    var step = playSequence[playIndex];
+    var unit = getUnitMs();
+    playIndex++;
+    updateProgress();
+
+    if (step.type === 'dot') {
+      setFlash(true, '·', step.label);
+      playTone(unit, function() {
+        setFlash(false, '·', step.label);
+        playTimeoutId = setTimeout(playStep, unit * 0.5);
+      });
+    } else if (step.type === 'dash') {
+      setFlash(true, '—', step.label);
+      playTone(unit * 3, function() {
+        setFlash(false, '—', step.label);
+        playTimeoutId = setTimeout(playStep, unit * 0.5);
+      });
+    } else if (step.type === 'charGap') {
+      playTimeoutId = setTimeout(playStep, unit * 0.5);
+    } else if (step.type === 'letterGap') {
+      setFlash(false, '', '');
+      playTimeoutId = setTimeout(playStep, unit * 2);
+    } else if (step.type === 'wordGap') {
+      setFlash(false, '', '词间');
+      playTimeoutId = setTimeout(playStep, unit * 5);
+    } else {
+      playTimeoutId = setTimeout(playStep, unit);
+    }
+  }
+
+  function finishPlay() {
+    isPlaying = false;
+    $('play-btn').textContent = '▶ 播放';
+    setFlash(false, '···', '完成');
+    $('progress-fill').style.width = '100%';
+    setTimeout(function() {
+      $('progress-fill').style.width = '0%';
+      $('current-char-label').textContent = '—';
+      setFlash(false, '···', '');
+    }, 800);
+  }
+
+  function togglePlay() {
+    if (isPlaying) {
+      stopPlay();
+    } else {
+      var morseStr = getMorseString();
+      if (!morseStr) {
+        // auto-encode first if in encode mode
+        if (currentMode === 'encode' && $('input-text').value.trim()) {
+          encodeText();
+          morseStr = $('output-morse').value.trim();
+        }
+        if (!morseStr) { alert('请先输入内容并完成转换'); return; }
+      }
+      playSequence = buildSequence(morseStr);
+      if (playSequence.length === 0) { alert('无可播放的内容'); return; }
+      playIndex = 0;
+      isPlaying = true;
+      $('play-btn').textContent = '⏸ 暂停';
+      ensureAudioCtx();
+      playStep();
+    }
+  }
+
+  function stopPlay() {
+    isPlaying = false;
+    if (playTimeoutId) { clearTimeout(playTimeoutId); playTimeoutId = null; }
+    playIndex = 0;
+    $('play-btn').textContent = '▶ 播放';
+    $('progress-fill').style.width = '0%';
+    setFlash(false, '···', '');
+    $('current-char-label').textContent = '—';
+  }
+
+  function onSpeedChange() {
+    speedLevel = parseInt($('speed-slider').value, 10);
+    $('speed-val').textContent = speedLevel;
+    try { localStorage.setItem('morse_speed', speedLevel); } catch(e) {}
+  }
+
+  /* ============ REFERENCE TABLE ============ */
+  function buildRefTable() {
+    var grid = $('ref-grid');
+    var keys = Object.keys(MORSE_MAP);
+    for (var i = 0; i < keys.length; i++) {
+      var ch = keys[i];
+      var code = MORSE_MAP[ch];
+      var item = document.createElement('div');
+      item.className = 'ref-item';
+      item.innerHTML = '<span class="ref-char">' + ch + '</span><span class="ref-code">' + code + '</span>';
+      item.setAttribute('data-char', ch);
+      item.addEventListener('click', (function(c) {
+        return function() {
+          if (currentMode === 'encode') {
+            var ta = $('input-text');
+            var pos = ta.selectionStart;
+            var val = ta.value;
+            ta.value = val.slice(0, pos) + c + val.slice(pos);
+            ta.selectionStart = ta.selectionEnd = pos + 1;
+            ta.focus();
+          } else {
+            var ta2 = $('input-morse');
+            var pos2 = ta2.selectionStart;
+            var val2 = ta2.value;
+            var insert = MORSE_MAP[c];
+            if (val2 && val2[pos2 - 1] !== ' ') insert = ' ' + insert;
+            ta2.value = val2.slice(0, pos2) + insert + val2.slice(pos2);
+            ta2.selectionStart = ta2.selectionEnd = pos2 + insert.length;
+            ta2.focus();
+          }
+        };
+      })(ch));
+      grid.appendChild(item);
+    }
+  }
+
+  /* ============ INIT ============ */
+  function init() {
+    buildRefTable();
+
+    // Restore state
+    try {
+      var savedMode = localStorage.getItem('morse_mode');
+      if (savedMode === 'encode' || savedMode === 'decode') switchMode(savedMode);
+      var savedSpeed = parseInt(localStorage.getItem('morse_speed'), 10);
+      if (savedSpeed >= 1 && savedSpeed <= 10) {
+        speedLevel = savedSpeed;
+        $('speed-slider').value = savedSpeed;
+        $('speed-val').textContent = savedSpeed;
+      }
+      var savedText = localStorage.getItem('morse_last_text');
+      if (savedText) {
+        $('input-text').value = savedText;
+        encodeText();
+      }
+    } catch(e) {}
+  }
+
+  // Expose functions needed by inline handlers
+  window.switchMode = switchMode;
+  window.encodeText = encodeText;
+  window.onTextInput = onTextInput;
+  window.clearEncode = clearEncode;
+  window.copyMorse = copyMorse;
+  window.decodeMorse = decodeMorse;
+  window.onMorseInput = onMorseInput;
+  window.clearDecode = clearDecode;
+  window.copyText = copyText;
+  window.togglePlay = togglePlay;
+  window.stopPlay = stopPlay;
+  window.onSpeedChange = onSpeedChange;
+
+  init();
+
+})();
+</script>
+</body>
+</html>
