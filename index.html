@@ -6,26 +6,23 @@
 <title>小站合集 · Mini Sites</title>
 <style>
   * { box-sizing:border-box; margin:0; padding:0; }
-  body { min-height:100vh; background:#0c0f1a; color:#e8eef7;
-    font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; padding:48px 16px 70px; }
+  body { min-height:100vh; background:#0c0f1a; color:#e8eef7; font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; padding:48px 16px 70px; }
   .hero{ text-align:center; margin-bottom:14px; }
-  h1{ font-size:clamp(26px,5vw,40px); font-weight:800; letter-spacing:1px;
-    background:linear-gradient(90deg,#ffd166,#ff8aa0,#b98cff,#56b6ff);
-    -webkit-background-clip:text; background-clip:text; color:transparent; }
+  h1{ font-size:clamp(26px,5vw,40px); font-weight:800; letter-spacing:1px; background:linear-gradient(90deg,#ffd166,#ff8aa0,#b98cff,#56b6ff); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .hero p{ color:#8090a8; margin-top:10px; font-size:14px; }
-  .progress{ max-width:880px; margin:18px auto 36px; }
+  .progress{ max-width:980px; margin:18px auto 36px; }
   .progress .bar{ height:8px; background:rgba(255,255,255,.08); border-radius:6px; overflow:hidden; }
-  .progress .bar i{ display:block; height:100%; width:20%; background:linear-gradient(90deg,#b98cff,#56b6ff); border-radius:6px; }
+  .progress .bar i{ display:block; height:100%; width:50%; background:linear-gradient(90deg,#b98cff,#56b6ff); border-radius:6px; }
   .progress .lbl{ text-align:center; color:#8090a8; font-size:12px; margin-top:8px; letter-spacing:1px; }
-  .cat{ max-width:880px; margin:0 auto 26px; }
+  .cat{ max-width:980px; margin:0 auto 26px; }
   .cat h2{ font-size:14px; color:#aab6cc; font-weight:600; letter-spacing:2px; margin:0 4px 12px; display:flex; align-items:center; gap:8px; }
   .cat h2::after{ content:""; flex:1; height:1px; background:rgba(255,255,255,.08); }
-  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:14px; }
-  a.card{ text-decoration:none; color:inherit; position:relative; overflow:hidden; border-radius:14px; padding:18px; min-height:118px; display:flex; flex-direction:column; justify-content:flex-end; border:1px solid rgba(255,255,255,.08); transition:.22s; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:13px; }
+  a.card{ text-decoration:none; color:inherit; position:relative; overflow:hidden; border-radius:14px; padding:16px; min-height:104px; display:flex; flex-direction:column; justify-content:flex-end; border:1px solid rgba(255,255,255,.08); transition:.22s; }
   a.card:hover{ transform:translateY(-4px); border-color:rgba(255,255,255,.28); box-shadow:0 16px 36px rgba(0,0,0,.5); }
-  .card .emoji{ font-size:25px; position:absolute; top:15px; left:18px; filter:drop-shadow(0 3px 8px rgba(0,0,0,.4)); }
-  .card h3{ font-size:16px; font-weight:700; }
-  .card .desc{ color:#aab6cc; font-size:12px; margin-top:5px; line-height:1.5; }
+  .card .emoji{ font-size:23px; position:absolute; top:14px; left:16px; filter:drop-shadow(0 3px 8px rgba(0,0,0,.4)); }
+  .card h3{ font-size:15px; font-weight:700; }
+  .card .desc{ color:#aab6cc; font-size:11px; margin-top:4px; line-height:1.5; }
   .c-time{ background:radial-gradient(ellipse at top right,#1b3a6b,#0a1428); }
   .c-decide{ background:radial-gradient(ellipse at top right,#3a2a5e,#160f28); }
   .c-word{ background:radial-gradient(ellipse at top right,#5e4a1f,#281f0f); }
@@ -34,49 +31,79 @@
   .c-game{ background:radial-gradient(ellipse at top right,#2a4a2f,#101f14); }
   .c-heal{ background:radial-gradient(ellipse at top right,#3a5a35,#13301a); }
   .c-know{ background:radial-gradient(ellipse at top right,#1f4a5e,#0f2128); }
-  footer{ max-width:880px; margin:34px auto 0; color:#5a6680; font-size:12px; text-align:center; line-height:1.8; }
+  footer{ max-width:980px; margin:34px auto 0; color:#5a6680; font-size:12px; text-align:center; line-height:1.8; }
   footer a{ color:#8090a8; }
 </style>
 </head>
 <body>
 <div class="hero"><h1>小站合集</h1><p>一堆纯前端单文件小玩具 · 双击即开 · 无需联网</p></div>
-<div class="progress"><div class="bar"><i></i></div><div class="lbl">已上线 20 个 · 目标 100</div></div>
+<div class="progress"><div class="bar"><i></i></div><div class="lbl">已上线 50 个 · 目标 100</div></div>
 <section class="cat"><h2>🌍 时间 · 天文</h2><div class="grid">
 <a class="card c-time" href="earth-night.html"><span class="emoji">🌍</span><h3>此刻地球的夜晚</h3><div class="desc">看全球真实昼夜分界线</div></a>
 <a class="card c-time" href="moon-phase.html"><span class="emoji">🌙</span><h3>此刻月相</h3><div class="desc">看看今晚的月亮</div></a>
 <a class="card c-time" href="life-progress.html"><span class="emoji">⏳</span><h3>生命进度条</h3><div class="desc">你这辈子过了百分之几</div></a>
+<a class="card c-time" href="sunset-countdown.html"><span class="emoji">🌇</span><h3>日落倒计时</h3><div class="desc">追逐今日的黄昏</div></a>
+<a class="card c-time" href="world-clock.html"><span class="emoji">🕐</span><h3>世界时钟墙</h3><div class="desc">各城市实时时间</div></a>
 </div></section>
 <section class="cat"><h2>🎲 决策 · 占卜</h2><div class="grid">
 <a class="card c-decide" href="decision-maker.html"><span class="emoji">🎲</span><h3>一句话决定器</h3><div class="desc">荒诞占卜帮你拍板</div></a>
 <a class="card c-decide" href="dinner-wheel.html"><span class="emoji">🍽️</span><h3>晚饭转盘</h3><div class="desc">今天吃什么交给转盘</div></a>
 <a class="card c-decide" href="magic8.html"><span class="emoji">🎱</span><h3>神奇8号球</h3><div class="desc">摇一摇问答案</div></a>
+<a class="card c-decide" href="tarot.html"><span class="emoji">🔮</span><h3>塔罗牌</h3><div class="desc">抽一张看运势</div></a>
+<a class="card c-decide" href="fortune.html"><span class="emoji">🧧</span><h3>今日运势</h3><div class="desc">看看今天的运气</div></a>
 </div></section>
 <section class="cat"><h2>✍️ 文字 · 语言</h2><div class="grid">
 <a class="card c-word" href="zhongerbing.html"><span class="emoji">⚔️</span><h3>中二台词机</h3><div class="desc">召唤你的中二魂</div></a>
+<a class="card c-word" href="emoji-translate.html"><span class="emoji">😀</span><h3>句子转emoji</h3><div class="desc">给文字加点emoji</div></a>
+<a class="card c-word" href="morse.html"><span class="emoji">📡</span><h3>摩斯电码机</h3><div class="desc">滴滴答答传讯息</div></a>
+<a class="card c-word" href="acrostic.html"><span class="emoji">📜</span><h3>藏头诗</h3><div class="desc">名字藏进诗里</div></a>
+<a class="card c-word" href="fake-language.html"><span class="emoji">👽</span><h3>假语言生成器</h3><div class="desc">造一门异世界语</div></a>
+<a class="card c-word" href="caesar.html"><span class="emoji">🔐</span><h3>凯撒密码</h3><div class="desc">古老的位移加密</div></a>
 </div></section>
 <section class="cat"><h2>🛠️ 工具 · 实用</h2><div class="grid">
 <a class="card c-tool" href="fake-work.html"><span class="emoji">💻</span><h3>假装在工作</h3><div class="desc">全屏假日志摸鱼神器</div></a>
-<a class="card c-tool" href="breathing.html"><span class="emoji">🫧</span><h3>呼吸引导</h3><div class="desc">跟着 4-7-8 呼吸静下来</div></a>
+<a class="card c-tool" href="breathing.html"><span class="emoji">🫧</span><h3>呼吸引导</h3><div class="desc">跟着4-7-8呼吸静下来</div></a>
 <a class="card c-tool" href="gradient-css.html"><span class="emoji">🎨</span><h3>渐变生成器</h3><div class="desc">调出好看的渐变+CSS</div></a>
 <a class="card c-tool" href="pomodoro.html"><span class="emoji">🍅</span><h3>番茄钟</h3><div class="desc">专注 25 分钟</div></a>
+<a class="card c-tool" href="number-spell.html"><span class="emoji">💰</span><h3>数字转大写</h3><div class="desc">金额转中文大写</div></a>
+<a class="card c-tool" href="white-noise.html"><span class="emoji">🌊</span><h3>白噪音</h3><div class="desc">雨声海浪助眠专注</div></a>
+<a class="card c-tool" href="metronome.html"><span class="emoji">🎼</span><h3>节拍器</h3><div class="desc">稳定你的节奏</div></a>
 </div></section>
 <section class="cat"><h2>🎆 视觉 · 生成艺术</h2><div class="grid">
 <a class="card c-visual" href="fireworks.html"><span class="emoji">🎆</span><h3>点击烟花</h3><div class="desc">指尖绽放粒子烟花</div></a>
 <a class="card c-visual" href="mandala.html"><span class="emoji">🌸</span><h3>曼陀罗生成器</h3><div class="desc">画一朵对称的花</div></a>
+<a class="card c-visual" href="kaleidoscope.html"><span class="emoji">🔭</span><h3>万花筒</h3><div class="desc">对称镜像万花筒</div></a>
+<a class="card c-visual" href="pixel-draw.html"><span class="emoji">🖌️</span><h3>像素画板</h3><div class="desc">画个像素小图</div></a>
+<a class="card c-visual" href="fractal-tree.html"><span class="emoji">🌳</span><h3>分形树</h3><div class="desc">递归生长的树</div></a>
+<a class="card c-visual" href="starfield.html"><span class="emoji">✨</span><h3>星空壁纸</h3><div class="desc">生成专属星空</div></a>
 </div></section>
 <section class="cat"><h2>🕹️ 小游戏</h2><div class="grid">
 <a class="card c-game" href="game-2048.html"><span class="emoji">🔢</span><h3>2048</h3><div class="desc">合并数字方块</div></a>
 <a class="card c-game" href="snake.html"><span class="emoji">🐍</span><h3>贪吃蛇</h3><div class="desc">经典贪吃蛇</div></a>
 <a class="card c-game" href="memory.html"><span class="emoji">🃏</span><h3>记忆翻牌</h3><div class="desc">翻牌配对考记忆</div></a>
 <a class="card c-game" href="reaction.html"><span class="emoji">⚡</span><h3>反应测试</h3><div class="desc">测测你多快</div></a>
+<a class="card c-game" href="whack-a-mole.html"><span class="emoji">🔨</span><h3>打地鼠</h3><div class="desc">眼疾手快敲地鼠</div></a>
+<a class="card c-game" href="minesweeper.html"><span class="emoji">💣</span><h3>扫雷</h3><div class="desc">经典扫雷</div></a>
+<a class="card c-game" href="tictactoe.html"><span class="emoji">⭕</span><h3>井字棋</h3><div class="desc">和AI下三子棋</div></a>
+<a class="card c-game" href="breakout.html"><span class="emoji">🧱</span><h3>打砖块</h3><div class="desc">弹球敲掉砖块</div></a>
+<a class="card c-game" href="simon.html"><span class="emoji">🎵</span><h3>西蒙记忆</h3><div class="desc">记住颜色序列</div></a>
+<a class="card c-game" href="puzzle15.html"><span class="emoji">🧩</span><h3>数字华容道</h3><div class="desc">滑动复原数字</div></a>
+<a class="card c-game" href="rps.html"><span class="emoji">✊</span><h3>石头剪刀布</h3><div class="desc">和电脑猜拳</div></a>
+<a class="card c-game" href="sudoku.html"><span class="emoji">9️⃣</span><h3>数独</h3><div class="desc">填满九宫格</div></a>
 </div></section>
 <section class="cat"><h2>🌱 情绪 · 治愈</h2><div class="grid">
 <a class="card c-heal" href="pixel-garden.html"><span class="emoji">🌱</span><h3>像素花园</h3><div class="desc">按真实时间生长的植物</div></a>
 <a class="card c-heal" href="praise.html"><span class="emoji">🌈</span><h3>夸夸机</h3><div class="desc">来被夸一夸</div></a>
+<a class="card c-heal" href="bubble-wrap.html"><span class="emoji">🫧</span><h3>捏泡泡纸</h3><div class="desc">啵啵啵解压</div></a>
+<a class="card c-heal" href="bonfire.html"><span class="emoji">🔥</span><h3>虚拟篝火</h3><div class="desc">围炉听柴火噼啪</div></a>
+<a class="card c-heal" href="cactus.html"><span class="emoji">🌵</span><h3>电子仙人掌</h3><div class="desc">养一颗仙人掌</div></a>
 </div></section>
 <section class="cat"><h2>🧠 知识 · 好奇</h2><div class="grid">
 <a class="card c-know" href="typing-test.html"><span class="emoji">⌨️</span><h3>打字速度测试</h3><div class="desc">测测你的手速</div></a>
+<a class="card c-know" href="planet-weight.html"><span class="emoji">🪐</span><h3>各星球体重</h3><div class="desc">你在木星有多重</div></a>
+<a class="card c-know" href="cold-fact.html"><span class="emoji">💡</span><h3>随机冷知识</h3><div class="desc">来一条冷知识</div></a>
+<a class="card c-know" href="today-history.html"><span class="emoji">📅</span><h3>历史上的今天</h3><div class="desc">今天发生过什么</div></a>
 </div></section>
-<footer>全部代码在本地，数据只存在你自己的浏览器里。<br>持续生长中，朝着 100 个小站前进 · <a href="https://github.com/sakuar/why">源码</a></footer>
+<footer>全部代码在本地，数据只存在你自己的浏览器里。<br>持续生长中，已过半程，朝着 100 个小站前进 · <a href="https://github.com/sakuar/why">源码</a></footer>
 </body>
 </html>
