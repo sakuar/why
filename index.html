@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小众创意 · 四个小网站</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { min-height:100vh; background:#0c0f1a; color:#e8eef7;
+    font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    display:flex; flex-direction:column; align-items:center; padding:48px 16px 60px; }
+  .hero{ text-align:center; margin-bottom:38px; }
+  h1{ font-size:clamp(26px,5vw,40px); font-weight:800; letter-spacing:1px;
+    background:linear-gradient(90deg,#ffd166,#ff8aa0,#b98cff,#56b6ff); -webkit-background-clip:text;
+    background-clip:text; color:transparent; }
+  .hero p{ color:#8090a8; margin-top:10px; font-size:14px; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px;
+    width:min(840px,100%); }
+  a.card{ text-decoration:none; color:inherit; position:relative; overflow:hidden;
+    border-radius:16px; padding:24px 22px; min-height:170px; display:flex; flex-direction:column;
+    justify-content:flex-end; border:1px solid rgba(255,255,255,.08); transition:.25s;
+    background-size:cover; }
+  a.card:hover{ transform:translateY(-4px); border-color:rgba(255,255,255,.25);
+    box-shadow:0 18px 40px rgba(0,0,0,.5); }
+  .c1{ background:radial-gradient(ellipse at top right,#1b3a6b,#0a1428); }
+  .c2{ background:radial-gradient(ellipse at top right,#0f3320,#0a1410); }
+  .c3{ background:radial-gradient(ellipse at top right,#2a5a35,#13301a); }
+  .c4{ background:radial-gradient(ellipse at top right,#3a2a5e,#160f28); }
+  .emoji{ font-size:34px; position:absolute; top:20px; left:22px; filter:drop-shadow(0 3px 8px rgba(0,0,0,.4)); }
+  .card h2{ font-size:20px; font-weight:700; }
+  .card .desc{ color:#aab6cc; font-size:13px; margin-top:6px; line-height:1.5; }
+  .card .arrow{ color:#fff; font-size:13px; margin-top:12px; opacity:.7; }
+  footer{ margin-top:40px; color:#5a6680; font-size:12px; text-align:center; line-height:1.7; }
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>四个小众创意小站</h1>
+  <p>都是纯前端单文件 · 双击即开 · 不需要联网也不需要后端</p>
+</div>
+
+<div class="grid">
+  <a class="card c1" href="earth-night.html">
+    <span class="emoji">🌍</span>
+    <h2>此刻，地球的夜晚</h2>
+    <div class="desc">输入一座城市，看全球真实的昼夜分界线，读一句属于那里此刻的心情。</div>
+    <div class="arrow">进入 →</div>
+  </a>
+  <a class="card c2" href="fake-work.html">
+    <span class="emoji">💻</span>
+    <h2>假装在工作</h2>
+    <div class="desc">全屏滚动的假编译/部署/扫描日志，还有代码雨。终极摸鱼神器。</div>
+    <div class="arrow">进入 →</div>
+  </a>
+  <a class="card c3" href="pixel-garden.html">
+    <span class="emoji">🌱</span>
+    <h2>像素花园</h2>
+    <div class="desc">种一颗按真实时间生长的像素植物。关掉网页它也在长，明天回来看看。</div>
+    <div class="arrow">进入 →</div>
+  </a>
+  <a class="card c4" href="decision-maker.html">
+    <span class="emoji">🎲</span>
+    <h2>一句话决定器</h2>
+    <div class="desc">纠结时把选项扔进去，用抛硬币、塔罗、摇卦等荒诞算法替你拍板。</div>
+    <div class="arrow">进入 →</div>
+  </a>
+</div>
+
+<footer>
+  全部代码在本地，数据只存在你自己的浏览器里。<br>
+  随便改、随便拆 —— 这本来就是给你折腾的小玩具。
+</footer>
+</body>
+</html>
