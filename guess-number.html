@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>猜数字</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0c29;
+    --bg2: #1a1740;
+    --card: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.12);
+    --accent: #a78bfa;
+    --accent2: #60a5fa;
+    --success: #34d399;
+    --warn: #fb923c;
+    --danger: #f87171;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --radius: 16px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--bg) 0%, #302b63 50%, #24243e 100%);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    transition: color .2s;
+    z-index: 100;
+  }
+  .back-link:hover { color: var(--accent); }
+
+  .container {
+    width: 100%;
+    max-width: 440px;
+    margin-top: 48px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .header h1 {
+    font-size: clamp(28px, 8vw, 40px);
+    font-weight: 800;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -1px;
+  }
+  .header p {
+    color: var(--muted);
+    margin-top: 6px;
+    font-size: 14px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+  }
+
+  .range-hint {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .range-bar {
+    position: relative;
+    height: 8px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 99px;
+    overflow: visible;
+    margin: 10px 0 4px;
+  }
+  .range-fill {
+    position: absolute;
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 99px;
+    transition: left .4s ease, width .4s ease;
+  }
+  .range-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  #range-lo, #range-hi {
+    font-weight: 700;
+    color: var(--accent);
+    transition: color .3s;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .input-row input {
+    flex: 1;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 700;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    text-align: center;
+    -moz-appearance: textfield;
+  }
+  .input-row input::-webkit-inner-spin-button,
+  .input-row input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .input-row input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(167,139,250,0.2);
+  }
+  .input-row input:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s, opacity .2s;
+    padding: 12px 20px;
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(.95); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(167,139,250,0.35);
+  }
+  .btn-primary:hover { box-shadow: 0 6px 24px rgba(167,139,250,0.5); }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-ghost {
+    background: rgba(255,255,255,0.08);
+    color: var(--text);
+    border: 1px solid var(--border);
+    width: 100%;
+    margin-top: 4px;
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,0.14); }
+
+  .feedback {
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 16px;
+    font-weight: 600;
+    transition: background .3s, border-color .3s;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+  .feedback.idle {
+    background: rgba(255,255,255,0.04);
+    border: 1px dashed var(--border);
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .feedback.too-big {
+    background: rgba(251,146,60,0.15);
+    border: 1px solid rgba(251,146,60,0.4);
+    color: var(--warn);
+  }
+  .feedback.too-small {
+    background: rgba(96,165,250,0.15);
+    border: 1px solid rgba(96,165,250,0.4);
+    color: var(--accent2);
+  }
+  .feedback.correct {
+    background: rgba(52,211,153,0.15);
+    border: 1px solid rgba(52,211,153,0.4);
+    color: var(--success);
+  }
+  .feedback.invalid {
+    background: rgba(248,113,113,0.12);
+    border: 1px solid rgba(248,113,113,0.3);
+    color: var(--danger);
+  }
+  .feedback-icon { font-size: 22px; flex-shrink: 0; }
+
+  .stats-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .stat-box {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 8px;
+    text-align: center;
+  }
+  .stat-val {
+    font-size: 26px;
+    font-weight: 800;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* History */
+  .history-card { display: none; }
+  .history-card.show { display: block; }
+  .history-title {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+  }
+  .history-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+  .history-list::-webkit-scrollbar { width: 4px; }
+  .history-list::-webkit-scrollbar-track { background: transparent; }
+  .history-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+  .hist-chip {
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid;
+    transition: transform .2s;
+    animation: popIn .3s ease;
+  }
+  @keyframes popIn {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .hist-chip.big { background: rgba(251,146,60,0.12); border-color: rgba(251,146,60,0.35); color: var(--warn); }
+  .hist-chip.small { background: rgba(96,165,250,0.12); border-color: rgba(96,165,250,0.35); color: var(--accent2); }
+  .hist-chip.hit { background: rgba(52,211,153,0.15); border-color: rgba(52,211,153,0.4); color: var(--success); }
+
+  /* Win overlay */
+  #win-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,8,30,0.85);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 16px;
+  }
+  #win-overlay.show { display: flex; animation: fadeIn .4s ease; }
+  @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+
+  .win-card {
+    background: linear-gradient(135deg, #1a1740, #24243e);
+    border: 1px solid rgba(167,139,250,0.4);
+    border-radius: 24px;
+    padding: 36px 28px;
+    text-align: center;
+    max-width: 360px;
+    width: 100%;
+    box-shadow: 0 16px 64px rgba(167,139,250,0.25);
+    animation: slideUp .4s cubic-bezier(0.34,1.56,0.64,1);
+    position: relative;
+    overflow: hidden;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(60px) scale(0.9); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+  }
+
+  .win-trophy { font-size: 64px; animation: bounce 1s ease infinite alternate; display: block; margin-bottom: 12px; }
+  @keyframes bounce {
+    from { transform: translateY(0) rotate(-5deg); }
+    to { transform: translateY(-10px) rotate(5deg); }
+  }
+  .win-title {
+    font-size: 28px;
+    font-weight: 900;
+    background: linear-gradient(90deg, #fbbf24, #f59e0b, #fbbf24);
+    background-size: 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 2s linear infinite;
+    margin-bottom: 8px;
+  }
+  @keyframes shimmer { from { background-position: 0% } to { background-position: 200% } }
+  .win-sub { color: var(--muted); font-size: 15px; margin-bottom: 20px; }
+  .win-answer {
+    font-size: 60px;
+    font-weight: 900;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .win-tries {
+    font-size: 16px;
+    color: var(--text);
+    margin-bottom: 24px;
+  }
+  .win-tries span {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--success);
+  }
+
+  .confetti-wrap {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .confetti-piece {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    top: -10px;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(500px) rotate(720deg); opacity: 0; }
+  }
+
+  /* best record */
+  .best-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(251,191,36,0.15);
+    border: 1px solid rgba(251,191,36,0.35);
+    color: #fbbf24;
+    border-radius: 99px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 18px;
+  }
+
+  @media (max-width: 400px) {
+    .card { padding: 18px 14px; }
+    .win-card { padding: 28px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<div class="container">
+  <div class="header">
+    <h1>猜数字</h1>
+    <p>我想好了 1 ~ 100 之间的一个数，猜猜看？</p>
+  </div>
+
+  <div class="card">
+    <div class="range-hint">
+      <div class="range-labels">
+        <span>1</span>
+        <span style="color:var(--muted);font-size:12px;">猜测范围缩小中…</span>
+        <span>100</span>
+      </div>
+      <div class="range-bar">
+        <div class="range-fill" id="range-fill" style="left:0%;width:100%"></div>
+      </div>
+      <div class="range-labels">
+        <span id="range-lo">1</span>
+        <span id="range-hi">100</span>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <input type="number" id="guess-input" min="1" max="100" placeholder="输入数字…" autocomplete="off">
+      <button class="btn btn-primary" id="guess-btn">猜！</button>
+    </div>
+
+    <div class="feedback idle" id="feedback">
+      <span class="feedback-icon">🎯</span>
+      <span id="feedback-text">输入你的猜测，然后点击「猜！」</span>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-val" id="tries-val">0</div>
+        <div class="stat-label">已猜次数</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="best-val">—</div>
+        <div class="stat-label">最佳记录</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="wins-val">0</div>
+        <div class="stat-label">累计胜利</div>
+      </div>
+    </div>
+
+    <button class="btn btn-ghost" id="restart-btn" style="margin-top:16px;">重新开始</button>
+  </div>
+
+  <div class="card history-card" id="history-card">
+    <div class="history-title">本局历史猜测</div>
+    <div class="history-list" id="history-list"></div>
+  </div>
+</div>
+
+<!-- Win Overlay -->
+<div id="win-overlay">
+  <div class="win-card">
+    <div class="confetti-wrap" id="confetti-wrap"></div>
+    <span class="win-trophy">🏆</span>
+    <div class="win-title">太厉害了！</div>
+    <div class="win-sub">答案就是</div>
+    <div class="win-answer" id="win-answer">42</div>
+    <div class="win-tries">你用了 <span id="win-tries">7</span> 次猜中！</div>
+    <div id="win-best-badge" class="best-badge" style="display:none;">⭐ 新的最佳记录！</div>
+    <button class="btn btn-primary" id="win-restart-btn" style="width:100%">再来一局</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---- State ---- */
+  const STORAGE_KEY = "guess_number_stats";
+
+  let secretNumber = 0;
+  let tries = 0;
+  let lo = 1;
+  let hi = 100;
+  let gameOver = false;
+  let history = [];
+
+  /* ---- Persist ---- */
+  function loadStats() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* ignore */ }
+    return { best: null, wins: 0 };
+  }
+
+  function saveStats(stats) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stats)); } catch (e) { /* ignore */ }
+  }
+
+  /* ---- DOM refs ---- */
+  const guessInput   = document.getElementById("guess-input");
+  const guessBtn     = document.getElementById("guess-btn");
+  const restartBtn   = document.getElementById("restart-btn");
+  const winRestartBtn= document.getElementById("win-restart-btn");
+  const feedbackEl   = document.getElementById("feedback");
+  const feedbackText = document.getElementById("feedback-text");
+  const triesVal     = document.getElementById("tries-val");
+  const bestVal      = document.getElementById("best-val");
+  const winsVal      = document.getElementById("wins-val");
+  const rangeFill    = document.getElementById("range-fill");
+  const rangeLo      = document.getElementById("range-lo");
+  const rangeHi      = document.getElementById("range-hi");
+  const historyCard  = document.getElementById("history-card");
+  const historyList  = document.getElementById("history-list");
+  const winOverlay   = document.getElementById("win-overlay");
+  const winAnswer    = document.getElementById("win-answer");
+  const winTries     = document.getElementById("win-tries");
+  const winBestBadge = document.getElementById("win-best-badge");
+  const confettiWrap = document.getElementById("confetti-wrap");
+
+  /* ---- Helpers ---- */
+  function randInt(a, b) {
+    return Math.floor(Math.random() * (b - a + 1)) + a;
+  }
+
+  function updateRangeBar() {
+    const pctLo = ((lo - 1) / 99) * 100;
+    const pctHi = ((hi - 1) / 99) * 100;
+    rangeFill.style.left  = pctLo + "%";
+    rangeFill.style.width = (pctHi - pctLo) + "%";
+    rangeLo.textContent = lo;
+    rangeHi.textContent = hi;
+  }
+
+  function setFeedback(cls, icon, text) {
+    feedbackEl.className = "feedback " + cls;
+    feedbackEl.querySelector(".feedback-icon").textContent = icon;
+    feedbackText.textContent = text;
+  }
+
+  function shakeInput() {
+    guessInput.style.animation = "none";
+    guessInput.getBoundingClientRect();
+    guessInput.style.animation = "shake .4s ease";
+  }
+
+  function addChip(num, type) {
+    const chip = document.createElement("div");
+    chip.className = "hist-chip " + type;
+    const labels = { big: "▼", small: "▲", hit: "✓" };
+    chip.textContent = labels[type] + " " + num;
+    historyList.insertBefore(chip, historyList.firstChild);
+    historyCard.classList.add("show");
+  }
+
+  /* ---- Confetti ---- */
+  function spawnConfetti() {
+    confettiWrap.innerHTML = "";
+    const colors = ["#a78bfa","#60a5fa","#34d399","#fbbf24","#f87171","#fb923c","#e879f9"];
+    for (let i = 0; i < 55; i++) {
+      const el = document.createElement("div");
+      el.className = "confetti-piece";
+      el.style.cssText = [
+        "left:" + randInt(0, 100) + "%",
+        "background:" + colors[i % colors.length],
+        "width:" + randInt(6, 12) + "px",
+        "height:" + randInt(6, 12) + "px",
+        "border-radius:" + (Math.random() > 0.5 ? "50%" : "2px"),
+        "animation-duration:" + (randInt(12, 24) / 10) + "s",
+        "animation-delay:" + (randInt(0, 12) / 10) + "s"
+      ].join(";");
+      confettiWrap.appendChild(el);
+    }
+  }
+
+  /* ---- Game logic ---- */
+  function startGame() {
+    secretNumber = randInt(1, 100);
+    tries  = 0;
+    lo     = 1;
+    hi     = 100;
+    gameOver = false;
+    history = [];
+
+    guessInput.value = "";
+    guessInput.disabled = false;
+    guessBtn.disabled = false;
+    guessInput.focus();
+
+    setFeedback("idle", "🎯", "输入你的猜测，然后点击「猜！」");
+    triesVal.textContent = "0";
+    updateRangeBar();
+    historyList.innerHTML = "";
+    historyCard.classList.remove("show");
+    winOverlay.classList.remove("show");
+  }
+
+  function submitGuess() {
+    if (gameOver) return;
+
+    const raw = guessInput.value.trim();
+    const num = parseInt(raw, 10);
+
+    if (!raw || isNaN(num) || num < 1 || num > 100) {
+      setFeedback("invalid", "⚠️", "请输入 1 ~ 100 之间的整数！");
+      shakeInput();
+      return;
+    }
+
+    tries++;
+    triesVal.textContent = tries;
+    history.push(num);
+
+    if (num > secretNumber) {
+      setFeedback("too-big", "📉", num + " 太大了！再往小一点试试~");
+      if (num < hi) { hi = num - 1; }
+      updateRangeBar();
+      addChip(num, "big");
+    } else if (num < secretNumber) {
+      setFeedback("too-small", "📈", num + " 太小了！再往大一点试试~");
+      if (num > lo) { lo = num + 1; }
+      updateRangeBar();
+      addChip(num, "small");
+    } else {
+      // Correct!
+      gameOver = true;
+      addChip(num, "hit");
+      setFeedback("correct", "🎉", "恭喜！就是 " + secretNumber + "，你用了 " + tries + " 次！");
+      guessInput.disabled = true;
+      guessBtn.disabled = true;
+
+      const stats = loadStats();
+      let isNewBest = false;
+      if (stats.best === null || tries < stats.best) {
+        stats.best = tries;
+        isNewBest = true;
+      }
+      stats.wins = (stats.wins || 0) + 1;
+      saveStats(stats);
+
+      winAnswer.textContent = secretNumber;
+      winTries.textContent  = tries;
+      winBestBadge.style.display = isNewBest ? "inline-flex" : "none";
+      bestVal.textContent = stats.best !== null ? stats.best : "—";
+      winsVal.textContent = stats.wins;
+
+      setTimeout(function () {
+        winOverlay.classList.add("show");
+        spawnConfetti();
+      }, 600);
+      return;
+    }
+
+    guessInput.value = "";
+    guessInput.focus();
+
+    const stats = loadStats();
+    bestVal.textContent = stats.best !== null ? stats.best : "—";
+    winsVal.textContent = stats.wins || 0;
+  }
+
+  /* ---- Event listeners ---- */
+  guessBtn.addEventListener("click", submitGuess);
+
+  guessInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") submitGuess();
+  });
+
+  restartBtn.addEventListener("click", startGame);
+  winRestartBtn.addEventListener("click", startGame);
+
+  winOverlay.addEventListener("click", function (e) {
+    if (e.target === winOverlay) {
+      winOverlay.classList.remove("show");
+    }
+  });
+
+  /* ---- Inject shake keyframe ---- */
+  (function injectStyles() {
+    const style = document.createElement("style");
+    style.textContent = "@keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }";
+    document.head.appendChild(style);
+  }());
+
+  /* ---- Init ---- */
+  (function init() {
+    const stats = loadStats();
+    bestVal.textContent = stats.best !== null ? stats.best : "—";
+    winsVal.textContent = stats.wins || 0;
+    startGame();
+  }());
+
+}());
+</script>
+</body>
+</html>
