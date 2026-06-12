@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数独</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --primary: #4f7ef8;
+    --primary-dark: #3563e9;
+    --accent: #f87171;
+    --success: #34d399;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #cbd5e1;
+    --cell-bg: #ffffff;
+    --cell-given-bg: #eef2ff;
+    --cell-selected: #dbeafe;
+    --cell-peer: #f1f5f9;
+    --cell-conflict: #fee2e2;
+    --cell-correct: #d1fae5;
+    --shadow: 0 4px 24px rgba(79,126,248,0.10);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 12px;
+    left: 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    z-index: 100;
+  }
+  .back-link:hover { opacity: 1; }
+
+  .app {
+    width: 100%;
+    max-width: 480px;
+    margin-top: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+
+  header {
+    text-align: center;
+  }
+  header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary), #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 2px;
+  }
+  header p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .stats-bar {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 10px 24px;
+    box-shadow: var(--shadow);
+    font-size: 15px;
+  }
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+  .stat-value { font-size: 18px; font-weight: 700; color: var(--primary); }
+
+  .board-wrapper {
+    background: var(--surface);
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+    width: 100%;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 2px;
+    width: 100%;
+    aspect-ratio: 1;
+    border: 2.5px solid var(--text);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--cell-bg);
+    font-size: clamp(14px, 4vw, 22px);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    position: relative;
+    border: 0.5px solid var(--border);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Thick box borders for 3x3 regions */
+  .cell[data-col="3"], .cell[data-col="6"] { border-left: 2px solid var(--text); }
+  .cell[data-row="3"], .cell[data-row="6"] { border-top: 2px solid var(--text); }
+
+  .cell.given {
+    background: var(--cell-given-bg);
+    color: var(--text);
+    font-weight: 700;
+    cursor: default;
+  }
+  .cell.selected {
+    background: var(--cell-selected);
+    z-index: 1;
+  }
+  .cell.peer {
+    background: var(--cell-peer);
+  }
+  .cell.conflict {
+    background: var(--cell-conflict);
+    color: var(--accent);
+    animation: shake 0.3s ease;
+  }
+  .cell.correct-fill {
+    background: var(--cell-correct);
+    color: #059669;
+  }
+  .cell:not(.given):hover {
+    background: var(--cell-selected);
+  }
+  .cell.same-num {
+    background: #e0e7ff;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+  }
+
+  .numpad {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+
+  .numpad-btn {
+    aspect-ratio: 1;
+    border: none;
+    border-radius: 12px;
+    background: var(--surface);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    font-size: clamp(16px, 4vw, 22px);
+    font-weight: 600;
+    color: var(--primary-dark);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .numpad-btn:hover {
+    background: var(--cell-selected);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(79,126,248,0.18);
+  }
+  .numpad-btn:active { transform: scale(0.94); }
+  .numpad-btn.erase {
+    font-size: clamp(12px, 3vw, 16px);
+    color: var(--accent);
+  }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+  }
+  .ctrl-btn {
+    flex: 1;
+    padding: 12px 0;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ctrl-btn:active { transform: scale(0.96); }
+  .ctrl-btn.new-game {
+    background: var(--primary);
+    color: #fff;
+  }
+  .ctrl-btn.new-game:hover { background: var(--primary-dark); }
+  .ctrl-btn.clear {
+    background: #f1f5f9;
+    color: var(--text);
+  }
+  .ctrl-btn.clear:hover { background: #e2e8f0; }
+
+  .victory-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(30,41,59,0.55);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+  }
+  .victory-overlay.show { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .victory-card {
+    background: var(--surface);
+    border-radius: 24px;
+    padding: 36px 40px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 340px;
+    width: 90%;
+  }
+  @keyframes popIn {
+    from { transform: scale(0.7); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .victory-card .trophy { font-size: 64px; margin-bottom: 12px; }
+  .victory-card h2 { font-size: 1.6rem; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+  .victory-card p { color: var(--text-muted); margin-bottom: 24px; font-size: 15px; }
+  .victory-card .play-again {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 14px 36px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .victory-card .play-again:hover { background: var(--primary-dark); transform: translateY(-2px); }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<div class="app">
+  <header>
+    <h1>数独</h1>
+    <p>填满所有格子，每行、每列、每宫各含 1-9</p>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-label">用时</span>
+      <span class="stat-value" id="timer">00:00</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">错误</span>
+      <span class="stat-value" id="mistakes">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">剩余</span>
+      <span class="stat-value" id="remaining">0</span>
+    </div>
+  </div>
+
+  <div class="board-wrapper">
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="numpad" id="numpad"></div>
+
+  <div class="controls">
+    <button class="ctrl-btn new-game" id="newGameBtn">新游戏</button>
+    <button class="ctrl-btn clear" id="clearBtn">清除选格</button>
+  </div>
+</div>
+
+<div class="victory-overlay" id="victoryOverlay">
+  <div class="victory-card">
+    <div class="trophy">🏆</div>
+    <h2>恭喜完成！</h2>
+    <p id="victoryMsg">用时 00:00，错误 0 次</p>
+    <button class="play-again" id="playAgainBtn">再玩一局</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  /* ===== State ===== */
+  var solution = [];
+  var puzzle = [];
+  var userGrid = [];
+  var selected = -1;
+  var mistakes = 0;
+  var seconds = 0;
+  var timerInterval = null;
+  var gameOver = false;
+
+  /* ===== DOM refs ===== */
+  var boardEl = document.getElementById('board');
+  var numpadEl = document.getElementById('numpad');
+  var timerEl = document.getElementById('timer');
+  var mistakesEl = document.getElementById('mistakes');
+  var remainingEl = document.getElementById('remaining');
+  var newGameBtn = document.getElementById('newGameBtn');
+  var clearBtn = document.getElementById('clearBtn');
+  var victoryOverlay = document.getElementById('victoryOverlay');
+  var victoryMsg = document.getElementById('victoryMsg');
+  var playAgainBtn = document.getElementById('playAgainBtn');
+
+  /* ===== Sudoku Generator ===== */
+  function shuffle(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function isValid(grid, pos, num) {
+    var row = Math.floor(pos / 9);
+    var col = pos % 9;
+    for (var c = 0; c < 9; c++) {
+      if (grid[row * 9 + c] === num) return false;
+    }
+    for (var r = 0; r < 9; r++) {
+      if (grid[r * 9 + col] === num) return false;
+    }
+    var br = Math.floor(row / 3) * 3;
+    var bc = Math.floor(col / 3) * 3;
+    for (var dr = 0; dr < 3; dr++) {
+      for (var dc = 0; dc < 3; dc++) {
+        if (grid[(br + dr) * 9 + (bc + dc)] === num) return false;
+      }
+    }
+    return true;
+  }
+
+  function fillGrid(grid) {
+    var pos = grid.indexOf(0);
+    if (pos === -1) return true;
+    var nums = shuffle([1,2,3,4,5,6,7,8,9]);
+    for (var i = 0; i < nums.length; i++) {
+      if (isValid(grid, pos, nums[i])) {
+        grid[pos] = nums[i];
+        if (fillGrid(grid)) return true;
+        grid[pos] = 0;
+      }
+    }
+    return false;
+  }
+
+  function countSolutions(grid, limit) {
+    var pos = grid.indexOf(0);
+    if (pos === -1) return 1;
+    var count = 0;
+    for (var num = 1; num <= 9; num++) {
+      if (isValid(grid, pos, num)) {
+        grid[pos] = num;
+        count += countSolutions(grid, limit);
+        grid[pos] = 0;
+        if (count >= limit) return count;
+      }
+    }
+    return count;
+  }
+
+  function generatePuzzle() {
+    var sol = new Array(81).fill(0);
+    fillGrid(sol);
+    solution = sol.slice();
+
+    var puz = sol.slice();
+    var cells = shuffle(Array.from({length: 81}, function(_, i) { return i; }));
+    var removed = 0;
+    var target = 46; // remove 46 cells → 35 givens (medium difficulty)
+
+    for (var i = 0; i < cells.length && removed < target; i++) {
+      var idx = cells[i];
+      var backup = puz[idx];
+      puz[idx] = 0;
+      var tmp = puz.slice();
+      if (countSolutions(tmp, 2) === 1) {
+        removed++;
+      } else {
+        puz[idx] = backup;
+      }
+    }
+    puzzle = puz.slice();
+    userGrid = puz.slice();
+  }
+
+  /* ===== Timer ===== */
+  function padTwo(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function formatTime(s) {
+    return padTwo(Math.floor(s / 60)) + ':' + padTwo(s % 60);
+  }
+
+  function startTimer() {
+    stopTimer();
+    seconds = 0;
+    timerEl.textContent = '00:00';
+    timerInterval = setInterval(function() {
+      seconds++;
+      timerEl.textContent = formatTime(seconds);
+    }, 1000);
+  }
+
+  function stopTimer() {
+    if (timerInterval !== null) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  /* ===== Render ===== */
+  function renderBoard() {
+    boardEl.innerHTML = '';
+    for (var i = 0; i < 81; i++) {
+      var cell = document.createElement('div');
+      cell.className = 'cell';
+      var row = Math.floor(i / 9);
+      var col = i % 9;
+      cell.dataset.idx = i;
+      cell.dataset.row = row;
+      cell.dataset.col = col;
+      if (puzzle[i] !== 0) {
+        cell.classList.add('given');
+        cell.textContent = puzzle[i];
+      } else if (userGrid[i] !== 0) {
+        cell.textContent = userGrid[i];
+        if (userGrid[i] === solution[i]) {
+          cell.classList.add('correct-fill');
+        } else {
+          cell.classList.add('conflict');
+        }
+      }
+      cell.addEventListener('click', onCellClick);
+      boardEl.appendChild(cell);
+    }
+    updateHighlights();
+    updateStats();
+  }
+
+  function getCells() {
+    return boardEl.querySelectorAll('.cell');
+  }
+
+  function updateHighlights() {
+    var cells = getCells();
+    var selRow = selected >= 0 ? Math.floor(selected / 9) : -1;
+    var selCol = selected >= 0 ? selected % 9 : -1;
+    var selBox = selected >= 0 ? Math.floor(selRow / 3) * 3 + Math.floor(selCol / 3) : -1;
+    var selNum = selected >= 0 ? (userGrid[selected] || puzzle[selected]) : 0;
+
+    cells.forEach(function(cell) {
+      var idx = parseInt(cell.dataset.idx, 10);
+      var row = Math.floor(idx / 9);
+      var col = idx % 9;
+      var box = Math.floor(row / 3) * 3 + Math.floor(col / 3);
+      var num = userGrid[idx] || puzzle[idx];
+
+      // Remove dynamic classes
+      cell.classList.remove('selected', 'peer', 'same-num');
+      // Keep given / correct-fill / conflict
+      if (selected === idx) {
+        cell.classList.add('selected');
+      } else if (selected >= 0 && (row === selRow || col === selCol || box === selBox)) {
+        cell.classList.add('peer');
+      }
+      if (selNum !== 0 && num === selNum && idx !== selected) {
+        cell.classList.add('same-num');
+      }
+    });
+  }
+
+  function updateStats() {
+    mistakesEl.textContent = mistakes;
+    var rem = 0;
+    for (var i = 0; i < 81; i++) {
+      if (puzzle[i] === 0 && userGrid[i] === 0) rem++;
+    }
+    remainingEl.textContent = rem;
+  }
+
+  /* ===== Interactions ===== */
+  function onCellClick(e) {
+    if (gameOver) return;
+    var idx = parseInt(e.currentTarget.dataset.idx, 10);
+    if (puzzle[idx] !== 0) {
+      selected = idx;
+      updateHighlights();
+      return;
+    }
+    selected = idx;
+    updateHighlights();
+  }
+
+  function inputNumber(num) {
+    if (gameOver) return;
+    if (selected < 0) return;
+    if (puzzle[selected] !== 0) return;
+
+    if (num === 0) {
+      // erase
+      userGrid[selected] = 0;
+      var cell = boardEl.querySelector('[data-idx="' + selected + '"]');
+      if (cell) {
+        cell.textContent = '';
+        cell.classList.remove('conflict', 'correct-fill');
+      }
+      updateHighlights();
+      updateStats();
+      return;
+    }
+
+    if (userGrid[selected] === num) return;
+
+    userGrid[selected] = num;
+    var cellEl = boardEl.querySelector('[data-idx="' + selected + '"]');
+    if (cellEl) {
+      cellEl.textContent = num;
+      cellEl.classList.remove('conflict', 'correct-fill', 'peer', 'same-num');
+      if (num === solution[selected]) {
+        cellEl.classList.add('correct-fill', 'selected');
+      } else {
+        cellEl.classList.add('conflict');
+        mistakes++;
+        mistakesEl.textContent = mistakes;
+      }
+    }
+    updateHighlights();
+    updateStats();
+    checkVictory();
+    saveState();
+  }
+
+  function checkVictory() {
+    for (var i = 0; i < 81; i++) {
+      if (userGrid[i] !== solution[i]) return;
+    }
+    gameOver = true;
+    stopTimer();
+    victoryMsg.textContent = '用时 ' + formatTime(seconds) + '，错误 ' + mistakes + ' 次';
+    victoryOverlay.classList.add('show');
+    localStorage.removeItem('sudoku_state');
+  }
+
+  /* ===== Numpad ===== */
+  function buildNumpad() {
+    numpadEl.innerHTML = '';
+    for (var n = 1; n <= 9; n++) {
+      (function(num) {
+        var btn = document.createElement('button');
+        btn.className = 'numpad-btn';
+        btn.textContent = num;
+        btn.addEventListener('click', function() { inputNumber(num); });
+        numpadEl.appendChild(btn);
+      })(n);
+    }
+    var eraseBtn = document.createElement('button');
+    eraseBtn.className = 'numpad-btn erase';
+    eraseBtn.textContent = '清除';
+    eraseBtn.addEventListener('click', function() { inputNumber(0); });
+    numpadEl.appendChild(eraseBtn);
+  }
+
+  /* ===== Keyboard ===== */
+  document.addEventListener('keydown', function(e) {
+    if (gameOver) return;
+    var key = e.key;
+    if (key >= '1' && key <= '9') {
+      inputNumber(parseInt(key, 10));
+    } else if (key === '0' || key === 'Backspace' || key === 'Delete') {
+      inputNumber(0);
+    } else if (selected >= 0) {
+      var row = Math.floor(selected / 9);
+      var col = selected % 9;
+      if (key === 'ArrowUp' && row > 0) { selected = (row - 1) * 9 + col; updateHighlights(); }
+      else if (key === 'ArrowDown' && row < 8) { selected = (row + 1) * 9 + col; updateHighlights(); }
+      else if (key === 'ArrowLeft' && col > 0) { selected = row * 9 + (col - 1); updateHighlights(); }
+      else if (key === 'ArrowRight' && col < 8) { selected = row * 9 + (col + 1); updateHighlights(); }
+    }
+  });
+
+  /* ===== Persistence ===== */
+  function saveState() {
+    try {
+      localStorage.setItem('sudoku_state', JSON.stringify({
+        solution: solution,
+        puzzle: puzzle,
+        userGrid: userGrid,
+        mistakes: mistakes,
+        seconds: seconds
+      }));
+    } catch(e) {}
+  }
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem('sudoku_state');
+      if (!raw) return false;
+      var state = JSON.parse(raw);
+      if (!state.solution || state.solution.length !== 81) return false;
+      solution = state.solution;
+      puzzle = state.puzzle;
+      userGrid = state.userGrid;
+      mistakes = state.mistakes || 0;
+      seconds = state.seconds || 0;
+      return true;
+    } catch(e) { return false; }
+  }
+
+  /* ===== New Game ===== */
+  function newGame() {
+    stopTimer();
+    gameOver = false;
+    selected = -1;
+    mistakes = 0;
+    generatePuzzle();
+    renderBoard();
+    startTimer();
+    saveState();
+  }
+
+  /* ===== Controls ===== */
+  newGameBtn.addEventListener('click', newGame);
+
+  clearBtn.addEventListener('click', function() {
+    if (selected >= 0 && puzzle[selected] === 0) {
+      inputNumber(0);
+    }
+  });
+
+  victoryOverlay.addEventListener('click', function(e) {
+    if (e.target === victoryOverlay) {
+      victoryOverlay.classList.remove('show');
+    }
+  });
+
+  playAgainBtn.addEventListener('click', function() {
+    victoryOverlay.classList.remove('show');
+    newGame();
+  });
+
+  /* ===== Init ===== */
+  buildNumpad();
+
+  var loaded = loadState();
+  if (loaded) {
+    gameOver = false;
+    renderBoard();
+    timerEl.textContent = formatTime(seconds);
+    startTimer();
+    // resume: continue counting from loaded seconds
+    // already set seconds before startTimer, but startTimer resets to 0
+    // fix: patch after startTimer
+    stopTimer();
+    timerEl.textContent = formatTime(seconds);
+    timerInterval = setInterval(function() {
+      seconds++;
+      timerEl.textContent = formatTime(seconds);
+    }, 1000);
+  } else {
+    newGame();
+  }
+
+})();
+</script>
+</body>
+</html>
