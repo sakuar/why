@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>历史上的今天</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --primary: #3b5bdb;
+    --primary-light: #4c6ef5;
+    --accent: #e64980;
+    --text: #1a1a2e;
+    --text-sub: #5a6a85;
+    --border: #e2e8f0;
+    --shadow: 0 4px 24px rgba(59,91,219,0.08);
+    --radius: 16px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    font-size: 13px;
+    color: var(--text-sub);
+    text-decoration: none;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(8px);
+    padding: 5px 11px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    transition: color 0.2s, box-shadow 0.2s;
+    z-index: 100;
+  }
+  .back-link:hover { color: var(--primary); box-shadow: 0 2px 8px rgba(59,91,219,0.15); }
+
+  .hero {
+    background: linear-gradient(135deg, #3b5bdb 0%, #7048e8 60%, #e64980 100%);
+    color: #fff;
+    text-align: center;
+    padding: 60px 20px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+    pointer-events: none;
+  }
+  .hero-date {
+    font-size: clamp(42px, 10vw, 72px);
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.2);
+  }
+  .hero-label {
+    font-size: 15px;
+    opacity: 0.85;
+    margin-top: 8px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .hero-sub {
+    font-size: 13px;
+    opacity: 0.7;
+    margin-top: 6px;
+  }
+
+  .date-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px 16px 0;
+  }
+  .date-nav button {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    font-size: 18px;
+    cursor: pointer;
+    color: var(--primary);
+    transition: background 0.2s, box-shadow 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .date-nav button:hover { background: #eef2ff; box-shadow: 0 2px 8px rgba(59,91,219,0.15); }
+  .date-nav .date-display {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    min-width: 100px;
+    text-align: center;
+  }
+  .today-btn {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 7px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .today-btn:hover { background: var(--primary-light); transform: scale(1.04); }
+
+  .stats-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 16px auto 0;
+    font-size: 13px;
+    color: var(--text-sub);
+  }
+  .stats-bar .count-badge {
+    background: var(--primary);
+    color: #fff;
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    padding: 16px 16px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-btn {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text-sub);
+    white-space: nowrap;
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+  .filter-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .filter-btn:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+
+  .cards-container {
+    max-width: 800px;
+    margin: 20px auto 0;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    border-left: 4px solid transparent;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    animation: fadeUp 0.35s ease both;
+    cursor: pointer;
+    position: relative;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(59,91,219,0.13);
+    border-left-color: var(--primary);
+  }
+  .card.favorited { border-left-color: var(--accent); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-year {
+    font-size: clamp(22px, 5vw, 30px);
+    font-weight: 900;
+    color: var(--primary);
+    min-width: 70px;
+    line-height: 1.1;
+    letter-spacing: -1px;
+    flex-shrink: 0;
+    text-align: center;
+  }
+  .card-body { flex: 1; min-width: 0; }
+  .card-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+  .card-event {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .card-detail {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-top: 6px;
+    line-height: 1.6;
+    display: none;
+  }
+  .card.expanded .card-detail { display: block; }
+  .card-fav {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    opacity: 0.4;
+    transition: opacity 0.2s, transform 0.2s;
+    padding: 2px;
+  }
+  .card-fav:hover, .card.favorited .card-fav { opacity: 1; }
+  .card.favorited .card-fav { transform: scale(1.2); }
+
+  .tag-政治 { background: #fff0f6; color: #c2255c; }
+  .tag-科技 { background: #e8f4fd; color: #1971c2; }
+  .tag-文化 { background: #fff9db; color: #e67700; }
+  .tag-军事 { background: #fff5f5; color: #c92a2a; }
+  .tag-体育 { background: #ebfbee; color: #2f9e44; }
+  .tag-灾难 { background: #f8f9fa; color: #495057; }
+  .tag-探索 { background: #f3f0ff; color: #6741d9; }
+  .tag-经济 { background: #fff4e6; color: #d9480f; }
+  .tag-社会 { background: #e6fcf5; color: #087f5b; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-sub);
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; }
+
+  .fav-section {
+    max-width: 800px;
+    margin: 32px auto 0;
+    padding: 0 16px;
+  }
+  .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-sub);
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .timeline-year {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-sub);
+    letter-spacing: 1px;
+    padding: 4px 0 4px 4px;
+    margin-top: 4px;
+  }
+
+  .scroll-top {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(59,91,219,0.3);
+    transition: opacity 0.3s, transform 0.2s;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .scroll-top.visible { opacity: 1; pointer-events: auto; }
+  .scroll-top:hover { transform: scale(1.1); }
+
+  @media (max-width: 500px) {
+    .hero { padding: 50px 16px 32px; }
+    .card { padding: 14px; gap: 12px; }
+    .card-year { min-width: 54px; font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<div class="hero">
+  <div class="hero-label">历史上的今天</div>
+  <div class="hero-date" id="heroDate">--月--日</div>
+  <div class="hero-sub" id="heroWeekday"></div>
+</div>
+
+<div class="date-nav">
+  <button id="prevDay" title="前一天">&#8249;</button>
+  <div class="date-display" id="dateDisplay"></div>
+  <button id="nextDay" title="后一天">&#8250;</button>
+  <button class="today-btn" id="todayBtn">今天</button>
+</div>
+
+<div class="stats-bar">
+  <span>共找到</span>
+  <span class="count-badge" id="countBadge">0</span>
+  <span>条历史记录</span>
+</div>
+
+<div class="filter-bar" id="filterBar"></div>
+
+<div class="cards-container" id="cardsContainer"></div>
+
+<div class="fav-section" id="favSection" style="display:none;">
+  <div class="section-title">收藏的事件</div>
+  <div id="favList"></div>
+</div>
+
+<button class="scroll-top" id="scrollTop">↑</button>
+
+<script>
+(function() {
+  "use strict";
+
+  // ---- 历史事件数据库 ----
+  // 格式: "MM-DD": [ {year, event, detail, tag}, ... ]
+  var DB = {
+    "01-01": [
+      {year:1912, event:"中华民国成立，孙中山就任临时大总统", detail:"1912年1月1日，中华民国在南京宣告成立，孙中山宣誓就任临时大总统，结束了两千余年的封建帝制。", tag:"政治"},
+      {year:1959, event:"古巴革命成功，巴蒂斯塔政权覆灭", detail:"卡斯特罗领导的革命力量攻入哈瓦那，独裁者巴蒂斯塔出逃，古巴革命取得胜利。", tag:"政治"},
+      {year:1993, event:"捷克斯洛伐克正式分裂为捷克和斯洛伐克两国", detail:"\"天鹅绒分裂\"和平完成，两个独立国家于当日正式生效。", tag:"政治"},
+      {year:1995, event:"世界贸易组织（WTO）正式成立", detail:"取代关税与贸易总协定（GATT），成为规范国际贸易的核心机构。", tag:"经济"},
+      {year:1804, event:"海地宣布独立，成为世界上第一个黑人共和国", detail:"在杜桑·卢维杜尔领导的革命基础上，让-雅克·德萨林宣布海地独立。", tag:"政治"}
+    ],
+    "01-15": [
+      {year:1929, event:"马丁·路德·金出生于美国乔治亚州亚特兰大", detail:"美国黑人民权运动领袖，1964年诺贝尔和平奖得主，以非暴力抗争推动种族平等。", tag:"社会"},
+      {year:2001, event:"维基百科正式上线", detail:"由吉米·威尔士和拉里·桑格创立，逐渐成为全球最大的在线百科全书。", tag:"科技"},
+      {year:1559, event:"英格兰女王伊丽莎白一世加冕", detail:"开创了英国历史上著名的"伊丽莎白时代"，英国在此期间进入文艺复兴黄金期。", tag:"政治"}
+    ],
+    "01-27": [
+      {year:1945, event:"苏联红军解放奥斯威辛集中营", detail:"约7000名幸存者获救，这一天后来被定为"国际大屠杀纪念日"。", tag:"军事"},
+      {year:1756, event:"音乐家莫扎特出生于奥地利萨尔茨堡", detail:"沃尔夫冈·阿马多伊斯·莫扎特，古典音乐史上最具天赋的作曲家之一。", tag:"文化"},
+      {year:1973, event:"越南战争停火协议《巴黎和平协约》签署", detail:"美国、南越、北越和临时革命政府四方代表签署协议，正式结束美国在越南的军事干预。", tag:"军事"}
+    ],
+    "02-14": [
+      {year:1989, event:"《撒旦诗篇》作者拉什迪遭伊朗最高领袖霍梅尼发出追杀令", detail:"书中被认为亵渎伊斯兰，霍梅尼下令处死，拉什迪被迫长期隐居。", tag:"文化"},
+      {year:1929, event:"芝加哥情人节大屠杀：阿尔·卡彭党羽杀害7名竞争对手", detail:"是美国禁酒令时期黑帮火并的标志性事件。", tag:"社会"},
+      {year:1876, event:"亚历山大·贝尔申请电话专利", detail:"比伊莱沙·格雷仅早数小时提交，最终获得电话发明专利，改变人类通信史。", tag:"科技"}
+    ],
+    "02-29": [
+      {year:1504, event:"哥伦布利用月食预测惊吓牙买加土著，获得食物补给", detail:"哥伦布预先知晓月食时间，向土著宣称能\"遮住月亮\"，以此获得补给。", tag:"探索"},
+      {year:1940, event:"《乱世佳人》在奥斯卡颁奖礼上获得8项大奖", detail:"海蒂·麦克丹尼尔成为首位获奥斯卡奖的非裔美国人。", tag:"文化"}
+    ],
+    "03-14": [
+      {year:1879, event:"阿尔伯特·爱因斯坦出生于德国乌尔姆", detail:"相对论的创立者，1921年获诺贝尔物理学奖，改变了人类对宇宙的认知。", tag:"科技"},
+      {year:1883, event:"卡尔·马克思在伦敦逝世", detail:"《共产党宣言》与《资本论》的作者，马克思主义的创始人，对世界历史影响深远。", tag:"政治"},
+      {year:2018, event:"物理学家史蒂芬·霍金逝世", detail:"《时间简史》作者，黑洞理论的奠基者，以顽强意志在渐冻症中坚持科研数十年。", tag:"科技"}
+    ],
+    "03-15": [
+      {year:-44, event:"罗马独裁官凯撒在元老院遭暗杀", detail:"布鲁图斯等元老以\"共和国自由\"为名，用短剑将凯撒刺死于庞培剧场，共计23刀。", tag:"政治"},
+      {year:1985, event:"世界上第一个互联网域名 symbolics.com 注册", detail:"Symbolics公司注册了史上第一个.com域名，标志着商业互联网时代的开启。", tag:"科技"},
+      {year:1917, event:"俄国沙皇尼古拉二世退位", detail:"二月革命迫使末代沙皇退位，结束了罗曼诺夫王朝三百年统治。", tag:"政治"}
+    ],
+    "04-04": [
+      {year:1968, event:"马丁·路德·金博士在孟菲斯遇刺身亡", detail:"他在洛林汽车旅馆二层阳台被枪击，享年39岁，引发全美骚乱。", tag:"社会"},
+      {year:1949, event:"北大西洋公约组织（NATO）成立", detail:"12个西方国家在华盛顿签署《北大西洋公约》，建立集体防御同盟。", tag:"军事"},
+      {year:1973, event:"纽约世界贸易中心正式落成", detail:"北塔高417米，当时是全球最高建筑，后于2001年9·11事件中被摧毁。", tag:"社会"}
+    ],
+    "04-12": [
+      {year:1961, event:"苏联宇航员加加林完成人类首次太空飞行", detail:"乘坐东方1号飞船绕地球一圈，历时108分钟，成为进入太空第一人。", tag:"探索"},
+      {year:1981, event:"美国航天飞机哥伦比亚号首次升空", detail:"约翰·杨和罗伯特·克里平驾驶哥伦比亚号，开启航天飞机时代。", tag:"探索"},
+      {year:1955, event:"脊髓灰质炎（小儿麻痹症）疫苗研发成功", detail:"乔纳斯·萨尔克研发的疫苗被宣布安全有效，挽救了无数儿童的生命。", tag:"科技"}
+    ],
+    "04-15": [
+      {year:1912, event:"泰坦尼克号沉没，约1500人遇难", detail:"这艘\"不沉之船\"在处女航中撞冰山，两小时四十分钟后沉入北大西洋。", tag:"灾难"},
+      {year:1452, event:"列奥纳多·达·芬奇出生于意大利芬奇镇", detail:"文艺复兴时期最全才的天才，集画家、雕塑家、科学家、发明家于一身。", tag:"文化"},
+      {year:1865, event:"美国总统林肯在福特剧院遭枪击后不治身亡", detail:"前一天晚上遭南方同情者约翰·布斯暗杀，次日清晨去世，结束了内战后的重建希望。", tag:"政治"}
+    ],
+    "04-23": [
+      {year:1564, event:"威廉·莎士比亚出生（传统纪念日）", detail:"英国文学史上最伟大的剧作家与诗人，《哈姆雷特》《罗密欧与朱丽叶》等不朽名作作者。", tag:"文化"},
+      {year:1616, event:"塞万提斯（《唐吉诃德》作者）逝世", detail:"与莎士比亚同一天去世，西班牙文学巨匠，《唐吉诃德》被誉为西方第一部现代小说。", tag:"文化"},
+      {year:2005, event:"YouTube上传第一个视频\"Me at the zoo\"", detail:"联合创始人贾维德·卡里姆上传了18秒短片，标志着互联网视频革命的开端。", tag:"科技"}
+    ],
+    "05-04": [
+      {year:1919, event:"中国五四运动爆发", detail:"北京学生因不满巴黎和会对中国的不公正待遇，走上街头示威，掀起新文化运动高潮。", tag:"社会"},
+      {year:1970, event:"美国肯特州立大学事件：国民警卫队射杀4名抗议学生", detail:"学生反对美军入侵柬埔寨，引发全美校园罢课，加速了越战的终结。", tag:"社会"},
+      {year:1979, event:"玛格丽特·撒切尔就任英国首相", detail:"成为英国也是西方世界首位女性政府首脑，推行\"撒切尔主义\"改革。", tag:"政治"}
+    ],
+    "05-29": [
+      {year:1953, event:"人类首次登顶珠穆朗玛峰", detail:"埃德蒙·希拉里与丹增·诺尔盖于北京时间上午11:30到达峰顶，海拔8848.86米。", tag:"探索"},
+      {year:1453, event:"奥斯曼帝国攻陷君士坦丁堡，东罗马帝国灭亡", detail:"穆罕默德二世率军攻入城市，拜占庭皇帝君士坦丁十一世战死，延续千年的帝国终结。", tag:"军事"},
+      {year:1919, event:"爱丁顿日食观测证实爱因斯坦广义相对论", detail:"光线经过太阳附近时发生偏折，与相对论预测吻合，使爱因斯坦一夜成名。", tag:"科技"}
+    ],
+    "06-04": [
+      {year:1989, event:"北京天安门广场事件", detail:"中国政府出动军队对持续数周的民主抗议运动进行清场，造成大量人员伤亡。", tag:"政治"},
+      {year:1942, event:"中途岛海战开始，成为太平洋战争转折点", detail:"美国海军击沉日本4艘航母，仅损失1艘，日本海军从此由攻转守。", tag:"军事"},
+      {year:1783, event:"蒙哥菲尔兄弟公开演示热气球飞行", detail:"在法国阿诺内首次公开表演热气球升空，气球飞行约2公里，开创人类飞行史。", tag:"探索"}
+    ],
+    "06-06": [
+      {year:1944, event:"诺曼底登陆（D日）：盟军发动二战最大规模两栖作战", detail:"超过15万盟军士兵在法国诺曼底海滩登陆，开辟欧洲第二战场，加速纳粹德国覆灭。", tag:"军事"},
+      {year:1984, event:"苹果公司发布首款麦金塔电脑", detail:"实际为1月发布，但1984年是苹果里程碑年。麦金塔引入图形用户界面，革新个人电脑体验。", tag:"科技"},
+      {year:1968, event:"罗伯特·肯尼迪遭暗杀", detail:"在加州洛杉矶竞选总统期间于大使饭店遭枪击，次日不治身亡，年仅42岁。", tag:"政治"}
+    ],
+    "06-12": [
+      {year:1987, event:"里根总统在柏林墙前发表演讲：\"推倒这堵墙\"", detail:"美国总统里根在勃兰登堡门前向苏联领导人戈尔巴乔夫呼吁拆除柏林墙，成为冷战标志性时刻。", tag:"政治"},
+      {year:1964, event:"南非法院判决曼德拉终身监禁", detail:"纳尔逊·曼德拉在里沃尼亚审判中被裁定犯有阴谋颠覆罪，被判处终身监禁，此后在罗本岛度过27年。", tag:"政治"},
+      {year:1978, event:"中国改革开放前夕：邓小平确立实事求是路线", detail:"全国科学大会等一系列会议奠定了此后改革开放的思想基础，开启中国现代化新纪元。", tag:"政治"},
+      {year:1994, event:"O·J·辛普森前妻被杀案发生", detail:"前橄榄球明星O·J·辛普森的前妻妮科尔·布朗及其友人罗纳德·戈德曼在洛杉矶遇害，引发\"世纪审判\"。", tag:"社会"},
+      {year:1839, event:"美国棒球规则在科伯斯菲尔德首次制定（传统说法）", detail:"阿布纳·达布尔戴被传统认为在此日制定了棒球规则，尽管历史学家对此存有争议。", tag:"体育"},
+      {year:1942, event:"安妮·弗兰克开始写作她的日记", detail:"13岁的犹太女孩安妮在生日当天收到日记本，开始记录她在阿姆斯特丹躲避纳粹迫害的生活。", tag:"文化"},
+      {year:2016, event:"奥兰多夜总会枪击事件造成49人死亡", detail:"美国历史上最惨烈的大规模枪击事件之一，发生于佛罗里达州奥兰多Pulse夜总会。", tag:"灾难"}
+    ],
+    "06-28": [
+      {year:1914, event:"奥匈帝国皇储斐迪南大公在萨拉热窝遭暗杀，引发一战", detail:"波斯尼亚塞族青年普林西普枪杀斐迪南大公，成为第一次世界大战的直接导火索。", tag:"军事"},
+      {year:1919, event:"《凡尔赛条约》签署，正式结束一战", detail:"在凡尔赛宫镜厅签署，德国承担巨额赔款并割让领土，为二战埋下祸根。", tag:"政治"},
+      {year:1997, event:"拳王泰森咬掉对手霍利菲尔德耳朵一块", detail:"在WBA重量级拳王争夺战中，泰森因恶意咬伤对手被取消比赛资格。", tag:"体育"}
+    ],
+    "07-04": [
+      {year:1776, event:"美国《独立宣言》正式通过，宣告独立建国", detail:"大陆会议在费城通过《独立宣言》，13个殖民地宣告脱离英国统治，美利坚合众国诞生。", tag:"政治"},
+      {year:1997, event:"美国\"探路者\"号探测器成功登陆火星", detail:"携带\"旅居者\"号火星车，首次在火星表面开展移动探测，拍摄大量高清图像。", tag:"探索"},
+      {year:1826, event:"托马斯·杰斐逊与约翰·亚当斯在同一天去世", detail:"两位《独立宣言》的主要起草者在美国独立50周年当天相继离世，令人称奇。", tag:"政治"}
+    ],
+    "07-16": [
+      {year:1969, event:"阿波罗11号发射，人类启程奔月", detail:"携带宇航员阿姆斯特朗、奥尔德林、科林斯，从肯尼迪航天中心升空，4天后实现人类首次登月。", tag:"探索"},
+      {year:1945, event:"世界上第一颗原子弹\"三一\"在美国新墨西哥州试爆成功", detail:"\"曼哈顿计划\"的最终成果，爆炸当量约2万吨TNT，人类进入核时代。", tag:"军事"},
+      {year:1935, event:"世界上第一个停车计费器在俄克拉荷马城投入使用", detail:"卡尔顿·科尔·马吉发明了停车计费器，改变了城市交通管理方式。", tag:"社会"}
+    ],
+    "07-20": [
+      {year:1969, event:"人类首次登月，阿姆斯特朗踏上月球表面", detail:"\"这是我个人的一小步，却是人类的一大步。\"阿波罗11号宇航员尼尔·阿姆斯特朗登月，全球约6亿人通过电视直播观看。", tag:"探索"},
+      {year:1944, event:"刺杀希特勒的\"7·20密谋\"失败", detail:"德国军官冯·施陶芬贝格在狼穴大本营放置炸弹，但希特勒幸免于难，密谋者随后遭处决。", tag:"军事"},
+      {year:1976, event:"美国\"海盗1号\"探测器成功登陆火星", detail:"首次在火星表面传回照片，并开展生命探测实验，虽未找到生命迹象。", tag:"探索"}
+    ],
+    "08-06": [
+      {year:1945, event:"美国在日本广岛投下原子弹", detail:"\"小男孩\"原子弹在广岛上空约580米处爆炸，瞬间造成约7万人死亡，城市90%建筑被摧毁。", tag:"军事"},
+      {year:1991, event:"蒂姆·伯纳斯-李发布万维网（World Wide Web）", detail:"互联网发明者正式将万维网向公众开放，人类信息时代由此拉开序幕。", tag:"科技"},
+      {year:1926, event:"格特鲁德·埃德尔成为首位游泳横渡英吉利海峡的女性", detail:"美国游泳运动员用时14小时31分，打破了当时的世界纪录。", tag:"体育"}
+    ],
+    "08-09": [
+      {year:1945, event:"美国在日本长崎投下第二颗原子弹", detail:"\"胖子\"钚弹在长崎爆炸，造成约4万人当场死亡，日本随后宣布投降，二战结束。", tag:"军事"},
+      {year:1974, event:"理查德·尼克松因水门事件成为唯一辞职的美国总统", detail:"在弹劾不可避免的情况下，尼克松宣布辞职，副总统福特接任。", tag:"政治"},
+      {year:1965, event:"新加坡被驱逐出马来西亚联邦，正式独立", detail:"李光耀宣布独立，新加坡成为城市国家，此后在其领导下迅速发展为亚洲经济奇迹。", tag:"政治"}
+    ],
+    "08-15": [
+      {year:1945, event:"日本天皇裕仁通过广播宣布无条件投降，二战结束", detail:"裕仁以\"玉音放送\"形式向全国宣读《终战诏书》，结束了长达6年的第二次世界大战。", tag:"军事"},
+      {year:1947, event:"印度宣告独立，结束英国殖民统治", detail:"尼赫鲁发表著名的\"命运的约定\"演讲，巴基斯坦同日独立，印巴分治。", tag:"政治"},
+      {year:1969, event:"伍德斯托克音乐节开幕", detail:"约50万人聚集在纽约州，经历三天的摇滚、民谣与反战精神，成为60年代反文化运动的象征。", tag:"文化"}
+    ],
+    "09-01": [
+      {year:1939, event:"纳粹德国入侵波兰，第二次世界大战爆发", detail:"凌晨4时45分，德军以\"闪电战\"突袭波兰，英法随即对德宣战，二战全面爆发。", tag:"军事"},
+      {year:1923, event:"日本关东大地震，死亡逾14万人", detail:"震级8.1级的大地震袭击东京横滨地区，引发大火与海啸，造成惨烈灾害。", tag:"灾难"},
+      {year:1983, event:"苏联战斗机击落韩国大韩航空007号班机", detail:"客机误入苏联领空，被导弹击落，机上269名乘客与机组人员全部罹难。", tag:"灾难"}
+    ],
+    "09-11": [
+      {year:2001, event:"美国遭受9·11恐怖袭击，近3000人遇难", detail:"19名劫机者驾驶4架客机分别撞击世贸中心双塔、五角大楼及坠毁在宾州，改变了世界格局。", tag:"灾难"},
+      {year:1973, event:"智利皮诺切特军事政变推翻阿连德政府", detail:"在美国CIA支持下，军队轰炸总统府，总统阿连德去世，皮诺切特随后展开17年独裁统治。", tag:"政治"},
+      {year:1989, event:"匈牙利开放对奥地利边境，引发东德人出走潮", detail:"约15000名东德人涌入西德，成为柏林墙倒塌的重要前奏。", tag:"政治"}
+    ],
+    "09-26": [
+      {year:1983, event:"苏联军官斯坦尼斯拉夫·彼得罗夫阻止可能的核战爆发", detail:"早预警系统误报美国发射导弹，彼得罗夫判断为误报而未向上级汇报，避免了核战浩劫。", tag:"军事"},
+      {year:1687, event:"希腊帕特农神庙因威尼斯炮击发生爆炸", detail:"奥斯曼军队将神庙用作弹药库，威尼斯军队炮击引爆，神庙受到严重破坏。", tag:"文化"}
+    ],
+    "10-04": [
+      {year:1957, event:"苏联发射人类第一颗人造地球卫星\"史普尼克1号\"", detail:"重83.6公斤的铝球以约2.9万公里时速绕地球飞行，开启太空时代，引发美苏太空竞赛。", tag:"探索"},
+      {year:1582, event:"格里高利历（公历）正式实施，10月4日后直接跳至10月15日", detail:"教皇格里高利十三世改革儒略历，纠正了春分日漂移问题，成为现行公历。", tag:"文化"}
+    ],
+    "10-12": [
+      {year:1492, event:"哥伦布船队抵达美洲巴哈马群岛，改变世界历史", detail:"哥伦布率领船队在瓜纳哈尼岛（今圣萨尔瓦多岛）登陆，欧洲人由此\"发现\"美洲大陆。", tag:"探索"},
+      {year:1960, event:"苏联代表赫鲁晓夫在联合国用皮鞋敲桌子", detail:"在联合国大会上，赫鲁晓夫因争论激烈而用皮鞋敲击桌子，成为冷战史上著名的外交插曲。", tag:"政治"},
+      {year:2002, event:"巴厘岛爆炸案造成202人死亡", detail:"印度尼西亚伊斯兰激进组织在旅游胜地实施炸弹袭击，死者包括88名澳大利亚公民。", tag:"灾难"}
+    ],
+    "10-14": [
+      {year:1066, event:"黑斯廷斯战役：威廉征服英格兰，改变英国历史", detail:"诺曼底公爵威廉击败英王哈罗德二世，成为\"征服者威廉\"，建立诺曼王朝。", tag:"军事"},
+      {year:1947, event:"查克·耶格尔驾驶X-1首次突破音速", detail:"美国飞行员驾驶贝尔X-1在加州沙漠上空达到马赫数1.06，人类首次超越音速飞行。", tag:"探索"},
+      {year:1964, event:"马丁·路德·金获诺贝尔和平奖", detail:"年仅35岁成为最年轻的诺贝尔和平奖得主，以非暴力抗争推动美国民权运动。", tag:"社会"}
+    ],
+    "11-09": [
+      {year:1989, event:"柏林墙倒塌，冷战走向终结", detail:"东德政府宣布开放边境后，数万东德市民涌向检查站，人们用锤子砸墙，铁幕就此崩塌。", tag:"政治"},
+      {year:1918, event:"德意志帝国皇帝威廉二世退位，一战实质结束", detail:"德国爆发革命，皇帝退位并流亡荷兰，共和国宣告成立，两天后停战协定签署。", tag:"政治"},
+      {year:1923, event:"希特勒啤酒馆暴动失败", detail:"希特勒试图仿效墨索里尼发动政变，但很快被镇压，他本人被捕入狱，在狱中写下《我的奋斗》。", tag:"政治"}
+    ],
+    "11-11": [
+      {year:1918, event:"第一次世界大战正式结束", detail:"协约国与德国在贡比涅森林签署停战协议，11时11分枪声停止，历时四年的大战宣告结束。", tag:"军事"},
+      {year:1620, event:"五月花号乘客签署《五月花号公约》", detail:"41名清教徒男性签署协议，建立自治政府，被认为是美国民主宪政的先驱文件。", tag:"政治"}
+    ],
+    "11-22": [
+      {year:1963, event:"美国总统约翰·肯尼迪在达拉斯遭暗杀", detail:"肯尼迪乘车巡游时被枪击，随后宣告不治。李·哈维·奥斯瓦尔德被捕后在转移途中遭杀害，真相成谜。", tag:"政治"},
+      {year:1963, event:"英国科幻电视剧《神秘博士》首播", detail:"BBC播出第一集，此后成为英国文化的标志性符号，至今仍在播出，创下最长寿科幻剧纪录。", tag:"文化"}
+    ],
+    "12-07": [
+      {year:1941, event:"日本偷袭珍珠港，美国正式参加二战", detail:"凌晨，日本海军航空兵偷袭夏威夷珍珠港美军基地，击沉或重创多艘军舰，造成2403人死亡，美国次日宣战。", tag:"军事"},
+      {year:1972, event:"阿波罗17号宇航员拍摄\"蓝色弹珠\"照片", detail:"这张全貌地球照片成为有史以来被复制最多的照片之一，深刻影响了环保运动的发展。", tag:"探索"}
+    ],
+    "12-17": [
+      {year:1903, event:"莱特兄弟实现人类首次动力飞行", detail:"奥维尔·莱特驾驶\"飞行者1号\"在北卡罗来纳州基蒂霍克飞行12秒、36米，人类正式进入飞行时代。", tag:"探索"},
+      {year:1989, event:"《辛普森一家》首播，成为史上最长寿动画剧集", detail:"美国历史上最长寿的黄金时段动画情景喜剧，至今仍在播映，深刻影响了美国流行文化。", tag:"文化"}
+    ],
+    "12-25": [
+      {year:1991, event:"苏联正式解体，冷战彻底结束", detail:"戈尔巴乔夫宣布辞职，苏联国旗在克里姆林宫降下，15个加盟共和国独立，持续69年的苏联历史终结。", tag:"政治"},
+      {year:1914, event:"一战西线圣诞节停战：德英士兵在无人区踢足球", detail:"圣诞节前夕，德英双方士兵自发停火，在战壕间交换礼物甚至踢起了足球，留下战争史上的人性亮光。", tag:"军事"},
+      {year:800, event:"查理曼大帝在罗马加冕为神圣罗马帝国皇帝", detail:"教皇利奥三世为查理曼加冕，开创了\"神圣罗马帝国\"传统，对中世纪欧洲政治格局影响深远。", tag:"政治"}
+    ],
+    "12-26": [
+      {year:2004, event:"印度洋大地震引发海啸，造成约23万人死亡", detail:"里氏9.1-9.3级地震引发巨型海啸席卷14个国家，是有记录以来死亡人数最多的自然灾害之一。", tag:"灾难"},
+      {year:1991, event:"苏联最高苏维埃正式通过苏联解体决议", detail:"苏联议会投票正式解散苏联，独联体取而代之，标志着20世纪最重大的地缘政治变局完成。", tag:"政治"},
+      {year:1898, event:"居里夫妇宣布发现放射性元素镭", detail:"玛丽·居里与皮埃尔·居里在巴黎宣布这一重大发现，改变了人类对物质结构的认识。", tag:"科技"}
+    ]
+  };
+
+  // 扩展数据 -- 补充更多日期
+  var EXTRA = {
+    "01-08": [
+      {year:1935, event:"摇滚乐之王埃尔维斯·普雷斯利出生于密西西比州", detail:"猫王是20世纪最具影响力的音乐人之一，将黑人节奏蓝调带入主流文化。", tag:"文化"},
+      {year:1918, event:"美国总统威尔逊提出\"十四点计划\"", detail:"旨在建立持久和平的战后国际秩序，包含建立国际联盟的构想，奠定现代国际关系基础。", tag:"政治"}
+    ],
+    "01-22": [
+      {year:1973, event:"美国联邦最高法院\"罗诉韦德案\"判决：堕胎权受宪法保护", detail:"这一里程碑式判决确立了女性的堕胎权利，此后成为美国政治中的核心争议焦点，并于2022年被推翻。", tag:"社会"},
+      {year:1901, event:"英国女王维多利亚逝世，在位63年", detail:"在位时间最长的英国君主之一，统治期间大英帝国达到鼎盛，\"日不落帝国\"称号由此而来。", tag:"政治"}
+    ],
+    "02-04": [
+      {year:2004, event:"马克·扎克伯格创建Facebook", detail:"在哈佛宿舍创立的社交网络迅速扩张，如今拥有数十亿用户，深刻改变了人类社交方式。", tag:"科技"},
+      {year:1945, event:"雅尔塔会议开始，三巨头划定战后世界格局", detail:"罗斯福、丘吉尔、斯大林在克里米亚会谈，决定了二战后欧洲乃至世界的政治版图。", tag:"政治"}
+    ],
+    "02-11": [
+      {year:1990, event:"纳尔逊·曼德拉在服刑27年后获释", detail:"南非反种族隔离运动象征人物曼德拉从维克多·沃斯特监狱步出，4年后当选南非首位黑人总统。", tag:"社会"},
+      {year:1847, event:"发明家托马斯·爱迪生出生于俄亥俄州", detail:"\"发明大王\"一生拥有超过1000项专利，电灯泡、留声机等发明改变了人类生活。", tag:"科技"}
+    ],
+    "03-05": [
+      {year:1953, event:"苏联领导人约瑟夫·斯大林逝世", detail:"在位近30年，推行工业化与集体化同时进行大规模政治清洗，死后被赫鲁晓夫批判\"个人崇拜\"。", tag:"政治"},
+      {year:1946, event:"丘吉尔在富尔顿发表\"铁幕演说\"，冷战序幕拉开", detail:"\"从波罗的海的斯塔丁到亚得里亚海的的里雅斯特，一道铁幕已经降落在欧洲大陆\"。", tag:"政治"}
+    ],
+    "03-08": [
+      {year:1917, event:"俄国二月革命爆发（国际妇女节引发示威）", detail:"女工在彼得格勒举行示威，迅速演变成革命，导致沙皇尼古拉二世退位。", tag:"政治"},
+      {year:2014, event:"马来西亚航空MH370客机失联，239人下落成谜", detail:"从吉隆坡飞往北京的航班突然从雷达上消失，成为航空史上最大的谜案之一。", tag:"灾难"}
+    ],
+    "04-26": [
+      {year:1986, event:"苏联切尔诺贝利核电站发生爆炸，史上最严重核事故", detail:"4号反应堆爆炸引发大火，释放出大量放射性物质，辐射波及整个欧洲，周边地区至今仍是禁区。", tag:"灾难"},
+      {year:1937, event:"纳粹德国空军轰炸西班牙格尔尼卡小镇", detail:"支持佛朗哥政权的德国飞机轰炸无设防平民城镇，激发毕加索创作不朽名画《格尔尼卡》。", tag:"军事"}
+    ],
+    "05-10": [
+      {year:1994, event:"纳尔逊·曼德拉宣誓就任南非总统", detail:"结束南非种族隔离制度的历史人物正式成为民主选举产生的首位黑人总统。", tag:"政治"},
+      {year:1869, event:"美国第一条横贯大陆铁路完工，\"金道钉\"敲下", detail:"中央太平洋与联合太平洋铁路在犹他州普罗蒙托里山汇合，美国东西海岸由此连通。", tag:"经济"}
+    ],
+    "05-17": [
+      {year:1954, event:"美国最高法院\"布朗诉教育局案\"判决：种族隔离学校违宪", detail:"推翻了\"隔离但平等\"原则，成为美国民权运动的重要里程碑。", tag:"社会"},
+      {year:1987, event:"伊拉克导弹误击美国护卫舰斯塔克号，37人死亡", detail:"两枚飞鱼导弹命中正在执行波斯湾护航任务的美舰，美方接受伊拉克道歉。", tag:"军事"}
+    ],
+    "06-16": [
+      {year:1963, event:"苏联宇航员捷列什科娃成为首位进入太空的女性", detail:"乘东方6号飞船绕地球飞行71小时，成为人类首位女宇航员，树立女性英雄形象。", tag:"探索"},
+      {year:1976, event:"南非索韦托学生起义，警察向示威学生开枪", detail:"黑人学生反对阿非利卡语教学令，警察镇压造成多人死亡，激起全球对种族隔离的谴责。", tag:"社会"}
+    ],
+    "07-01": [
+      {year:1997, event:"香港回归中国，结束英国155年殖民统治", detail:"午夜时分，英国米字旗降下，五星红旗升起，香港正式回归祖国，实行\"一国两制\"。", tag:"政治"},
+      {year:1916, event:"索姆河战役开始，一天内英军伤亡近6万人", detail:"一战中规模最大、伤亡最惨烈的战役之一，总伤亡超过100万人。", tag:"军事"}
+    ],
+    "07-07": [
+      {year:1937, event:"卢沟桥事变爆发，日本全面侵华战争开始", detail:"日军以士兵失踪为由，向宛平城守军发起进攻，中国抗日战争全面爆发。", tag:"军事"},
+      {year:2005, event:"伦敦地铁连环爆炸案造成56人死亡", detail:"四名伊斯兰激进分子在伦敦地铁和公共汽车引爆炸弹，是英国本土最严重的恐袭事件。", tag:"灾难"}
+    ],
+    "07-14": [
+      {year:1789, event:"法国大革命：巴黎民众攻占巴士底狱", detail:"象征王权专制的巴士底监狱被攻陷，成为法国大革命的标志性事件，此日成为法国国庆日。", tag:"政治"},
+      {year:1958, event:"伊拉克共和国革命推翻哈希姆王朝", detail:"阿卜杜勒·卡里姆·卡塞姆领导军事政变，处决国王费萨尔二世，建立共和国。", tag:"政治"}
+    ],
+    "08-28": [
+      {year:1963, event:"马丁·路德·金在华盛顿发表\"我有一个梦想\"演讲", detail:"在25万人聚集的林肯纪念堂前，金博士发表了20世纪最著名的演讲之一，成为民权运动的精神高峰。", tag:"社会"},
+      {year:1898, event:"可乐品牌百事可乐在美国注册商标", detail:"布拉德汉姆药剂师调制的\"布拉德饮料\"改名百事可乐，开启了与可口可乐百年竞争史。", tag:"经济"}
+    ],
+    "09-17": [
+      {year:1787, event:"美国宪法在费城制宪会议上获得通过", detail:"55位代表历经4个月讨论，通过了这份世界上最早的成文宪法，确立三权分立原则。", tag:"政治"},
+      {year:1978, event:"埃及和以色列签署《戴维营协议》", detail:"在卡特总统斡旋下，萨达特与贝京达成历史性和平协议，埃及成为第一个承认以色列的阿拉伯国家。", tag:"政治"}
+    ],
+    "10-01": [
+      {year:1949, event:"中华人民共和国成立，毛泽东宣告\"中国人民站起来了\"", detail:"在北京天安门广场，毛泽东庄严宣告中华人民共和国中央人民政府成立，开启中国新纪元。", tag:"政治"},
+      {year:1955, event:"米老鼠诞生日（《蒸汽船威利》发布纪念日）", detail:"1928年11月18日米老鼠首次亮相，迪士尼帝国由此起步，成为全球最知名的卡通形象。", tag:"文化"}
+    ],
+    "10-24": [
+      {year:1945, event:"联合国正式成立", detail:"《联合国宪章》获批准生效，取代国际联盟成为维护世界和平的核心国际机构。", tag:"政治"},
+      {year:1929, event:"华尔街股市崩盘，大萧条开始", detail:"\"黑色星期四\"股票市场崩溃，随后演变为持续十年的全球经济大萧条。", tag:"经济"}
+    ],
+    "11-01": [
+      {year:1755, event:"葡萄牙里斯本大地震，约3-6万人遇难", detail:"里氏8.5-9.0级地震和随后的火灾、海啸几乎摧毁了整个里斯本，震动了启蒙时代的欧洲思想界。", tag:"灾难"},
+      {year:1993, event:"马斯特里赫特条约生效，欧洲联盟正式成立", detail:"欧盟取代欧共体，引入欧盟公民身份，为欧元的诞生奠定法律基础。", tag:"政治"}
+    ],
+    "11-28": [
+      {year:1912, event:"阿尔巴尼亚宣布独立，结束奥斯曼帝国统治", detail:"民族英雄伊斯梅尔·切马里宣读独立宣言，阿尔巴尼亚国旗在发罗拉升起。", tag:"政治"},
+      {year:1943, event:"德黑兰会议：罗斯福、丘吉尔、斯大林首次面对面会晤", detail:"三巨头讨论二战战略，决定开辟诺曼底第二战场，初步商定战后世界安排。", tag:"政治"}
+    ],
+    "12-01": [
+      {year:1955, event:"罗莎·帕克斯拒绝在公交车上让座，引发蒙哥马利公交罢乘运动", detail:"黑人裁缝工罗莎·帕克斯拒绝给白人让座被捕，引发381天公交抵制运动，成为民权运动转折点。", tag:"社会"},
+      {year:1988, event:"巴勒斯坦宣告建国，阿拉法特当选领导人", detail:"巴勒斯坦民族委员会在阿尔及尔宣布建立巴勒斯坦国，获100多个国家承认。", tag:"政治"}
+    ],
+    "12-13": [
+      {year:1937, event:"南京大屠杀开始，日军屠杀中国平民逾30万人", detail:"日军攻占中国首都南京后，进行长达六周的烧杀抢掠，是二战中最严重的战争罪行之一。", tag:"军事"},
+      {year:2003, event:"美军在提克里特附近捕获萨达姆·侯赛因", detail:"伊拉克前总统萨达姆藏匿于地洞被捕，2006年被判处绞刑执行。", tag:"政治"}
+    ]
+  };
+
+  // 合并数据库
+  var ALL_DB = {};
+  var k;
+  for (k in DB) { if (DB.hasOwnProperty(k)) ALL_DB[k] = DB[k]; }
+  for (k in EXTRA) { if (EXTRA.hasOwnProperty(k)) ALL_DB[k] = EXTRA[k]; }
+
+  // ---- 状态变量 ----
+  var currentDate = new Date();
+  var viewMonth = currentDate.getMonth() + 1;
+  var viewDay = currentDate.getDate();
+  var activeTag = "全部";
+  var favorites = [];
+
+  var WEEKDAYS = ["星期日","星期一","星期二","星期三","星期四","星期五","星期六"];
+  var MONTHS = ["一月","二月","三月","四月","五月","六月","七月","八月","九月","十月","十一月","十二月"];
+
+  // ---- DOM 引用 ----
+  var heroDateEl = document.getElementById("heroDate");
+  var heroWeekdayEl = document.getElementById("heroWeekday");
+  var dateDisplayEl = document.getElementById("dateDisplay");
+  var countBadgeEl = document.getElementById("countBadge");
+  var filterBarEl = document.getElementById("filterBar");
+  var cardsContainerEl = document.getElementById("cardsContainer");
+  var favSectionEl = document.getElementById("favSection");
+  var favListEl = document.getElementById("favList");
+  var scrollTopBtn = document.getElementById("scrollTop");
+  var prevDayBtn = document.getElementById("prevDay");
+  var nextDayBtn = document.getElementById("nextDay");
+  var todayBtn = document.getElementById("todayBtn");
+
+  // ---- 工具函数 ----
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+
+  function getKey(m, d) { return pad(m) + "-" + pad(d); }
+
+  function getDateObj(m, d) {
+    var now = new Date();
+    return new Date(now.getFullYear(), m - 1, d);
+  }
+
+  function loadFavorites() {
+    try {
+      var raw = localStorage.getItem("th_favorites");
+      if (raw) { favorites = JSON.parse(raw); }
+    } catch(e) { favorites = []; }
+  }
+
+  function saveFavorites() {
+    try { localStorage.setItem("th_favorites", JSON.stringify(favorites)); } catch(e) {}
+  }
+
+  function isFavorited(year, event) {
+    for (var i = 0; i < favorites.length; i++) {
+      if (favorites[i].year === year && favorites[i].event === event) return true;
+    }
+    return false;
+  }
+
+  function toggleFavorite(year, event, tag, detail) {
+    var idx = -1;
+    for (var i = 0; i < favorites.length; i++) {
+      if (favorites[i].year === year && favorites[i].event === event) { idx = i; break; }
+    }
+    if (idx >= 0) {
+      favorites.splice(idx, 1);
+    } else {
+      favorites.push({year: year, event: event, tag: tag, detail: detail});
+    }
+    saveFavorites();
+    renderPage();
+  }
+
+  function getTagColor(tag) {
+    var colors = {
+      "政治":"#c2255c","科技":"#1971c2","文化":"#e67700","军事":"#c92a2a",
+      "体育":"#2f9e44","灾难":"#495057","探索":"#6741d9","经济":"#d9480f","社会":"#087f5b"
+    };
+    return colors[tag] || "#555";
+  }
+
+  // ---- 获取当日数据 ----
+  function getEventsForDate(m, d) {
+    var key = getKey(m, d);
+    return ALL_DB[key] || [];
+  }
+
+  // ---- 获取所有标签 ----
+  function getTagsFromEvents(events) {
+    var tags = [];
+    var seen = {};
+    for (var i = 0; i < events.length; i++) {
+      var t = events[i].tag;
+      if (!seen[t]) { seen[t] = true; tags.push(t); }
+    }
+    return tags;
+  }
+
+  // ---- 渲染函数 ----
+  function renderHero() {
+    var d = getDateObj(viewMonth, viewDay);
+    heroDateEl.textContent = viewMonth + "月" + viewDay + "日";
+    heroWeekdayEl.textContent = WEEKDAYS[d.getDay()] + " · " + MONTHS[viewMonth - 1];
+    dateDisplayEl.textContent = viewMonth + "月" + viewDay + "日";
+  }
+
+  function renderFilters(events) {
+    var tags = getTagsFromEvents(events);
+    filterBarEl.innerHTML = "";
+
+    var allBtn = document.createElement("button");
+    allBtn.className = "filter-btn" + (activeTag === "全部" ? " active" : "");
+    allBtn.textContent = "全部";
+    allBtn.addEventListener("click", function() {
+      activeTag = "全部";
+      renderPage();
+    });
+    filterBarEl.appendChild(allBtn);
+
+    for (var i = 0; i < tags.length; i++) {
+      (function(tag) {
+        var btn = document.createElement("button");
+        btn.className = "filter-btn" + (activeTag === tag ? " active" : "");
+        btn.textContent = tag;
+        btn.addEventListener("click", function() {
+          activeTag = tag;
+          renderPage();
+        });
+        filterBarEl.appendChild(btn);
+      })(tags[i]);
+    }
+  }
+
+  function renderCards(events) {
+    cardsContainerEl.innerHTML = "";
+
+    var filtered = events;
+    if (activeTag !== "全部") {
+      filtered = [];
+      for (var i = 0; i < events.length; i++) {
+        if (events[i].event_tag === activeTag || events[i].tag === activeTag) {
+          filtered.push(events[i]);
+        }
+      }
+    }
+
+    countBadgeEl.textContent = filtered.length;
+
+    if (filtered.length === 0) {
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.innerHTML = '<div class="icon">📅</div><p>这一天暂无历史记录<br><span style="font-size:12px;opacity:0.6">换个日期试试？</span></p>';
+      cardsContainerEl.appendChild(empty);
+      return;
+    }
+
+    // 按年份排序
+    var sorted = filtered.slice().sort(function(a, b) { return a.year - b.year; });
+
+    for (var j = 0; j < sorted.length; j++) {
+      (function(item, idx) {
+        var faved = isFavorited(item.year, item.event);
+        var card = document.createElement("div");
+        card.className = "card" + (faved ? " favorited" : "");
+        card.style.animationDelay = (idx * 0.06) + "s";
+
+        var yearDisplay = item.year < 0 ? "公元前" + Math.abs(item.year) : item.year + "年";
+
+        card.innerHTML =
+          '<div class="card-year">' + (item.year < 0 ? "前" + Math.abs(item.year) : item.year) + '</div>' +
+          '<div class="card-body">' +
+            '<span class="card-tag tag-' + item.tag + '">' + item.tag + '</span>' +
+            '<div class="card-event">' + item.event + '</div>' +
+            (item.detail ? '<div class="card-detail">' + item.detail + '</div>' : '') +
+          '</div>' +
+          '<button class="card-fav" title="' + (faved ? "取消收藏" : "收藏") + '">' + (faved ? "★" : "☆") + '</button>';
+
+        // 展开/收起详情
+        card.addEventListener("click", function(e) {
+          if (e.target.classList.contains("card-fav")) return;
+          card.classList.toggle("expanded");
+        });
+
+        // 收藏按钮
+        var favBtn = card.querySelector(".card-fav");
+        favBtn.addEventListener("click", function(e) {
+          e.stopPropagation();
+          toggleFavorite(item.year, item.event, item.tag, item.detail);
+        });
+
+        cardsContainerEl.appendChild(card);
+      })(sorted[j], j);
+    }
+  }
+
+  function renderFavorites() {
+    if (favorites.length === 0) {
+      favSectionEl.style.display = "none";
+      return;
+    }
+    favSectionEl.style.display = "block";
+    favListEl.innerHTML = "";
+    for (var i = 0; i < favorites.length; i++) {
+      (function(item) {
+        var div = document.createElement("div");
+        div.className = "card favorited";
+        div.style.marginBottom = "10px";
+        div.innerHTML =
+          '<div class="card-year" style="color:#e64980">' + (item.year < 0 ? "前" + Math.abs(item.year) : item.year) + '</div>' +
+          '<div class="card-body">' +
+            '<span class="card-tag tag-' + item.tag + '">' + item.tag + '</span>' +
+            '<div class="card-event">' + item.event + '</div>' +
+            (item.detail ? '<div class="card-detail">' + item.detail + '</div>' : '') +
+          '</div>' +
+          '<button class="card-fav" title="取消收藏">★</button>';
+
+        div.addEventListener("click", function(e) {
+          if (e.target.classList.contains("card-fav")) return;
+          div.classList.toggle("expanded");
+        });
+        var fb = div.querySelector(".card-fav");
+        fb.addEventListener("click", function(e) {
+          e.stopPropagation();
+          toggleFavorite(item.year, item.event, item.tag, item.detail);
+        });
+        favListEl.appendChild(div);
+      })(favorites[i]);
+    }
+  }
+
+  function renderPage() {
+    var events = getEventsForDate(viewMonth, viewDay);
+    renderHero();
+    renderFilters(events);
+    renderCards(events);
+    renderFavorites();
+  }
+
+  // ---- 日期导航 ----
+  function changeDay(delta) {
+    var d = getDateObj(viewMonth, viewDay);
+    d.setDate(d.getDate() + delta);
+    viewMonth = d.getMonth() + 1;
+    viewDay = d.getDate();
+    activeTag = "全部";
+    renderPage();
+    window.scrollTo({top: 0, behavior: "smooth"});
+  }
+
+  // ---- 事件绑定 ----
+  prevDayBtn.addEventListener("click", function() { changeDay(-1); });
+  nextDayBtn.addEventListener("click", function() { changeDay(1); });
+  todayBtn.addEventListener("click", function() {
+    var now = new Date();
+    viewMonth = now.getMonth() + 1;
+    viewDay = now.getDate();
+    activeTag = "全部";
+    renderPage();
+    window.scrollTo({top: 0, behavior: "smooth"});
+  });
+
+  window.addEventListener("scroll", function() {
+    if (window.scrollY > 300) {
+      scrollTopBtn.classList.add("visible");
+    } else {
+      scrollTopBtn.classList.remove("visible");
+    }
+  });
+  scrollTopBtn.addEventListener("click", function() {
+    window.scrollTo({top: 0, behavior: "smooth"});
+  });
+
+  // ---- 初始化 ----
+  loadFavorites();
+  renderPage();
+
+})();
+</script>
+</body>
+</html>
