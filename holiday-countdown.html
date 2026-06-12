@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>节日倒计时</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --red: #e63946;
+    --gold: #f4a261;
+    --warm: #ff6b6b;
+    --bg: #fff8f0;
+    --card-bg: #ffffff;
+    --text: #2d2d2d;
+    --muted: #888;
+    --radius: 16px;
+    --shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px 16px 60px;
+  }
+
+  .back-link {
+    display: inline-block;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    margin-bottom: 20px;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--red); }
+
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .header-emoji {
+    font-size: 52px;
+    display: block;
+    animation: bounce 2s infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--red), var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 8px 0 4px;
+  }
+
+  .today-str {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* 下一个节日大卡 */
+  .next-card {
+    background: linear-gradient(135deg, #e63946 0%, #f4a261 100%);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    color: #fff;
+    text-align: center;
+    margin-bottom: 32px;
+    box-shadow: 0 8px 32px rgba(230,57,70,0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .next-card::before {
+    content: '';
+    position: absolute;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    top: -60px; right: -60px;
+  }
+
+  .next-card::after {
+    content: '';
+    position: absolute;
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    bottom: -40px; left: -40px;
+  }
+
+  .next-label {
+    font-size: 12px;
+    letter-spacing: 2px;
+    opacity: 0.85;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .next-name {
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+
+  .next-date-str {
+    font-size: 13px;
+    opacity: 0.8;
+    margin-bottom: 20px;
+  }
+
+  .countdown-nums {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .num-block {
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-width: 62px;
+  }
+
+  .num-val {
+    font-size: 36px;
+    font-weight: 900;
+    line-height: 1;
+    display: block;
+  }
+
+  .num-unit {
+    font-size: 11px;
+    opacity: 0.85;
+    display: block;
+    margin-top: 3px;
+  }
+
+  /* 网格卡片列表 */
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, #e0d0c0, transparent);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+  }
+
+  .hcard {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 18px 14px 16px;
+    box-shadow: var(--shadow);
+    text-align: center;
+    cursor: default;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+    border-top: 4px solid transparent;
+  }
+
+  .hcard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  }
+
+  .hcard.past {
+    opacity: 0.55;
+  }
+
+  .hcard .hc-emoji {
+    font-size: 30px;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .hcard .hc-name {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+
+  .hcard .hc-date {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .hcard .hc-days {
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .hcard .hc-days-unit {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  .hcard .past-tag {
+    font-size: 11px;
+    color: var(--muted);
+    background: #f0f0f0;
+    border-radius: 20px;
+    padding: 2px 8px;
+    display: inline-block;
+    margin-top: 4px;
+  }
+
+  .hcard .today-tag {
+    font-size: 11px;
+    color: #fff;
+    background: var(--red);
+    border-radius: 20px;
+    padding: 2px 8px;
+    display: inline-block;
+    margin-top: 4px;
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  /* 实时时钟 */
+  .clock-bar {
+    text-align: center;
+    margin-bottom: 28px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .clock-time {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--red);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 1px;
+  }
+
+  /* 春节近似警告 */
+  .note {
+    font-size: 11px;
+    color: #bbb;
+    text-align: center;
+    margin-top: 28px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 400px) {
+    .grid { grid-template-columns: 1fr 1fr; }
+    .num-val { font-size: 28px; }
+    .next-name { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<header>
+  <span class="header-emoji">🎉</span>
+  <h1>节日倒计时</h1>
+  <div class="today-str" id="todayStr"></div>
+</header>
+
+<div class="clock-bar">
+  <div class="clock-time" id="clockTime">--:--:--</div>
+  <div>实时时钟</div>
+</div>
+
+<div class="next-card" id="nextCard">
+  <div class="next-label">最近节日</div>
+  <div class="next-name" id="nextName">--</div>
+  <div class="next-date-str" id="nextDateStr">--</div>
+  <div class="countdown-nums">
+    <div class="num-block"><span class="num-val" id="cdDays">--</span><span class="num-unit">天</span></div>
+    <div class="num-block"><span class="num-val" id="cdHours">--</span><span class="num-unit">时</span></div>
+    <div class="num-block"><span class="num-val" id="cdMins">--</span><span class="num-unit">分</span></div>
+    <div class="num-block"><span class="num-val" id="cdSecs">--</span><span class="num-unit">秒</span></div>
+  </div>
+</div>
+
+<div class="section-title">🗓️ 今年节日一览</div>
+<div class="grid" id="holidayGrid"></div>
+
+<div class="note" id="lunarNote">
+  * 春节、端午、中秋等农历节日日期为公历近似值，每年略有差异。<br>
+  实际以官方日历为准。
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  // ── 节日数据（公历日期，年份动态替换）──
+  var HOLIDAYS = [
+    { name: "元旦",   emoji: "🎆", month: 1,  day: 1,  color: "#e63946" },
+    { name: "春节",   emoji: "🧧", month: 1,  day: 29, color: "#cc0000", lunarApprox: true },
+    { name: "元宵节", emoji: "🏮", month: 2,  day: 12, color: "#ff6b35", lunarApprox: true },
+    { name: "情人节", emoji: "💝", month: 2,  day: 14, color: "#ff4d79" },
+    { name: "妇女节", emoji: "🌸", month: 3,  day: 8,  color: "#e91e8c" },
+    { name: "清明节", emoji: "🌿", month: 4,  day: 5,  color: "#4caf50" },
+    { name: "劳动节", emoji: "⚒️", month: 5,  day: 1,  color: "#ff9800" },
+    { name: "端午节", emoji: "🐉", month: 5,  day: 31, color: "#009688", lunarApprox: true },
+    { name: "儿童节", emoji: "🎠", month: 6,  day: 1,  color: "#ff6b6b" },
+    { name: "七夕节", emoji: "💫", month: 8,  day: 6,  color: "#9c27b0", lunarApprox: true },
+    { name: "中秋节", emoji: "🌕", month: 10, day: 6,  color: "#f9a825", lunarApprox: true },
+    { name: "国庆节", emoji: "🇨🇳", month: 10, day: 1,  color: "#c62828" },
+    { name: "重阳节", emoji: "🍂", month: 10, day: 29, color: "#795548", lunarApprox: true },
+    { name: "元旦",   emoji: "🎆", month: 1,  day: 1,  color: "#e63946", nextYear: true }
+  ];
+
+  var WEEK_NAMES = ["日","一","二","三","四","五","六"];
+
+  // ── DOM 引用 ──
+  var elTodayStr   = document.getElementById("todayStr");
+  var elClockTime  = document.getElementById("clockTime");
+  var elNextName   = document.getElementById("nextName");
+  var elNextDateStr= document.getElementById("nextDateStr");
+  var elCdDays     = document.getElementById("cdDays");
+  var elCdHours    = document.getElementById("cdHours");
+  var elCdMins     = document.getElementById("cdMins");
+  var elCdSecs     = document.getElementById("cdSecs");
+  var elGrid       = document.getElementById("holidayGrid");
+
+  // ── 工具函数 ──
+  function pad2(n) {
+    return n < 10 ? "0" + n : String(n);
+  }
+
+  function getDiffMs(target) {
+    return target.getTime() - Date.now();
+  }
+
+  function formatDate(d) {
+    return d.getFullYear() + " 年 " +
+           (d.getMonth()+1) + " 月 " +
+           d.getDate() + " 日（周" + WEEK_NAMES[d.getDay()] + "）";
+  }
+
+  // ── 生成当年节日列表 ──
+  function buildList() {
+    var now = new Date();
+    var year = now.getFullYear();
+    var list = [];
+
+    for (var i = 0; i < HOLIDAYS.length; i++) {
+      var h = HOLIDAYS[i];
+      var y = h.nextYear ? year + 1 : year;
+      var dt = new Date(y, h.month - 1, h.day, 0, 0, 0, 0);
+      list.push({
+        name:       h.name,
+        emoji:      h.emoji,
+        color:      h.color,
+        lunarApprox: !!h.lunarApprox,
+        date:       dt,
+        nextYear:   !!h.nextYear
+      });
+    }
+
+    // 按日期排序
+    list.sort(function(a, b) { return a.date - b.date; });
+    return list;
+  }
+
+  // ── 渲染网格卡片 ──
+  function renderGrid(list) {
+    var now = new Date();
+    var todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var html = "";
+
+    for (var i = 0; i < list.length; i++) {
+      var h = list[i];
+      var diffMs = h.date - todayMidnight;
+      var diffDays = Math.round(diffMs / 86400000);
+      var isPast = diffDays < 0;
+      var isToday = diffDays === 0;
+
+      var daysHtml = "";
+      if (isToday) {
+        daysHtml = '<span class="today-tag">今天</span>';
+      } else if (isPast) {
+        daysHtml = '<span class="past-tag">已过去 ' + Math.abs(diffDays) + ' 天</span>';
+      } else {
+        daysHtml = '<div class="hc-days" style="color:' + h.color + '">' + diffDays + '</div>' +
+                   '<div class="hc-days-unit">天后</div>';
+      }
+
+      var dateLabel = (h.date.getMonth()+1) + "/" + h.date.getDate();
+      if (h.nextYear) dateLabel += "（明年）";
+
+      html += '<div class="hcard ' + (isPast ? "past" : "") + '" style="border-top-color:' + h.color + '">' +
+              '<span class="hc-emoji">' + h.emoji + '</span>' +
+              '<div class="hc-name">' + h.name + '</div>' +
+              '<div class="hc-date">' + dateLabel + (h.lunarApprox ? " *" : "") + '</div>' +
+              daysHtml +
+              '</div>';
+    }
+    elGrid.innerHTML = html;
+  }
+
+  // ── 找最近的未来节日 ──
+  function findNext(list) {
+    var now = Date.now();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].date.getTime() > now) {
+        return list[i];
+      }
+    }
+    return list[list.length - 1];
+  }
+
+  // ── 更新倒计时大卡 ──
+  function updateNext(nextHoliday) {
+    var diff = getDiffMs(nextHoliday.date);
+    if (diff < 0) diff = 0;
+
+    var totalSecs = Math.floor(diff / 1000);
+    var secs  = totalSecs % 60;
+    var totalMins = Math.floor(totalSecs / 60);
+    var mins  = totalMins % 60;
+    var totalHours = Math.floor(totalMins / 60);
+    var hours = totalHours % 24;
+    var days  = Math.floor(totalHours / 24);
+
+    elCdDays.textContent  = pad2(days);
+    elCdHours.textContent = pad2(hours);
+    elCdMins.textContent  = pad2(mins);
+    elCdSecs.textContent  = pad2(secs);
+    elNextName.textContent    = nextHoliday.emoji + " " + nextHoliday.name;
+    elNextDateStr.textContent = formatDate(nextHoliday.date);
+  }
+
+  // ── 实时时钟 ──
+  function updateClock() {
+    var now = new Date();
+    elClockTime.textContent = pad2(now.getHours()) + ":" + pad2(now.getMinutes()) + ":" + pad2(now.getSeconds());
+  }
+
+  // ── 今日日期 ──
+  function updateToday() {
+    var now = new Date();
+    elTodayStr.textContent = formatDate(now);
+  }
+
+  // ── 主循环 ──
+  function tick() {
+    var list = buildList();
+    var next = findNext(list);
+    updateNext(next);
+    updateClock();
+  }
+
+  // ── 初始化 ──
+  (function init() {
+    updateToday();
+    var list = buildList();
+    renderGrid(list);
+    tick();
+    setInterval(tick, 1000);
+  })();
+
+})();
+</script>
+</body>
+</html>
