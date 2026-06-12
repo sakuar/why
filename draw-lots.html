@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>抽签筒 — 求签问卜</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --red:    #c0392b;
+    --dark-red: #8b1a1a;
+    --deep:   #5c0a0a;
+    --gold:   #d4a017;
+    --light-gold: #f0c040;
+    --pale-gold: #fdf3d0;
+    --cream:  #fff8ee;
+    --shadow: rgba(92,10,10,0.25);
+  }
+
+  body {
+    min-height: 100vh;
+    background: radial-gradient(ellipse at top, #7a1010 0%, #3d0505 60%, #1a0000 100%);
+    font-family: "Noto Serif SC", "Source Han Serif CN", "SimSun", "STSong", serif;
+    color: var(--pale-gold);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* 返回链接 */
+  .back-link {
+    position: fixed;
+    top: 12px;
+    left: 14px;
+    font-size: 13px;
+    color: var(--gold);
+    opacity: 0.65;
+    text-decoration: none;
+    z-index: 100;
+    letter-spacing: 0.5px;
+    transition: opacity 0.2s;
+  }
+  .back-link:hover { opacity: 1; }
+
+  /* 顶部装饰 */
+  .header {
+    margin-top: 48px;
+    text-align: center;
+    position: relative;
+  }
+  .header h1 {
+    font-size: clamp(22px, 6vw, 36px);
+    color: var(--light-gold);
+    letter-spacing: 6px;
+    text-shadow: 0 0 18px rgba(212,160,23,0.7), 0 2px 4px rgba(0,0,0,0.6);
+    font-weight: 700;
+  }
+  .header .subtitle {
+    font-size: 13px;
+    color: var(--gold);
+    opacity: 0.8;
+    letter-spacing: 4px;
+    margin-top: 6px;
+  }
+  .divider {
+    width: 200px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold), transparent);
+    margin: 12px auto 0;
+  }
+
+  /* 主区域 */
+  .main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    padding: 28px 16px 60px;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  /* 签筒容器 */
+  .barrel-wrap {
+    position: relative;
+    width: 160px;
+    height: 220px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* SVG签筒 */
+  .barrel-svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 8px 24px rgba(0,0,0,0.55));
+    transition: transform 0.15s;
+  }
+
+  /* 签条从筒里伸出的动画 */
+  .stick-out {
+    position: absolute;
+    top: -52px;
+    left: 50%;
+    transform: translateX(-50%) scaleY(0);
+    transform-origin: bottom center;
+    width: 18px;
+    height: 68px;
+    background: linear-gradient(to bottom, var(--pale-gold) 0%, #e8c87a 60%, #c9a34a 100%);
+    border-radius: 3px 3px 0 0;
+    box-shadow: 0 -4px 12px rgba(212,160,23,0.5), inset 1px 0 2px rgba(255,255,255,0.3);
+    transition: transform 0.45s cubic-bezier(0.34,1.56,0.64,1);
+    pointer-events: none;
+  }
+  .stick-out.show {
+    transform: translateX(-50%) scaleY(1);
+  }
+  .stick-label {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    color: var(--dark-red);
+    writing-mode: vertical-rl;
+    letter-spacing: 1px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 52px;
+  }
+
+  /* 摇动动画 */
+  @keyframes shake {
+    0%   { transform: rotate(0deg); }
+    10%  { transform: rotate(-8deg); }
+    20%  { transform: rotate(8deg); }
+    30%  { transform: rotate(-10deg); }
+    40%  { transform: rotate(10deg); }
+    50%  { transform: rotate(-6deg); }
+    60%  { transform: rotate(6deg); }
+    70%  { transform: rotate(-4deg); }
+    80%  { transform: rotate(4deg); }
+    90%  { transform: rotate(-2deg); }
+    100% { transform: rotate(0deg); }
+  }
+  .barrel-wrap.shaking {
+    animation: shake 0.7s ease-in-out;
+  }
+
+  /* 签条散落粒子 */
+  @keyframes particle-up {
+    0%   { opacity: 1; transform: translate(0,0) rotate(0deg); }
+    100% { opacity: 0; transform: translate(var(--tx), var(--ty)) rotate(var(--tr)); }
+  }
+  .particle {
+    position: absolute;
+    width: 6px;
+    height: 22px;
+    border-radius: 2px;
+    background: linear-gradient(to bottom, var(--pale-gold), #c9a34a);
+    pointer-events: none;
+    animation: particle-up 0.6s ease-out forwards;
+  }
+
+  /* 提示文字 */
+  .hint {
+    font-size: 13px;
+    color: var(--gold);
+    opacity: 0.75;
+    letter-spacing: 2px;
+    text-align: center;
+    min-height: 20px;
+    transition: opacity 0.3s;
+  }
+
+  /* 签文卡片 */
+  .card {
+    background: linear-gradient(160deg, #fdf8e8 0%, #f5e8c0 100%);
+    border: 2px solid var(--gold);
+    border-radius: 16px;
+    padding: 28px 24px 24px;
+    width: 100%;
+    color: var(--deep);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.6);
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    pointer-events: none;
+  }
+  .card.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  /* 卡片背景纹路 */
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(192,57,43,0.06) 28px, rgba(192,57,43,0.06) 29px),
+      repeating-linear-gradient(90deg, transparent, transparent 28px, rgba(192,57,43,0.04) 28px, rgba(192,57,43,0.04) 29px);
+    pointer-events: none;
+  }
+
+  /* 签号 */
+  .card-num {
+    font-size: 11px;
+    color: var(--red);
+    letter-spacing: 3px;
+    text-align: center;
+    margin-bottom: 10px;
+    opacity: 0.7;
+  }
+
+  /* 签级 */
+  .card-grade {
+    text-align: center;
+    font-size: clamp(26px, 7vw, 38px);
+    font-weight: 700;
+    letter-spacing: 4px;
+    margin-bottom: 14px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  }
+  .grade-top-top  { color: #b5270c; }
+  .grade-top      { color: #c0392b; }
+  .grade-mid      { color: #7d5a00; }
+  .grade-low      { color: #555; }
+
+  /* 签文题目 */
+  .card-title {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--dark-red);
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+    border-top: 1px solid rgba(192,57,43,0.2);
+    border-bottom: 1px solid rgba(192,57,43,0.2);
+    padding: 8px 0;
+  }
+
+  /* 诗句 */
+  .card-poem {
+    text-align: center;
+    font-size: 15px;
+    line-height: 2;
+    color: #3a1a00;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+
+  /* 解签 */
+  .card-interp {
+    background: rgba(192,57,43,0.06);
+    border-left: 3px solid var(--red);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.9;
+    color: #4a2200;
+    letter-spacing: 0.5px;
+  }
+  .card-interp-label {
+    font-size: 11px;
+    color: var(--red);
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  /* 宜忌 */
+  .card-yiji {
+    display: flex;
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .yiji-box {
+    flex: 1;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .yi-box {
+    background: rgba(22,100,22,0.08);
+    border: 1px solid rgba(22,100,22,0.2);
+    color: #1a4a1a;
+  }
+  .ji-box {
+    background: rgba(192,57,43,0.08);
+    border: 1px solid rgba(192,57,43,0.2);
+    color: #6a1a0a;
+  }
+  .yiji-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+  .yi-box .yiji-title { color: #2a6a2a; }
+  .ji-box .yiji-title { color: var(--red); }
+
+  /* 重新求签按钮 */
+  .btn-reset {
+    background: linear-gradient(135deg, var(--red) 0%, var(--dark-red) 100%);
+    color: var(--light-gold);
+    border: 2px solid var(--gold);
+    border-radius: 30px;
+    padding: 12px 36px;
+    font-size: 15px;
+    letter-spacing: 4px;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.3s;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .btn-reset.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .btn-reset:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+  .btn-reset:active { transform: translateY(0); }
+
+  /* 历史记录 */
+  .history-wrap {
+    width: 100%;
+    margin-top: 8px;
+  }
+  .history-title {
+    font-size: 11px;
+    color: var(--gold);
+    opacity: 0.6;
+    letter-spacing: 3px;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .history-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .history-item {
+    background: rgba(212,160,23,0.12);
+    border: 1px solid rgba(212,160,23,0.3);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--gold);
+    opacity: 0.8;
+    letter-spacing: 1px;
+  }
+
+  /* 烛光装饰 */
+  .candle {
+    position: fixed;
+    bottom: 0;
+    width: 24px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .candle-left  { left: 18px; }
+  .candle-right { right: 18px; }
+
+  @keyframes flicker {
+    0%,100% { transform: scaleX(1) rotate(-2deg); opacity: 0.9; }
+    25%      { transform: scaleX(0.8) rotate(3deg); opacity: 1; }
+    50%      { transform: scaleX(1.1) rotate(-1deg); opacity: 0.85; }
+    75%      { transform: scaleX(0.9) rotate(2deg); opacity: 1; }
+  }
+  .flame {
+    animation: flicker 1.4s ease-in-out infinite;
+    transform-origin: bottom center;
+  }
+
+  @media (max-width: 360px) {
+    .card { padding: 20px 14px 18px; }
+    .card-yiji { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<!-- 烛光 -->
+<svg class="candle candle-left" viewBox="0 0 24 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="8" y="50" width="8" height="70" rx="2" fill="#d4a017"/>
+  <ellipse class="flame" cx="12" cy="48" rx="5" ry="12" fill="url(#fl1)"/>
+  <defs>
+    <radialGradient id="fl1" cx="50%" cy="70%" r="50%">
+      <stop offset="0%" stop-color="#fff7c0"/>
+      <stop offset="60%" stop-color="#f0a020"/>
+      <stop offset="100%" stop-color="#c0392b" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>
+<svg class="candle candle-right" viewBox="0 0 24 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="8" y="50" width="8" height="70" rx="2" fill="#d4a017"/>
+  <ellipse class="flame" cx="12" cy="48" rx="5" ry="12" fill="url(#fl2)" style="animation-delay:0.3s"/>
+  <defs>
+    <radialGradient id="fl2" cx="50%" cy="70%" r="50%">
+      <stop offset="0%" stop-color="#fff7c0"/>
+      <stop offset="60%" stop-color="#f0a020"/>
+      <stop offset="100%" stop-color="#c0392b" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>
+
+<div class="header">
+  <h1>求 签 问 卜</h1>
+  <p class="subtitle">诚心叩问，签筒指引</p>
+  <div class="divider"></div>
+</div>
+
+<div class="main">
+
+  <!-- 签筒 -->
+  <div class="barrel-wrap" id="barrelWrap" title="点击摇签">
+    <!-- 伸出的签 -->
+    <div class="stick-out" id="stickOut">
+      <span class="stick-label" id="stickLabel"></span>
+    </div>
+    <!-- 签筒SVG -->
+    <svg class="barrel-svg" viewBox="0 0 160 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bgrd" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#7a0000"/>
+          <stop offset="100%" stop-color="#3d0000"/>
+        </linearGradient>
+        <linearGradient id="body-grad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"   stop-color="#9b2020"/>
+          <stop offset="30%"  stop-color="#c0392b"/>
+          <stop offset="70%"  stop-color="#c0392b"/>
+          <stop offset="100%" stop-color="#7a1010"/>
+        </linearGradient>
+        <linearGradient id="rim-grad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"   stop-color="#8a6500"/>
+          <stop offset="30%"  stop-color="#d4a017"/>
+          <stop offset="60%"  stop-color="#f0c040"/>
+          <stop offset="100%" stop-color="#a07800"/>
+        </linearGradient>
+        <linearGradient id="bottom-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#c0392b"/>
+          <stop offset="100%" stop-color="#7a1010"/>
+        </linearGradient>
+        <filter id="shadow" x="-20%" y="-10%" width="140%" height="130%">
+          <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="rgba(0,0,0,0.5)"/>
+        </filter>
+        <!-- 竹节纹 -->
+        <pattern id="bamboo" x="0" y="0" width="160" height="28" patternUnits="userSpaceOnUse">
+          <rect x="0" y="0" width="160" height="28" fill="none"/>
+          <line x1="0" y1="27" x2="160" y2="27" stroke="rgba(0,0,0,0.18)" stroke-width="1.5"/>
+          <line x1="0" y1="0" x2="160" y2="0" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        </pattern>
+      </defs>
+
+      <!-- 筒底部椭圆 -->
+      <ellipse cx="80" cy="200" rx="52" ry="14" fill="url(#bottom-grad)" filter="url(#shadow)"/>
+
+      <!-- 筒主体 -->
+      <rect x="28" y="50" width="104" height="152" rx="4" fill="url(#body-grad)"/>
+      <!-- 竹节纹理 -->
+      <rect x="28" y="50" width="104" height="152" rx="4" fill="url(#bamboo)" opacity="0.5"/>
+      <!-- 高光 -->
+      <rect x="28" y="50" width="26" height="152" rx="4" fill="rgba(255,255,255,0.07)"/>
+
+      <!-- 底椭圆盖 -->
+      <ellipse cx="80" cy="202" rx="52" ry="10" fill="url(#rim-grad)" opacity="0.7"/>
+
+      <!-- 上口边框金环 -->
+      <ellipse cx="80" cy="50" rx="52" ry="13" fill="url(#rim-grad)"/>
+      <ellipse cx="80" cy="50" rx="46" ry="10" fill="#8b1a1a"/>
+      <ellipse cx="80" cy="50" rx="46" ry="8"  fill="#6a0f0f"/>
+
+      <!-- 中部金色腰带 -->
+      <rect x="28" y="117" width="104" height="12" fill="url(#rim-grad)" opacity="0.85"/>
+      <rect x="28" y="119" width="104" height="2"  fill="rgba(255,255,255,0.18)"/>
+
+      <!-- 筒上文字"求签" -->
+      <text x="80" y="100" text-anchor="middle" font-size="22" fill="#f0c040"
+            font-family="serif" letter-spacing="8" font-weight="700"
+            style="text-shadow:0 1px 4px rgba(0,0,0,0.5)">求签</text>
+
+      <!-- 小符号 -->
+      <text x="80" y="155" text-anchor="middle" font-size="14" fill="rgba(240,192,64,0.5)"
+            font-family="serif" letter-spacing="2">✦ ✦ ✦</text>
+
+      <!-- 上口内孔 -->
+      <ellipse cx="80" cy="50" rx="38" ry="6" fill="#3d0000" opacity="0.8"/>
+
+      <!-- 签条 -->
+      <g opacity="0.7">
+        <rect x="70" y="20" width="6" height="36" rx="2" fill="#fdf3d0" transform="rotate(-6 73 50)"/>
+        <rect x="78" y="18" width="6" height="38" rx="2" fill="#e8c87a" transform="rotate(0 81 50)"/>
+        <rect x="86" y="21" width="6" height="35" rx="2" fill="#fdf3d0" transform="rotate(7 89 50)"/>
+        <rect x="63" y="23" width="5" height="33" rx="2" fill="#e0b860" transform="rotate(-12 65 50)"/>
+        <rect x="94" y="22" width="5" height="34" rx="2" fill="#f5e0a0" transform="rotate(12 97 50)"/>
+      </g>
+    </svg>
+  </div>
+
+  <p class="hint" id="hintText">诚心默念所求之事，点击摇签</p>
+
+  <!-- 签文卡片 -->
+  <div class="card" id="resultCard">
+    <div class="card-num" id="cardNum"></div>
+    <div class="card-grade" id="cardGrade"></div>
+    <div class="card-title" id="cardTitle"></div>
+    <div class="card-poem" id="cardPoem"></div>
+    <div class="card-interp">
+      <div class="card-interp-label">【解 签】</div>
+      <div id="cardInterp"></div>
+    </div>
+    <div class="card-yiji">
+      <div class="yiji-box yi-box">
+        <div class="yiji-title">【宜】</div>
+        <div id="cardYi"></div>
+      </div>
+      <div class="yiji-box ji-box">
+        <div class="yiji-title">【忌】</div>
+        <div id="cardJi"></div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-reset" id="btnReset">重 新 求 签</button>
+
+  <!-- 历史记录 -->
+  <div class="history-wrap" id="historyWrap" style="display:none">
+    <div class="history-title">— 近期求签记录 —</div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* =========================================================
+     签文数据库
+  ========================================================= */
+  const LOTS = [
+    {
+      num: "第一签",
+      grade: "上上签",
+      gradeClass: "grade-top-top",
+      title: "乾元亨利贞 · 万象更新",
+      poem: "云开日出见青天，\n百事顺遂自翩翩。\n贵人相助风云聚，\n功名富贵在眼前。",
+      interp: "此签大吉，天时地利人和皆备。凡所谋之事，皆得上天庇佑，贵人相扶，事业、感情、财运均呈上扬之势。宜把握当下，大胆行动，必能心想事成，福运绵长。",
+      yi: "出行、婚嫁、开业、求职、投资",
+      ji: "犹豫不决、退缩保守"
+    },
+    {
+      num: "第七签",
+      grade: "上上签",
+      gradeClass: "grade-top-top",
+      title: "紫气东来 · 鸿图大展",
+      poem: "紫气东来照万方，\n此时谋事正相当。\n鸿鹄展翅乘风去，\n锦绣前程似锦光。",
+      interp: "紫气祥云，吉兆频现。所求之事已见端倪，只需顺势而为，不必担忧阻碍。财运亨通，感情美满，诸事皆宜，大展宏图之时机已至。",
+      yi: "谈判、创业、置产、求学",
+      ji: "拖延时机、与人争执"
+    },
+    {
+      num: "第十三签",
+      grade: "上签",
+      gradeClass: "grade-top",
+      title: "春风化雨 · 稳步向前",
+      poem: "春风化雨润心田，\n稳步向前路渐宽。\n勤耕不辍终有获，\n好花结果在明年。",
+      interp: "此签主稳中求进，时机尚佳，但需脚踏实地，切勿急于求成。感情方面宜主动沟通，工作事业宜专注本职，财运平稳向好，只要持之以恒，必有所成。",
+      yi: "学习、沟通、储蓄、耐心等待",
+      ji: "冒进投机、轻信他人"
+    },
+    {
+      num: "第二十一签",
+      grade: "上签",
+      gradeClass: "grade-top",
+      title: "金榜题名 · 心想事成",
+      poem: "金榜高悬映日红，\n平生所愿此时通。\n莫道前路多荆棘，\n柳暗花明又一重。",
+      interp: "求学问功名者得此签，大吉。凡事经历短暂挫折后必见转机，贵人在暗处相助。感情婚姻宜积极表态，生意往来宜守约守信，前路虽有弯折，终究峰回路转。",
+      yi: "考试、面试、求贵人、签约",
+      ji: "自满懈怠、与小人纠缠"
+    },
+    {
+      num: "第三十二签",
+      grade: "中签",
+      gradeClass: "grade-mid",
+      title: "守静待时 · 厚积薄发",
+      poem: "守得云开见月明，\n静待时机莫妄行。\n厚积薄发终有日，\n水到渠成自然成。",
+      interp: "此签提示当前时机尚未成熟，宜静观其变，不宜贸然行事。感情方面需给对方多些空间，事业上宜做好充分准备，蓄势待发。财运一般，暂不宜大额投资，守成为上。",
+      yi: "修身养性、准备积累、学习充电",
+      ji: "急躁冒进、大额借贷"
+    },
+    {
+      num: "第三十八签",
+      grade: "中签",
+      gradeClass: "grade-mid",
+      title: "平步青云 · 尚需努力",
+      poem: "平路稳行非坦途，\n一步一脚印方图。\n莫羡他人云中鹤，\n脚踏实地自高呼。",
+      interp: "所谋之事可成，但需付出较多努力与时间。切忌好高骛远，踏实进取方为正道。感情需要耐心经营，工作需要沉下心来钻研，财运平平，量入为出为宜。",
+      yi: "务实进取、脚踏实地、耐心沟通",
+      ji: "攀比炫耀、半途而废"
+    },
+    {
+      num: "第四十五签",
+      grade: "中签",
+      gradeClass: "grade-mid",
+      title: "柳暗花明 · 转机将至",
+      poem: "柳暗花明又一村，\n峰回路转见乾坤。\n莫因眼前多阴霾，\n日出终能散乾坤。",
+      interp: "目前虽有困难，但转机已在不远处。保持乐观心态，积极寻求解决之道，困境即将破解。感情有望破冰，事业将见曙光，财运在波动后趋于平稳，坚持即是胜利。",
+      yi: "积极沟通、寻求帮助、保持信念",
+      ji: "悲观放弃、与人结怨"
+    },
+    {
+      num: "第五十六签",
+      grade: "下签",
+      gradeClass: "grade-low",
+      title: "谨慎为上 · 韬光养晦",
+      poem: "险途莫进宜停歇，\n韬光养晦蓄其势。\n三思而后再行动，\n化险为夷守本节。",
+      interp: "此签示警，近期诸事需格外谨慎。重大决定宜延后，感情方面避免冲动表态，事业投资切勿轻举妄动。宜修身养德，广结善缘，等待时机转好。可多拜神祈福，积德行善以化解不利。",
+      yi: "礼佛祈福、静心反思、积德行善",
+      ji: "冲动决策、远行出门、借贷投机"
+    },
+    {
+      num: "第六十三签",
+      grade: "下签",
+      gradeClass: "grade-low",
+      title: "忍辱负重 · 以待天时",
+      poem: "忍得一时风浪过，\n方知彼岸有青荷。\n莫将怒火伤根本，\n厚德载物自蹉跎。",
+      interp: "时运欠佳，宜忍辱负重，切勿与人正面冲突。感情易生摩擦，需多包容退让；事业遭遇阻力，不宜强行突破；财运不济，谨防破财损失。以柔克刚，以退为进，待时机转变方可发力。",
+      yi: "忍让包容、低调行事、祈福化煞",
+      ji: "争执诉讼、远行冒险、高消费"
+    },
+    {
+      num: "第七十二签",
+      grade: "上签",
+      gradeClass: "grade-top",
+      title: "福星高照 · 吉人天相",
+      poem: "福星照处百事兴，\n吉人天相自安宁。\n好运连连来叩门，\n心诚则灵自有情。",
+      interp: "福气临门，吉星高照。所求之事在诚心努力下必能顺遂，感情美满，工作顺利，财运见涨。此时宜行善积德，广结善缘，福报将会加倍回馈。贵人运强，可主动求助长辈或有经验者。",
+      yi: "善事义举、主动求助、感情告白",
+      ji: "骄傲自大、损人利己"
+    },
+    {
+      num: "第八十签",
+      grade: "上上签",
+      gradeClass: "grade-top-top",
+      title: "龙凤呈祥 · 双喜临门",
+      poem: "龙凤呈祥喜气来，\n双喜临门笑颜开。\n好事成双福禄至，\n一帆风顺步步抬。",
+      interp: "此签大吉大利，主双喜临门，诸事皆顺。感情可能迎来重大进展（表白成功、订婚或婚姻），事业有望升职加薪或开创新局面，财运丰厚，宜把握一切良机。家庭和睦，子嗣有缘。",
+      yi: "婚姻、添丁、升职、投资",
+      ji: "拖延机遇、内部纷争"
+    },
+    {
+      num: "第十八签",
+      grade: "中签",
+      gradeClass: "grade-mid",
+      title: "随缘自在 · 顺势而为",
+      poem: "随缘自在乐无边，\n顺势而为天地宽。\n莫强求来莫强留，\n缘来缘去自然间。",
+      interp: "此签主随缘，提示所求之事不宜强求，顺其自然方为上策。感情缘分需要等待，不可强求；事业宜顺应大势，不必固执己见；财运随机，不宜主动出击，守候即可。心态平和，自有因缘。",
+      yi: "放宽心态、顺势而为、广结善缘",
+      ji: "强求执念、逆势而动"
+    }
+  ];
+
+  /* =========================================================
+     元素引用
+  ========================================================= */
+  const barrelWrap  = document.getElementById("barrelWrap");
+  const stickOut    = document.getElementById("stickOut");
+  const stickLabel  = document.getElementById("stickLabel");
+  const hintText    = document.getElementById("hintText");
+  const resultCard  = document.getElementById("resultCard");
+  const cardNum     = document.getElementById("cardNum");
+  const cardGrade   = document.getElementById("cardGrade");
+  const cardTitle   = document.getElementById("cardTitle");
+  const cardPoem    = document.getElementById("cardPoem");
+  const cardInterp  = document.getElementById("cardInterp");
+  const cardYi      = document.getElementById("cardYi");
+  const cardJi      = document.getElementById("cardJi");
+  const btnReset    = document.getElementById("btnReset");
+  const historyWrap = document.getElementById("historyWrap");
+  const historyList = document.getElementById("historyList");
+
+  /* =========================================================
+     状态
+  ========================================================= */
+  let isShaking    = false;
+  let hasResult    = false;
+  let currentLot   = null;
+
+  /* =========================================================
+     工具函数
+  ========================================================= */
+  function randInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function pickLot() {
+    // 权重：上上签稀有，下签少
+    const weights = [3, 3, 5, 5, 6, 6, 6, 3, 3, 5, 3, 6];
+    let total = 0;
+    for (let i = 0; i < weights.length; i++) { total += weights[i]; }
+    let r = Math.random() * total;
+    for (let i = 0; i < weights.length; i++) {
+      r -= weights[i];
+      if (r <= 0) { return LOTS[i]; }
+    }
+    return LOTS[LOTS.length - 1];
+  }
+
+  function spawnParticles() {
+    const cx = barrelWrap.getBoundingClientRect().left + barrelWrap.offsetWidth / 2;
+    const cy = barrelWrap.getBoundingClientRect().top  + 60;
+    const count = 6;
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement("div");
+      p.className = "particle";
+      const angle = randInt(-70, 70);
+      const dist  = randInt(40, 90);
+      const tx    = Math.sin(angle * Math.PI / 180) * dist + "px";
+      const ty    = -dist * 0.6 + "px";
+      const tr    = randInt(-45, 45) + "deg";
+      p.style.cssText = "position:fixed;left:" + (cx - 3) + "px;top:" + cy + "px;" +
+        "--tx:" + tx + ";--ty:" + ty + ";--tr:" + tr + ";z-index:200;";
+      document.body.appendChild(p);
+      setTimeout(function() { if (p.parentNode) { p.parentNode.removeChild(p); } }, 700);
+    }
+  }
+
+  /* =========================================================
+     历史记录 (localStorage)
+  ========================================================= */
+  function loadHistory() {
+    try {
+      return JSON.parse(localStorage.getItem("drawlots_history") || "[]");
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveHistory(grade) {
+    try {
+      const history = loadHistory();
+      const now = new Date();
+      const label = (now.getMonth() + 1) + "/" + now.getDate() + " " + grade;
+      history.unshift(label);
+      if (history.length > 10) { history.length = 10; }
+      localStorage.setItem("drawlots_history", JSON.stringify(history));
+    } catch (e) { /* ignore */ }
+  }
+
+  function renderHistory() {
+    const history = loadHistory();
+    if (history.length === 0) {
+      historyWrap.style.display = "none";
+      return;
+    }
+    historyWrap.style.display = "";
+    historyList.innerHTML = "";
+    for (let i = 0; i < history.length; i++) {
+      const span = document.createElement("span");
+      span.className = "history-item";
+      span.textContent = history[i];
+      historyList.appendChild(span);
+    }
+  }
+
+  /* =========================================================
+     显示结果
+  ========================================================= */
+  function showResult(lot) {
+    currentLot = lot;
+
+    cardNum.textContent = lot.num;
+
+    cardGrade.textContent = lot.grade;
+    cardGrade.className   = "card-grade " + lot.gradeClass;
+
+    cardTitle.textContent = lot.title;
+
+    // 诗句换行处理
+    cardPoem.innerHTML = lot.poem.replace(/\n/g, "<br>");
+
+    cardInterp.textContent = lot.interp;
+    cardYi.textContent     = lot.yi;
+    cardJi.textContent     = lot.ji;
+
+    // 签条标签
+    stickLabel.textContent = lot.grade;
+
+    // 签条弹出
+    setTimeout(function() { stickOut.classList.add("show"); }, 100);
+
+    // 卡片出现
+    setTimeout(function() {
+      resultCard.classList.add("visible");
+      btnReset.classList.add("visible");
+    }, 500);
+
+    // 保存历史
+    saveHistory(lot.grade);
+    renderHistory();
+
+    hintText.textContent = "诚心祈求，签象已示";
+    hasResult = true;
+  }
+
+  /* =========================================================
+     重置
+  ========================================================= */
+  function reset() {
+    hasResult = false;
+    currentLot = null;
+
+    stickOut.classList.remove("show");
+    resultCard.classList.remove("visible");
+    btnReset.classList.remove("visible");
+    hintText.textContent = "诚心默念所求之事，点击摇签";
+  }
+
+  /* =========================================================
+     摇签流程
+  ========================================================= */
+  function doShake() {
+    if (isShaking) { return; }
+    if (hasResult) { return; }
+
+    isShaking = true;
+    hintText.textContent = "摇签中……";
+
+    barrelWrap.classList.add("shaking");
+
+    setTimeout(function() {
+      spawnParticles();
+    }, 400);
+
+    setTimeout(function() {
+      barrelWrap.classList.remove("shaking");
+      isShaking = false;
+      const lot = pickLot();
+      showResult(lot);
+    }, 750);
+  }
+
+  /* =========================================================
+     事件绑定
+  ========================================================= */
+  barrelWrap.addEventListener("click", doShake);
+  btnReset.addEventListener("click", reset);
+
+  /* =========================================================
+     初始化
+  ========================================================= */
+  renderHistory();
+
+})();
+</script>
+</body>
+</html>
