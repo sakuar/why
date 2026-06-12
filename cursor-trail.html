@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>鼠标拖尾</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #050810;
+    overflow: hidden;
+    font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    user-select: none;
+  }
+  canvas {
+    display: block;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    cursor: none;
+  }
+  #back-link {
+    position: fixed;
+    top: 14px; left: 16px;
+    z-index: 100;
+    color: rgba(255,255,255,0.35);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    transition: color 0.25s;
+    pointer-events: auto;
+  }
+  #back-link:hover { color: rgba(255,255,255,0.75); }
+  #ui-panel {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 40px;
+    padding: 8px 16px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    pointer-events: auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: calc(100vw - 32px);
+  }
+  .style-btn {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.6);
+    font-size: 12px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    letter-spacing: 0.03em;
+  }
+  .style-btn:hover {
+    background: rgba(255,255,255,0.14);
+    color: rgba(255,255,255,0.9);
+    border-color: rgba(255,255,255,0.25);
+  }
+  .style-btn.active {
+    background: rgba(120,160,255,0.22);
+    border-color: rgba(120,160,255,0.5);
+    color: #a8c8ff;
+  }
+  #hint {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(255,255,255,0.18);
+    font-size: 15px;
+    pointer-events: none;
+    transition: opacity 1s;
+    text-align: center;
+    line-height: 1.8;
+    letter-spacing: 0.06em;
+  }
+  #hint.hidden { opacity: 0; }
+</style>
+</head>
+<body>
+<a id="back-link" href="index.html">← 入口</a>
+<canvas id="c"></canvas>
+<div id="hint">移动鼠标 / 触摸屏幕<br><span style="font-size:12px;opacity:0.7">点击产生爆炸效果</span></div>
+<div id="ui-panel">
+  <button class="style-btn active" data-style="0">彗星</button>
+  <button class="style-btn" data-style="1">星尘</button>
+  <button class="style-btn" data-style="2">烟花丝</button>
+  <button class="style-btn" data-style="3">光晕球</button>
+  <button class="style-btn" data-style="4">闪电链</button>
+</div>
+<script>
+(function() {
+  "use strict";
+
+  /* ─── 常量 & 工具 ─── */
+  const TWO_PI = Math.PI * 2;
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const rand = (lo, hi) => lo + Math.random() * (hi - lo);
+  const randInt = (lo, hi) => Math.floor(rand(lo, hi + 1));
+
+  function hsl(h, s, l, a) {
+    if (a === undefined) return `hsl(${h},${s}%,${l}%)`;
+    return `hsla(${h},${s}%,${l}%,${a})`;
+  }
+
+  /* ─── Canvas ─── */
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  let W = 0, H = 0;
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  /* ─── 状态 ─── */
+  let mouseX = -1000, mouseY = -1000;
+  let prevX = -1000, prevY = -1000;
+  let hue = 0;
+  let activeStyle = 0;
+  let moved = false;
+  const hint = document.getElementById('hint');
+
+  /* ─── 持久化 ─── */
+  try {
+    const saved = localStorage.getItem('cursorTrailStyle');
+    if (saved !== null) activeStyle = parseInt(saved, 10) || 0;
+  } catch(e) {}
+
+  function saveStyle() {
+    try { localStorage.setItem('cursorTrailStyle', String(activeStyle)); } catch(e) {}
+  }
+
+  /* ─── 粒子池 ─── */
+  const particles = [];
+
+  /* ─── 风格 0: 彗星拖尾 ─── */
+  function spawnComet(x, y, vx, vy, h) {
+    const count = 6;
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        type: 0,
+        x, y,
+        vx: vx * rand(0.2, 0.7) + rand(-0.6, 0.6),
+        vy: vy * rand(0.2, 0.7) + rand(-0.6, 0.6),
+        r: rand(2.5, 5.5),
+        hue: h + rand(-18, 18),
+        sat: rand(80, 100),
+        lit: rand(60, 80),
+        alpha: rand(0.7, 1),
+        decay: rand(0.015, 0.03),
+        life: 1
+      });
+    }
+  }
+
+  /* ─── 风格 1: 星尘 ─── */
+  function spawnStardust(x, y, h) {
+    const count = 4;
+    for (let i = 0; i < count; i++) {
+      const angle = rand(0, TWO_PI);
+      const speed = rand(0.3, 2.2);
+      particles.push({
+        type: 1,
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - rand(0.2, 0.8),
+        r: rand(1, 3.5),
+        hue: h + rand(-30, 30),
+        sat: 100,
+        lit: rand(65, 90),
+        alpha: 1,
+        decay: rand(0.012, 0.025),
+        life: 1,
+        gravity: 0.04
+      });
+    }
+  }
+
+  /* ─── 风格 2: 烟花丝 ─── */
+  function spawnFireworkSilk(x, y, h) {
+    const count = 5;
+    for (let i = 0; i < count; i++) {
+      const angle = rand(0, TWO_PI);
+      const speed = rand(0.5, 3);
+      particles.push({
+        type: 2,
+        x, y,
+        ox: x, oy: y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        r: rand(1, 2),
+        hue: h + i * 15,
+        sat: 100,
+        lit: rand(60, 85),
+        alpha: 0.9,
+        decay: rand(0.018, 0.032),
+        life: 1,
+        friction: 0.96
+      });
+    }
+  }
+
+  /* ─── 风格 3: 光晕球 ─── */
+  function spawnGlowBall(x, y, h) {
+    const count = 3;
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        type: 3,
+        x, y,
+        vx: rand(-0.4, 0.4),
+        vy: rand(-0.4, 0.4),
+        r: rand(6, 18),
+        hue: h + i * 30,
+        sat: 90,
+        lit: 65,
+        alpha: rand(0.25, 0.5),
+        decay: rand(0.008, 0.018),
+        life: 1
+      });
+    }
+  }
+
+  /* ─── 风格 4: 闪电链 ─── */
+  const lightningSegs = [];
+  function spawnLightning(x, y, h) {
+    const segs = 6 + randInt(0, 4);
+    const points = [{x, y}];
+    for (let i = 1; i <= segs; i++) {
+      points.push({
+        x: x + rand(-40, 40),
+        y: y - i * rand(5, 18)
+      });
+    }
+    lightningSegs.push({
+      points,
+      hue: h,
+      alpha: 0.9,
+      decay: rand(0.04, 0.07),
+      life: 1
+    });
+  }
+
+  /* ─── 爆炸效果 ─── */
+  function explode(x, y, h) {
+    const count = activeStyle === 4 ? 12 : 40;
+    for (let i = 0; i < count; i++) {
+      const angle = (TWO_PI / count) * i + rand(-0.2, 0.2);
+      const speed = rand(2, 8);
+      if (activeStyle === 4) {
+        spawnLightning(x, y, h + i * 8);
+      } else {
+        const types = [spawnComet, spawnStardust, spawnFireworkSilk, spawnGlowBall];
+        const fn = types[activeStyle] || spawnComet;
+        fn(
+          x + Math.cos(angle) * 2,
+          y + Math.sin(angle) * 2,
+          h + i * 5
+        );
+        particles[particles.length - 1].vx = Math.cos(angle) * speed;
+        particles[particles.length - 1].vy = Math.sin(angle) * speed;
+      }
+    }
+    // 额外冲击波粒子
+    for (let i = 0; i < 30; i++) {
+      const angle = rand(0, TWO_PI);
+      const speed = rand(1, 12);
+      particles.push({
+        type: 0,
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        r: rand(2, 6),
+        hue: h + rand(-40, 40),
+        sat: 100,
+        lit: rand(55, 85),
+        alpha: 1,
+        decay: rand(0.025, 0.045),
+        life: 1
+      });
+    }
+  }
+
+  /* ─── 主游标绘制 ─── */
+  function drawCursor(x, y, h) {
+    const r = 8;
+    const grd = ctx.createRadialGradient(x, y, 0, x, y, r * 2.5);
+    grd.addColorStop(0, hsl(h, 100, 80, 0.9));
+    grd.addColorStop(0.4, hsl(h, 90, 60, 0.5));
+    grd.addColorStop(1, hsl(h, 90, 50, 0));
+    ctx.beginPath();
+    ctx.arc(x, y, r * 2.5, 0, TWO_PI);
+    ctx.fillStyle = grd;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y, r * 0.4, 0, TWO_PI);
+    ctx.fillStyle = hsl(h, 100, 95, 0.95);
+    ctx.fill();
+  }
+
+  /* ─── 粒子更新 & 绘制 ─── */
+  function updateParticles() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.life -= p.decay;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      const a = clamp(p.life * p.alpha, 0, 1);
+
+      if (p.type === 0) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.97;
+        p.vy *= 0.97;
+        const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 2);
+        grd.addColorStop(0, hsl(p.hue, p.sat, p.lit + 15, a));
+        grd.addColorStop(1, hsl(p.hue, p.sat, p.lit, 0));
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r * 2, 0, TWO_PI);
+        ctx.fillStyle = grd;
+        ctx.fill();
+      } else if (p.type === 1) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += p.gravity;
+        p.vx *= 0.98;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r * p.life + 0.5, 0, TWO_PI);
+        ctx.fillStyle = hsl(p.hue, p.sat, p.lit, a * 0.9);
+        ctx.fill();
+        // 尾迹线
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - p.vx * 3, p.y - p.vy * 3);
+        ctx.strokeStyle = hsl(p.hue, p.sat, p.lit + 10, a * 0.5);
+        ctx.lineWidth = p.r * 0.6;
+        ctx.stroke();
+      } else if (p.type === 2) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= p.friction;
+        p.vy *= p.friction;
+        ctx.beginPath();
+        ctx.moveTo(p.ox, p.oy);
+        ctx.lineTo(p.x, p.y);
+        ctx.strokeStyle = hsl(p.hue, p.sat, p.lit, a * 0.8);
+        ctx.lineWidth = p.r + p.life * 1.5;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        p.ox = p.x;
+        p.oy = p.y;
+      } else if (p.type === 3) {
+        p.x += p.vx;
+        p.y += p.vy;
+        const grd2 = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 2);
+        grd2.addColorStop(0, hsl(p.hue, p.sat, p.lit + 20, a * 0.6));
+        grd2.addColorStop(0.5, hsl(p.hue, p.sat, p.lit, a * 0.3));
+        grd2.addColorStop(1, hsl(p.hue, p.sat, p.lit, 0));
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r * 2, 0, TWO_PI);
+        ctx.fillStyle = grd2;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r * 0.4, 0, TWO_PI);
+        ctx.fillStyle = hsl(p.hue, 100, 90, a * 0.9);
+        ctx.fill();
+      }
+    }
+
+    // 闪电链
+    for (let i = lightningSegs.length - 1; i >= 0; i--) {
+      const seg = lightningSegs[i];
+      seg.life -= seg.decay;
+      if (seg.life <= 0) { lightningSegs.splice(i, 1); continue; }
+      const a = seg.life * seg.alpha;
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = hsl(seg.hue, 100, 70);
+      ctx.beginPath();
+      ctx.moveTo(seg.points[0].x, seg.points[0].y);
+      for (let j = 1; j < seg.points.length; j++) {
+        ctx.lineTo(seg.points[j].x, seg.points[j].y);
+      }
+      ctx.strokeStyle = hsl(seg.hue, 100, 75);
+      ctx.lineWidth = 1.5 * seg.life + 0.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+      // 外发光
+      ctx.lineWidth = 4 * seg.life;
+      ctx.strokeStyle = hsl(seg.hue, 100, 65, 0.3);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  /* ─── 主循环 ─── */
+  let lastTime = 0;
+  let frame = 0;
+
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    const dt = ts - lastTime;
+    if (dt < 14) return; // ~70fps cap for perf
+    lastTime = ts;
+    frame++;
+
+    // 半透明背景叠加，产生拖尾消散效果
+    ctx.fillStyle = 'rgba(5,8,16,0.18)';
+    ctx.fillRect(0, 0, W, H);
+
+    // 生成粒子
+    if (mouseX > 0 && mouseY > 0) {
+      hue = (hue + 1.2) % 360;
+      const dx = mouseX - prevX;
+      const dy = mouseY - prevY;
+      const speed = Math.sqrt(dx * dx + dy * dy);
+
+      if (speed > 1.5) {
+        const steps = Math.ceil(speed / 8);
+        for (let s = 0; s <= steps; s++) {
+          const t = s / steps;
+          const ix = lerp(prevX, mouseX, t);
+          const iy = lerp(prevY, mouseY, t);
+          const ih = (hue + s * 2) % 360;
+
+          if (activeStyle === 0) spawnComet(ix, iy, dx / steps, dy / steps, ih);
+          else if (activeStyle === 1) spawnStardust(ix, iy, ih);
+          else if (activeStyle === 2) spawnFireworkSilk(ix, iy, ih);
+          else if (activeStyle === 3) spawnGlowBall(ix, iy, ih);
+          else if (activeStyle === 4 && frame % 3 === 0) spawnLightning(ix, iy, ih);
+        }
+        prevX = mouseX;
+        prevY = mouseY;
+      }
+    }
+
+    updateParticles();
+    if (mouseX > 0 && mouseY > 0) drawCursor(mouseX, mouseY, hue);
+  }
+
+  /* ─── 按钮交互 ─── */
+  function setStyle(idx) {
+    activeStyle = idx;
+    saveStyle();
+    document.querySelectorAll('.style-btn').forEach(function(btn) {
+      btn.classList.toggle('active', parseInt(btn.dataset.style, 10) === idx);
+    });
+  }
+
+  /* ─── 事件绑定 ─── */
+  function onMove(x, y) {
+    if (!moved) {
+      moved = true;
+      hint.classList.add('hidden');
+    }
+    mouseX = x;
+    mouseY = y;
+  }
+
+  function onClick(x, y) {
+    explode(x, y, hue);
+  }
+
+  window.addEventListener('mousemove', function(e) {
+    onMove(e.clientX, e.clientY);
+  });
+
+  window.addEventListener('mousedown', function(e) {
+    onClick(e.clientX, e.clientY);
+  });
+
+  window.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    const t = e.touches[0];
+    onMove(t.clientX, t.clientY);
+  }, { passive: false });
+
+  window.addEventListener('touchstart', function(e) {
+    const t = e.touches[0];
+    onMove(t.clientX, t.clientY);
+    onClick(t.clientX, t.clientY);
+  }, { passive: true });
+
+  window.addEventListener('resize', resize);
+
+  document.querySelectorAll('.style-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      setStyle(parseInt(btn.dataset.style, 10));
+    });
+  });
+
+  /* ─── 初始化（所有声明之后）─── */
+  resize();
+  setStyle(activeStyle);
+  requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
