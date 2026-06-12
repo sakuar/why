@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生物节律</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3354;
+    --text: #e8eaf6;
+    --text2: #8892b0;
+    --physical: #ff6b9d;
+    --emotional: #4ecdc4;
+    --intellectual: #ffe66d;
+    --accent: #7c83fd;
+    --radius: 16px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 13px;
+    z-index: 100;
+    transition: color 0.2s;
+    background: rgba(15,17,23,0.8);
+    padding: 4px 8px;
+    border-radius: 6px;
+    backdrop-filter: blur(8px);
+  }
+  .back-link:hover { color: var(--text); }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+    padding-top: 40px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .header h1 {
+    font-size: clamp(22px, 5vw, 32px);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    background: linear-gradient(135deg, var(--physical), var(--accent), var(--emotional));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+  .header p {
+    color: var(--text2);
+    font-size: 13px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .input-row label {
+    font-size: 14px;
+    color: var(--text2);
+    white-space: nowrap;
+  }
+  .input-row input[type="date"] {
+    flex: 1;
+    min-width: 160px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 15px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    color-scheme: dark;
+  }
+  .input-row input[type="date"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,131,253,0.18);
+  }
+  .btn {
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 22px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+
+  .date-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .nav-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 18px;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .nav-btn:hover { background: var(--border); transform: scale(1.08); }
+  #current-date-label {
+    font-size: 14px;
+    color: var(--text2);
+    min-width: 100px;
+    text-align: center;
+  }
+
+  .canvas-wrap {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 12px;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    border-radius: 12px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 16px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text2);
+  }
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 0;
+  }
+  @media (max-width: 420px) {
+    .stats-grid { grid-template-columns: 1fr; }
+  }
+
+  .stat-card {
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    border: 1px solid var(--border);
+    transition: transform 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); }
+  .stat-label {
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-period {
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .stat-bar {
+    margin-top: 8px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .stat-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  .interpretation {
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  .interpretation h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .interp-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .tag-high { background: rgba(78,205,196,0.2); color: var(--emotional); }
+  .tag-low { background: rgba(255,107,157,0.2); color: var(--physical); }
+  .tag-critical { background: rgba(255,230,109,0.2); color: var(--intellectual); }
+
+  .day-count {
+    text-align: center;
+    color: var(--text2);
+    font-size: 13px;
+    margin-top: 12px;
+  }
+  .day-count span {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .hidden { display: none !important; }
+  .fade-in { animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<div class="container">
+  <div class="header">
+    <h1>生物节律</h1>
+    <p>探索你的体力、情绪与智力周期</p>
+  </div>
+
+  <div class="card">
+    <div class="input-row">
+      <label for="birthday">出生日期</label>
+      <input type="date" id="birthday" placeholder="选择出生日期">
+      <button class="btn" id="calc-btn">计算节律</button>
+    </div>
+  </div>
+
+  <div id="result-section" class="hidden">
+    <div class="card fade-in">
+      <div class="date-nav">
+        <button class="nav-btn" id="prev-day" title="前一天">‹</button>
+        <div id="current-date-label"></div>
+        <button class="nav-btn" id="next-day" title="后一天">›</button>
+        <button class="nav-btn" id="today-btn" title="回到今天" style="font-size:12px;width:auto;padding:0 10px;">今天</button>
+      </div>
+      <div style="margin-top:16px;" class="canvas-wrap">
+        <canvas id="bio-canvas"></canvas>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--physical)"></div>体力 (23天)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--emotional)"></div>情绪 (28天)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--intellectual)"></div>智力 (33天)</div>
+      </div>
+      <div class="day-count" id="day-count"></div>
+    </div>
+
+    <div class="card fade-in">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">体力</div>
+          <div class="stat-value" id="val-physical" style="color:var(--physical)">-</div>
+          <div class="stat-period">周期 23 天</div>
+          <div class="stat-bar"><div class="stat-bar-fill" id="bar-physical" style="background:var(--physical)"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">情绪</div>
+          <div class="stat-value" id="val-emotional" style="color:var(--emotional)">-</div>
+          <div class="stat-period">周期 28 天</div>
+          <div class="stat-bar"><div class="stat-bar-fill" id="bar-emotional" style="background:var(--emotional)"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">智力</div>
+          <div class="stat-value" id="val-intellectual" style="color:var(--intellectual)">-</div>
+          <div class="stat-period">周期 33 天</div>
+          <div class="stat-bar"><div class="stat-bar-fill" id="bar-intellectual" style="background:var(--intellectual)"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card fade-in">
+      <div class="interpretation" id="interpretation">
+        <h3>今日状态解读</h3>
+        <div id="interp-text"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ——— 常量 ———
+  var PERIODS = { physical: 23, emotional: 28, intellectual: 33 };
+  var COLORS = { physical: '#ff6b9d', emotional: '#4ecdc4', intellectual: '#ffe66d' };
+  var LABELS = { physical: '体力', emotional: '情绪', intellectual: '智力' };
+  var CANVAS_DAYS = 28; // 左右各14天
+
+  // ——— DOM 引用 ———
+  var birthdayInput = document.getElementById('birthday');
+  var calcBtn = document.getElementById('calc-btn');
+  var resultSection = document.getElementById('result-section');
+  var bioCanvas = document.getElementById('bio-canvas');
+  var currentDateLabel = document.getElementById('current-date-label');
+  var dayCountEl = document.getElementById('day-count');
+  var prevDayBtn = document.getElementById('prev-day');
+  var nextDayBtn = document.getElementById('next-day');
+  var todayBtn = document.getElementById('today-btn');
+  var valPhysical = document.getElementById('val-physical');
+  var valEmotional = document.getElementById('val-emotional');
+  var valIntellectual = document.getElementById('val-intellectual');
+  var barPhysical = document.getElementById('bar-physical');
+  var barEmotional = document.getElementById('bar-emotional');
+  var barIntellectual = document.getElementById('bar-intellectual');
+  var interpText = document.getElementById('interp-text');
+
+  // ——— 状态 ———
+  var birthDate = null;
+  var viewDate = null; // 当前查看的日期
+
+  // ——— 工具函数 ———
+  function parseLocalDate(str) {
+    var parts = str.split('-');
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  }
+
+  function toDateStr(d) {
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + dd;
+  }
+
+  function todayLocal() {
+    return parseLocalDate(toDateStr(new Date()));
+  }
+
+  function diffDays(a, b) {
+    return Math.round((b - a) / 86400000);
+  }
+
+  function bioValue(daysSinceBirth, period) {
+    return Math.sin(2 * Math.PI * daysSinceBirth / period);
+  }
+
+  function pct(v) {
+    return Math.round(v * 100);
+  }
+
+  function formatDate(d) {
+    return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日';
+  }
+
+  function addDays(d, n) {
+    var nd = new Date(d);
+    nd.setDate(nd.getDate() + n);
+    return nd;
+  }
+
+  // ——— Canvas 绘制 ———
+  function drawChart() {
+    if (!birthDate || !viewDate) return;
+
+    var dpr = window.devicePixelRatio || 1;
+    var rect = bioCanvas.parentElement.getBoundingClientRect();
+    var cssW = rect.width || 700;
+    var cssH = Math.max(220, Math.min(320, cssW * 0.42));
+
+    bioCanvas.width = cssW * dpr;
+    bioCanvas.height = cssH * dpr;
+    bioCanvas.style.width = cssW + 'px';
+    bioCanvas.style.height = cssH + 'px';
+
+    var ctx = bioCanvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    var W = cssW;
+    var H = cssH;
+    var padL = 42, padR = 16, padT = 20, padB = 30;
+    var chartW = W - padL - padR;
+    var chartH = H - padT - padB;
+    var midY = padT + chartH / 2;
+
+    // 背景
+    ctx.fillStyle = '#22263a';
+    ctx.beginPath();
+    ctx.roundRect(0, 0, W, H, 12);
+    ctx.fill();
+
+    // 今天在第几格（中心）
+    var halfDays = Math.floor(CANVAS_DAYS / 2);
+    var startDate = addDays(viewDate, -halfDays);
+    var totalDays = CANVAS_DAYS + 1;
+
+    function xOfDay(i) {
+      return padL + (i / CANVAS_DAYS) * chartW;
+    }
+    function yOfVal(v) {
+      return midY - v * (chartH / 2) * 0.88;
+    }
+
+    // 网格
+    ctx.strokeStyle = 'rgba(46,51,84,0.8)';
+    ctx.lineWidth = 1;
+    // 水平线
+    for (var gi = -4; gi <= 4; gi++) {
+      var gy = midY - gi * (chartH / 2) * 0.88 / 4;
+      ctx.beginPath();
+      ctx.moveTo(padL, gy);
+      ctx.lineTo(padL + chartW, gy);
+      ctx.stroke();
+    }
+
+    // Y 轴标签
+    ctx.fillStyle = 'rgba(136,146,176,0.7)';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'right';
+    ['100%', '50%', '0%', '-50%', '-100%'].forEach(function(lbl, li) {
+      var vals = [1, 0.5, 0, -0.5, -1];
+      var ly = yOfVal(vals[li]);
+      ctx.fillText(lbl, padL - 4, ly + 3.5);
+    });
+
+    // 中线
+    ctx.strokeStyle = 'rgba(136,146,176,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padL, midY);
+    ctx.lineTo(padL + chartW, midY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 今天竖线
+    var todayX = xOfDay(halfDays);
+    ctx.strokeStyle = 'rgba(124,131,253,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 3]);
+    ctx.beginPath();
+    ctx.moveTo(todayX, padT);
+    ctx.lineTo(todayX, padT + chartH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // X 轴日期标签
+    ctx.fillStyle = 'rgba(136,146,176,0.6)';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    [-14, -7, 0, 7, 14].forEach(function(offset) {
+      var xi = halfDays + offset;
+      if (xi >= 0 && xi <= CANVAS_DAYS) {
+        var lx = xOfDay(xi);
+        var ld = addDays(viewDate, offset);
+        var txt = (ld.getMonth() + 1) + '/' + ld.getDate();
+        ctx.fillText(txt, lx, padT + chartH + 18);
+      }
+    });
+
+    // 曲线
+    ['physical', 'emotional', 'intellectual'].forEach(function(key) {
+      var period = PERIODS[key];
+      var color = COLORS[key];
+
+      ctx.save();
+
+      // 渐变填充
+      var grad = ctx.createLinearGradient(0, padT, 0, padT + chartH);
+      grad.addColorStop(0, color.replace(')', ',0.15)').replace('rgb', 'rgba').replace('#', 'rgba(').replace('(', '(0x'));
+      // 简单做法：直接用 rgba
+      var fillGrad = ctx.createLinearGradient(0, padT, 0, padT + chartH);
+      fillGrad.addColorStop(0, hexToRgba(color, 0.12));
+      fillGrad.addColorStop(1, hexToRgba(color, 0.01));
+
+      ctx.beginPath();
+      var firstX = xOfDay(0);
+      var firstDays = diffDays(birthDate, startDate);
+      var firstV = bioValue(firstDays, period);
+      ctx.moveTo(firstX, yOfVal(firstV));
+      for (var i = 1; i <= CANVAS_DAYS; i++) {
+        var d = addDays(startDate, i);
+        var days = diffDays(birthDate, d);
+        var v = bioValue(days, period);
+        var x = xOfDay(i);
+        var y = yOfVal(v);
+        ctx.lineTo(x, y);
+      }
+      // 填充
+      ctx.lineTo(xOfDay(CANVAS_DAYS), midY);
+      ctx.lineTo(firstX, midY);
+      ctx.closePath();
+      ctx.fillStyle = fillGrad;
+      ctx.fill();
+
+      // 线条
+      ctx.beginPath();
+      ctx.moveTo(firstX, yOfVal(firstV));
+      for (var j = 1; j <= CANVAS_DAYS; j++) {
+        var dj = addDays(startDate, j);
+        var daysj = diffDays(birthDate, dj);
+        var vj = bioValue(daysj, period);
+        ctx.lineTo(xOfDay(j), yOfVal(vj));
+      }
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.2;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+
+      // 当前点
+      var todayDays = diffDays(birthDate, viewDate);
+      var todayV = bioValue(todayDays, period);
+      var ty = yOfVal(todayV);
+      ctx.beginPath();
+      ctx.arc(todayX, ty, 5.5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = '#0f1117';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.restore();
+    });
+
+    // 今天标签
+    ctx.fillStyle = 'rgba(124,131,253,0.8)';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('今天', todayX, padT + 12);
+  }
+
+  function hexToRgba(hex, alpha) {
+    var r = parseInt(hex.slice(1, 3), 16);
+    var g = parseInt(hex.slice(3, 5), 16);
+    var b = parseInt(hex.slice(5, 7), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  }
+
+  // ——— 更新 UI ———
+  function updateStats() {
+    if (!birthDate || !viewDate) return;
+
+    var days = diffDays(birthDate, viewDate);
+
+    var pv = bioValue(days, PERIODS.physical);
+    var ev = bioValue(days, PERIODS.emotional);
+    var iv = bioValue(days, PERIODS.intellectual);
+
+    var pvPct = pct(pv);
+    var evPct = pct(ev);
+    var ivPct = pct(iv);
+
+    valPhysical.textContent = pvPct + '%';
+    valEmotional.textContent = evPct + '%';
+    valIntellectual.textContent = ivPct + '%';
+
+    barPhysical.style.width = ((pv + 1) / 2 * 100) + '%';
+    barEmotional.style.width = ((ev + 1) / 2 * 100) + '%';
+    barIntellectual.style.width = ((iv + 1) / 2 * 100) + '%';
+
+    currentDateLabel.textContent = formatDate(viewDate);
+
+    var todayDays = diffDays(birthDate, todayLocal());
+    dayCountEl.innerHTML = '出生第 <span>' + (days + 1) + '</span> 天 · 生命已走过 <span>' + days + '</span> 天';
+
+    // 解读
+    var lines = [];
+
+    function level(v) {
+      var av = Math.abs(v);
+      var isCritical = av < 0.15;
+      if (isCritical) return 'critical';
+      if (v > 0.6) return 'high';
+      if (v > 0) return 'slight-high';
+      if (v > -0.6) return 'slight-low';
+      return 'low';
+    }
+
+    function tag(lv, name) {
+      if (lv === 'critical') return name + '<span class="interp-tag tag-critical">临界</span>';
+      if (lv === 'high') return name + '<span class="interp-tag tag-high">高峰</span>';
+      if (lv === 'slight-high') return name + '<span class="interp-tag tag-high">偏高</span>';
+      if (lv === 'slight-low') return name + '<span class="interp-tag tag-low">偏低</span>';
+      return name + '<span class="interp-tag tag-low">低谷</span>';
+    }
+
+    var pl = level(pv), el = level(ev), il = level(iv);
+
+    var desc = '';
+    // 综合判断
+    var highs = [pl, el, il].filter(function(l) { return l === 'high' || l === 'slight-high'; }).length;
+    var lows = [pl, el, il].filter(function(l) { return l === 'low' || l === 'slight-low'; }).length;
+    var criticals = [pl, el, il].filter(function(l) { return l === 'critical'; }).length;
+
+    if (criticals >= 2) {
+      desc = '今日有多项节律处于临界点，状态较为不稳定，建议保持平常心，避免重大决策。';
+    } else if (highs === 3) {
+      desc = '今日三项节律均处高位，是难得的黄金状态！适合挑战目标、高效工作与社交。';
+    } else if (lows === 3) {
+      desc = '今日三项节律均处低谷，身心需要休整，适当放慢节奏，好好休息补充能量。';
+    } else if (highs >= 2) {
+      desc = '今日整体状态良好，精力充沛，可以主动出击，把握机会。';
+    } else if (lows >= 2) {
+      desc = '今日整体状态偏低，适合做些常规工作，避免过度消耗，照顾好自己。';
+    } else {
+      desc = '今日各节律波动平稳，保持正常节奏即可，留意各维度的细微变化。';
+    }
+
+    var detail = '<p style="margin-bottom:10px;color:#8892b0;">' + desc + '</p>';
+    detail += '<p style="font-size:13px;line-height:2;">';
+    detail += '· ' + tag(pl, '体力') + '：' + pvPct + '%，';
+    if (pl === 'high') detail += '体能充沛，适合运动或体力劳动。';
+    else if (pl === 'slight-high') detail += '身体状态不错，精力有余。';
+    else if (pl === 'critical') detail += '体力处临界，易感疲惫，注意安全。';
+    else if (pl === 'slight-low') detail += '体力稍弱，不宜过度运动。';
+    else detail += '体力低谷，多休息，避免剧烈运动。';
+    detail += '<br>';
+
+    detail += '· ' + tag(el, '情绪') + '：' + evPct + '%，';
+    if (el === 'high') detail += '心情愉悦，人际关系顺畅，适合沟通合作。';
+    else if (el === 'slight-high') detail += '情绪积极，保持好心态。';
+    else if (el === 'critical') detail += '情绪不稳，易激动，需要自我调节。';
+    else if (el === 'slight-low') detail += '情绪略低落，需要自我鼓励。';
+    else detail += '情绪低谷，避免冲动决策，多与亲友交流。';
+    detail += '<br>';
+
+    detail += '· ' + tag(il, '智力') + '：' + ivPct + '%，';
+    if (il === 'high') detail += '思维敏锐，记忆力好，适合学习与创作。';
+    else if (il === 'slight-high') detail += '思路清晰，工作效率较高。';
+    else if (il === 'critical') detail += '思维临界，容易出错，核查重要工作。';
+    else if (il === 'slight-low') detail += '思维略迟钝，注意力需要集中。';
+    else detail += '智力低谷，避免做重大决策或复杂运算。';
+    detail += '</p>';
+
+    interpText.innerHTML = detail;
+  }
+
+  function update() {
+    drawChart();
+    updateStats();
+  }
+
+  // ——— 事件处理 ———
+  function onCalc() {
+    var val = birthdayInput.value;
+    if (!val) {
+      birthdayInput.focus();
+      return;
+    }
+    birthDate = parseLocalDate(val);
+    var today = todayLocal();
+    if (birthDate > today) {
+      alert('出生日期不能晚于今天');
+      return;
+    }
+    viewDate = today;
+    localStorage.setItem('biorhythm_birthday', val);
+    resultSection.classList.remove('hidden');
+    update();
+  }
+
+  prevDayBtn.addEventListener('click', function() {
+    if (!viewDate) return;
+    viewDate = addDays(viewDate, -1);
+    update();
+  });
+
+  nextDayBtn.addEventListener('click', function() {
+    if (!viewDate) return;
+    viewDate = addDays(viewDate, 1);
+    if (viewDate > addDays(todayLocal(), 365)) {
+      viewDate = addDays(todayLocal(), 365);
+    }
+    update();
+  });
+
+  todayBtn.addEventListener('click', function() {
+    if (!birthDate) return;
+    viewDate = todayLocal();
+    update();
+  });
+
+  calcBtn.addEventListener('click', onCalc);
+
+  birthdayInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') onCalc();
+  });
+
+  window.addEventListener('resize', function() {
+    if (birthDate && viewDate) drawChart();
+  });
+
+  // ——— roundRect polyfill ———
+  if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+      this.beginPath();
+      this.moveTo(x + r, y);
+      this.lineTo(x + w - r, y);
+      this.quadraticCurveTo(x + w, y, x + w, y + r);
+      this.lineTo(x + w, y + h - r);
+      this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      this.lineTo(x + r, y + h);
+      this.quadraticCurveTo(x, y + h, x, y + h - r);
+      this.lineTo(x, y + r);
+      this.quadraticCurveTo(x, y, x + r, y);
+      this.closePath();
+    };
+  }
+
+  // ——— 初始化：从 localStorage 读取 ———
+  (function init() {
+    var saved = localStorage.getItem('biorhythm_birthday');
+    if (saved) {
+      birthdayInput.value = saved;
+      birthDate = parseLocalDate(saved);
+      var today = todayLocal();
+      if (birthDate <= today) {
+        viewDate = today;
+        resultSection.classList.remove('hidden');
+        // 延迟以等待布局
+        setTimeout(update, 50);
+      }
+    }
+  })();
+
+})();
+</script>
+</body>
+</html>
