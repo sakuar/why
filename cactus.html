@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电子仙人掌</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f0f7ee;
+    --surface: #ffffff;
+    --green-dark: #2d6a4f;
+    --green: #40916c;
+    --green-light: #74c69d;
+    --green-pale: #d8f3dc;
+    --sand: #e9c46a;
+    --sand-dark: #c9a227;
+    --flower: #f4a261;
+    --flower2: #e76f51;
+    --text: #2d3a2e;
+    --text-light: #6b7c6d;
+    --shadow: rgba(45,106,79,0.12);
+    --radius: 18px;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    font-size: 13px;
+    color: var(--text-light);
+    text-decoration: none;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    z-index: 100;
+  }
+  .back-link:hover { opacity: 1; }
+
+  .container {
+    width: 100%;
+    max-width: 420px;
+    margin: 48px auto 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: 0 4px 24px var(--shadow);
+    padding: 24px;
+  }
+
+  .header {
+    text-align: center;
+    padding-bottom: 4px;
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--green-dark);
+    letter-spacing: 0.05em;
+  }
+  .header p {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-top: 4px;
+  }
+
+  .canvas-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding: 16px 0 8px;
+    min-height: 220px;
+    position: relative;
+  }
+
+  #cactusCanvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+
+  .stage-bar {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    padding: 4px 0 8px;
+  }
+  .stage-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green-pale);
+    transition: background 0.4s;
+  }
+  .stage-dot.active {
+    background: var(--green);
+  }
+  .stage-dot.current {
+    background: var(--green-dark);
+    box-shadow: 0 0 0 2px var(--green-pale);
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--green-pale);
+    border-radius: 12px;
+    font-size: 13px;
+    color: var(--green-dark);
+  }
+  .info-row span { font-weight: 600; }
+
+  .status-msg {
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-light);
+    min-height: 20px;
+    transition: color 0.3s;
+  }
+  .status-msg.happy { color: var(--green); }
+
+  .water-btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.3s;
+    box-shadow: 0 4px 16px rgba(64,145,108,0.35);
+    position: relative;
+    overflow: hidden;
+  }
+  .water-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(64,145,108,0.45);
+  }
+  .water-btn:active:not(:disabled) { transform: translateY(0); }
+  .water-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .water-btn .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.35);
+    transform: scale(0);
+    animation: ripple-anim 0.55s linear;
+    pointer-events: none;
+  }
+  @keyframes ripple-anim {
+    to { transform: scale(4); opacity: 0; }
+  }
+
+  .log-section {}
+  .log-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 8px;
+    letter-spacing: 0.03em;
+  }
+  .log-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 130px;
+    overflow-y: auto;
+  }
+  .log-list li {
+    font-size: 12px;
+    color: var(--text-light);
+    padding: 5px 10px;
+    background: var(--bg);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .log-list li .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green-light);
+    flex-shrink: 0;
+  }
+
+  .reset-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    border: 1.5px solid #dde8dd;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text-light);
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .reset-btn:hover { border-color: var(--green-light); color: var(--green); }
+
+  /* floating drops animation */
+  .drop {
+    position: fixed;
+    pointer-events: none;
+    font-size: 20px;
+    animation: drop-float 1.2s ease-out forwards;
+    z-index: 200;
+  }
+  @keyframes drop-float {
+    0%   { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(0.6); }
+  }
+
+  .bloom-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--flower), var(--flower2));
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.04em;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  @media (max-width: 380px) {
+    .container { margin-top: 36px; }
+    .card { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<div class="container">
+  <div class="card header">
+    <h1>电子仙人掌 <span id="bloomBadge" class="bloom-badge" style="display:none">已开花</span></h1>
+    <p id="headerSub">用爱心浇灌，静待它慢慢长大</p>
+  </div>
+
+  <div class="card">
+    <div class="canvas-wrap">
+      <canvas id="cactusCanvas" width="200" height="200"></canvas>
+    </div>
+    <div class="stage-bar" id="stageDots"></div>
+    <div class="info-row">
+      <div>种植天数 <span id="daysCount">0</span> 天</div>
+      <div>浇水 <span id="waterCount">0</span> 次</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="status-msg" id="statusMsg">今天还没有浇水哦~</div>
+    <br>
+    <button class="water-btn" id="waterBtn">浇水</button>
+  </div>
+
+  <div class="card log-section">
+    <div class="log-title">浇水记录</div>
+    <ul class="log-list" id="logList"></ul>
+  </div>
+
+  <div class="card">
+    <button class="reset-btn" id="resetBtn">重新种植</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ── Constants ── */
+  var STORAGE_KEY = "cactus_v2";
+  var STAGES = 6; // 0..5, stage5 = bloom
+  // Days needed to reach each stage boundary
+  var STAGE_DAYS = [0, 3, 7, 14, 25, 40];
+  // watering threshold: must water at least N times to unlock next stage
+  var STAGE_WATERS = [0, 2, 5, 10, 18, 30];
+
+  /* ── State ── */
+  var state = null; // loaded below
+
+  /* ── Canvas ── */
+  var canvas = document.getElementById("cactusCanvas");
+  var ctx = canvas.getContext("2d");
+
+  /* ── DOM refs ── */
+  var waterBtn = document.getElementById("waterBtn");
+  var statusMsg = document.getElementById("statusMsg");
+  var daysCount = document.getElementById("daysCount");
+  var waterCount = document.getElementById("waterCount");
+  var logList = document.getElementById("logList");
+  var stageDots = document.getElementById("stageDots");
+  var resetBtn = document.getElementById("resetBtn");
+  var bloomBadge = document.getElementById("bloomBadge");
+  var headerSub = document.getElementById("headerSub");
+
+  /* ── Helpers ── */
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+  }
+
+  function daysBetween(isoA, isoB) {
+    var a = new Date(isoA);
+    var b = new Date(isoB);
+    var diff = b - a;
+    return Math.max(0, Math.floor(diff / 86400000));
+  }
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        // validate
+        if (parsed && parsed.plantDate) return parsed;
+      }
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
+  function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function freshState() {
+    return {
+      plantDate: todayStr(),
+      waterLog: [],    // array of date strings
+      totalWaters: 0
+    };
+  }
+
+  function computeStage(days, waters) {
+    var s = 0;
+    for (var i = STAGES - 1; i >= 0; i--) {
+      if (days >= STAGE_DAYS[i] && waters >= STAGE_WATERS[i]) {
+        s = i;
+        break;
+      }
+    }
+    return s;
+  }
+
+  /* ── Drawing ── */
+  // pixel size unit
+  var PX = 6;
+
+  function fillRect(gx, gy, gw, gh, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(gx * PX, gy * PX, gw * PX, gh * PX);
+  }
+
+  // colors
+  var C = {
+    pot:      "#c8845a",
+    potDark:  "#a0623a",
+    soil:     "#8b5e3c",
+    soilDark: "#6b4226",
+    sand:     "#e9c46a",
+    cactus:   "#40916c",
+    cactusD:  "#2d6a4f",
+    cactusL:  "#74c69d",
+    spine:    "#f8f4e8",
+    flower1:  "#f4a261",
+    flower2:  "#e76f51",
+    flowerY:  "#ffd166",
+    sky:      "#f0f7ee"
+  };
+
+  function drawPot(baseY) {
+    // pot body (trapezoid via stacked rects)
+    // bottom wider
+    fillRect(5, baseY - 4, 14, 4, C.pot);
+    fillRect(6, baseY - 7, 12, 3, C.pot);
+    fillRect(7, baseY - 10, 10, 3, C.pot);
+    // rim
+    fillRect(5, baseY - 11, 14, 2, C.potDark);
+    // shadow lines
+    ctx.fillStyle = C.potDark;
+    ctx.fillRect(6 * PX, (baseY - 4) * PX, 1 * PX, 4 * PX);
+    // soil
+    fillRect(7, baseY - 10, 10, 2, C.soil);
+    fillRect(8, baseY - 10, 8, 1, C.soilDark);
+  }
+
+  function drawStage0() {
+    // tiny seed / sprout
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var by = 26; // base y in grid (canvas = 200px = 33 grid units at PX=6)
+    drawPot(by);
+    // tiny green dot
+    fillRect(11, by - 12, 2, 2, C.cactus);
+    fillRect(12, by - 13, 1, 1, C.cactusL);
+  }
+
+  function drawStage1() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var by = 26;
+    drawPot(by);
+    // small stem
+    fillRect(11, by - 15, 2, 5, C.cactus);
+    fillRect(11, by - 16, 2, 1, C.cactusL);
+    // spines
+    fillRect(10, by - 14, 1, 1, C.spine);
+    fillRect(13, by - 13, 1, 1, C.spine);
+  }
+
+  function drawStage2() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var by = 26;
+    drawPot(by);
+    // stem
+    fillRect(11, by - 20, 2, 10, C.cactus);
+    fillRect(12, by - 20, 1, 10, C.cactusD);
+    fillRect(11, by - 21, 2, 1, C.cactusL);
+    // spines
+    for (var i = 0; i < 4; i++) {
+      fillRect(10, by - 18 + i * 2, 1, 1, C.spine);
+      fillRect(13, by - 17 + i * 2, 1, 1, C.spine);
+    }
+    // small left arm bud
+    fillRect(9, by - 19, 2, 2, C.cactus);
+  }
+
+  function drawStage3() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var by = 28;
+    drawPot(by);
+    // main stem
+    fillRect(11, by - 26, 3, 16, C.cactus);
+    fillRect(13, by - 26, 1, 16, C.cactusD);
+    fillRect(11, by - 27, 3, 1, C.cactusL);
+    // spines main
+    for (var i = 0; i < 6; i++) {
+      fillRect(10, by - 25 + i * 2, 1, 1, C.spine);
+      fillRect(14, by - 24 + i * 2, 1, 1, C.spine);
+    }
+    // left arm
+    fillRect(7, by - 22, 4, 2, C.cactus);
+    fillRect(7, by - 24, 2, 4, C.cactus);
+    fillRect(8, by - 24, 1, 4, C.cactusD);
+    fillRect(7, by - 25, 2, 1, C.cactusL);
+    // left arm spines
+    fillRect(6, by - 23, 1, 1, C.spine);
+    fillRect(6, by - 22, 1, 1, C.spine);
+    // right arm bud
+    fillRect(14, by - 20, 2, 2, C.cactus);
+  }
+
+  function drawStage4() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var by = 29;
+    drawPot(by);
+    // main stem
+    fillRect(11, by - 29, 3, 19, C.cactus);
+    fillRect(13, by - 29, 1, 19, C.cactusD);
+    fillRect(11, by - 30, 3, 1, C.cactusL);
+    // spines
+    for (var i = 0; i < 8; i++) {
+      fillRect(10, by - 28 + i * 2, 1, 1, C.spine);
+      fillRect(14, by - 27 + i * 2, 1, 1, C.spine);
+    }
+    // left arm full
+    fillRect(6, by - 25, 5, 2, C.cactus);
+    fillRect(6, by - 28, 2, 5, C.cactus);
+    fillRect(7, by - 28, 1, 5, C.cactusD);
+    fillRect(6, by - 29, 2, 1, C.cactusL);
+    for (var j = 0; j < 3; j++) {
+      fillRect(5, by - 27 + j, 1, 1, C.spine);
+    }
+    // right arm
+    fillRect(14, by - 22, 4, 2, C.cactus);
+    fillRect(16, by - 25, 2, 5, C.cactus);
+    fillRect(17, by - 25, 1, 5, C.cactusD);
+    fillRect(16, by - 26, 2, 1, C.cactusL);
+    for (var k = 0; k < 3; k++) {
+      fillRect(18, by - 24 + k, 1, 1, C.spine);
+    }
+  }
+
+  function drawFlower(gx, gy) {
+    // petals
+    var petals = [
+      [gx, gy - 2], [gx + 1, gy - 2],
+      [gx - 1, gy - 1], [gx + 2, gy - 1],
+      [gx - 1, gy + 1], [gx + 2, gy + 1],
+      [gx, gy + 2], [gx + 1, gy + 2]
+    ];
+    for (var i = 0; i < petals.length; i++) {
+      fillRect(petals[i][0], petals[i][1], 1, 1, C.flower1);
+    }
+    // extra petals alternating
+    fillRect(gx - 1, gy, 1, 1, C.flower2);
+    fillRect(gx + 2, gy, 1, 1, C.flower2);
+    // center
+    fillRect(gx, gy - 1, 2, 3, C.flowerY);
+    fillRect(gx, gy, 2, 1, C.flower2);
+  }
+
+  function drawStage5() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var by = 29;
+    drawPot(by);
+    // same as stage4 but with flowers
+    fillRect(11, by - 29, 3, 19, C.cactus);
+    fillRect(13, by - 29, 1, 19, C.cactusD);
+    for (var i = 0; i < 8; i++) {
+      fillRect(10, by - 28 + i * 2, 1, 1, C.spine);
+      fillRect(14, by - 27 + i * 2, 1, 1, C.spine);
+    }
+    // left arm
+    fillRect(6, by - 25, 5, 2, C.cactus);
+    fillRect(6, by - 28, 2, 5, C.cactus);
+    fillRect(7, by - 28, 1, 5, C.cactusD);
+    for (var j = 0; j < 3; j++) {
+      fillRect(5, by - 27 + j, 1, 1, C.spine);
+    }
+    // right arm
+    fillRect(14, by - 22, 4, 2, C.cactus);
+    fillRect(16, by - 25, 2, 5, C.cactus);
+    fillRect(17, by - 25, 1, 5, C.cactusD);
+    for (var k = 0; k < 3; k++) {
+      fillRect(18, by - 24 + k, 1, 1, C.spine);
+    }
+    // flowers!
+    drawFlower(10, by - 32);
+    drawFlower(5, by - 32);
+    drawFlower(16, by - 29);
+  }
+
+  var drawFns = [drawStage0, drawStage1, drawStage2, drawStage3, drawStage4, drawStage5];
+
+  function renderCactus(stage) {
+    drawFns[stage]();
+  }
+
+  /* ── UI Update ── */
+  function updateUI() {
+    var today = todayStr();
+    var days = daysBetween(state.plantDate, today);
+    var waters = state.totalWaters;
+    var stage = computeStage(days, waters);
+    var wateredToday = state.waterLog.length > 0 && state.waterLog[state.waterLog.length - 1] === today;
+
+    // counts
+    daysCount.textContent = days;
+    waterCount.textContent = waters;
+
+    // stage dots
+    stageDots.innerHTML = "";
+    for (var i = 0; i < STAGES; i++) {
+      var dot = document.createElement("div");
+      dot.className = "stage-dot" + (i < stage ? " active" : "") + (i === stage ? " current" : "");
+      stageDots.appendChild(dot);
+    }
+
+    // bloom badge
+    if (stage === STAGES - 1) {
+      bloomBadge.style.display = "";
+      headerSub.textContent = "它开花了，感谢你的陪伴 ♥";
+    } else {
+      bloomBadge.style.display = "none";
+      var nextStage = Math.min(stage + 1, STAGES - 1);
+      var daysLeft = Math.max(0, STAGE_DAYS[nextStage] - days);
+      var wLeft = Math.max(0, STAGE_WATERS[nextStage] - waters);
+      if (stage < STAGES - 1) {
+        headerSub.textContent = "再浇 " + wLeft + " 次·再等 " + daysLeft + " 天 就能成长了";
+      }
+    }
+
+    // water btn
+    if (wateredToday) {
+      waterBtn.disabled = true;
+      waterBtn.textContent = "今天已经浇过水了";
+      statusMsg.textContent = "仙人掌喝饱了，明天再来~";
+      statusMsg.className = "status-msg happy";
+    } else {
+      waterBtn.disabled = false;
+      waterBtn.textContent = "浇水";
+      statusMsg.textContent = "今天还没有浇水哦~";
+      statusMsg.className = "status-msg";
+    }
+
+    // render canvas
+    renderCactus(stage);
+
+    // log
+    renderLog();
+  }
+
+  function renderLog() {
+    logList.innerHTML = "";
+    var log = state.waterLog.slice().reverse();
+    if (log.length === 0) {
+      var li = document.createElement("li");
+      li.innerHTML = '<span class="dot"></span>暂无记录';
+      logList.appendChild(li);
+      return;
+    }
+    for (var i = 0; i < Math.min(log.length, 15); i++) {
+      var li2 = document.createElement("li");
+      li2.innerHTML = '<span class="dot"></span>' + log[i] + " 浇水";
+      logList.appendChild(li2);
+    }
+  }
+
+  /* ── Water action ── */
+  function doWater(e) {
+    var today = todayStr();
+    if (state.waterLog.length > 0 && state.waterLog[state.waterLog.length - 1] === today) return;
+
+    state.waterLog.push(today);
+    state.totalWaters++;
+    saveState();
+
+    // ripple
+    if (e) {
+      var btn = waterBtn;
+      var rect = btn.getBoundingClientRect();
+      var size = Math.max(rect.width, rect.height);
+      var x = (e.clientX || rect.left + rect.width / 2) - rect.left - size / 2;
+      var y = (e.clientY || rect.top + rect.height / 2) - rect.top - size / 2;
+      var ripple = document.createElement("span");
+      ripple.className = "ripple";
+      ripple.style.width = ripple.style.height = size + "px";
+      ripple.style.left = x + "px";
+      ripple.style.top = y + "px";
+      btn.appendChild(ripple);
+      setTimeout(function () { ripple.remove(); }, 600);
+    }
+
+    // floating drops
+    spawnDrops(e);
+
+    updateUI();
+
+    // brief flash
+    statusMsg.textContent = "已浇水，仙人掌很开心！";
+    statusMsg.className = "status-msg happy";
+  }
+
+  function spawnDrops(e) {
+    var cx = e ? e.clientX : window.innerWidth / 2;
+    var cy = e ? e.clientY : window.innerHeight / 2;
+    var emojis = ["💧", "🌊", "✨"];
+    for (var i = 0; i < 5; i++) {
+      (function (idx) {
+        setTimeout(function () {
+          var el = document.createElement("div");
+          el.className = "drop";
+          el.textContent = emojis[idx % emojis.length];
+          el.style.left = (cx + (Math.random() - 0.5) * 60) + "px";
+          el.style.top = (cy + (Math.random() - 0.5) * 30) + "px";
+          document.body.appendChild(el);
+          setTimeout(function () { el.remove(); }, 1300);
+        }, idx * 80);
+      })(i);
+    }
+  }
+
+  /* ── Reset ── */
+  function doReset() {
+    if (!confirm("确定要重新种植吗？当前进度将清空。")) return;
+    state = freshState();
+    saveState();
+    updateUI();
+  }
+
+  /* ── Canvas breathing animation ── */
+  var breathT = 0;
+  var animId = null;
+
+  function breathe() {
+    breathT += 0.03;
+    var scale = 1 + Math.sin(breathT) * 0.012;
+    canvas.style.transform = "scale(" + scale + ")";
+    animId = requestAnimationFrame(breathe);
+  }
+
+  /* ── Init ── */
+  function init() {
+    state = loadState();
+    if (!state) {
+      state = freshState();
+      saveState();
+    }
+
+    waterBtn.addEventListener("click", doWater);
+    resetBtn.addEventListener("click", doReset);
+
+    updateUI();
+    breathe();
+  }
+
+  init();
+
+})();
+</script>
+</body>
+</html>
