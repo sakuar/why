@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>捏泡泡纸 · 解压</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #e8f4f8;
+    --bg2: #d0eaf5;
+    --bubble-intact: #b8dff0;
+    --bubble-intact-top: #d6f0fc;
+    --bubble-intact-border: #8ec8e8;
+    --bubble-popped: #c8dce4;
+    --bubble-popped-inner: #b0ccd6;
+    --accent: #5ab4d6;
+    --text: #3a6070;
+    --text-sub: #7aabb8;
+    --btn-bg: #5ab4d6;
+    --btn-hover: #3a9cbf;
+    --shadow: rgba(90, 180, 220, 0.3);
+  }
+
+  body {
+    background: linear-gradient(135deg, var(--bg) 0%, var(--bg2) 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    color: var(--text);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    font-size: 13px;
+    color: var(--text-sub);
+    text-decoration: none;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    z-index: 100;
+  }
+  .back-link:hover { opacity: 1; }
+
+  header {
+    padding: 28px 16px 8px;
+    text-align: center;
+  }
+  header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text);
+  }
+  header p {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-top: 4px;
+  }
+
+  .stats {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin: 4px 0 10px;
+    min-height: 20px;
+    transition: color 0.3s;
+  }
+  .stats.done { color: var(--accent); font-weight: 600; }
+
+  #wrap-container {
+    padding: 4px 8px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    width: 100%;
+  }
+
+  #bubble-grid {
+    display: grid;
+    gap: 5px;
+    padding: 14px;
+    background: rgba(255,255,255,0.45);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px var(--shadow), 0 1px 0 rgba(255,255,255,0.8) inset;
+    backdrop-filter: blur(4px);
+    max-width: 100%;
+  }
+
+  .bubble {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+    outline: none;
+    border: none;
+    background: radial-gradient(circle at 35% 32%, var(--bubble-intact-top) 0%, var(--bubble-intact) 55%, var(--bubble-intact-border) 100%);
+    box-shadow:
+      0 3px 8px rgba(90, 150, 200, 0.35),
+      0 1px 0 rgba(255,255,255,0.7) inset,
+      0 -1px 0 rgba(100,170,210,0.4) inset;
+  }
+
+  .bubble::before {
+    content: '';
+    position: absolute;
+    top: 18%;
+    left: 22%;
+    width: 28%;
+    height: 16%;
+    background: rgba(255,255,255,0.65);
+    border-radius: 50%;
+    transform: rotate(-30deg);
+    pointer-events: none;
+  }
+
+  .bubble:hover:not(.popped) {
+    transform: scale(1.07);
+    box-shadow:
+      0 5px 14px rgba(90, 150, 200, 0.5),
+      0 1px 0 rgba(255,255,255,0.8) inset;
+  }
+
+  .bubble:active:not(.popped) {
+    transform: scale(0.93);
+  }
+
+  .bubble.popping {
+    animation: pop-anim 0.18s ease-out forwards;
+  }
+
+  @keyframes pop-anim {
+    0%   { transform: scale(1.12); }
+    50%  { transform: scale(0.82); }
+    100% { transform: scale(1); }
+  }
+
+  .bubble.popped {
+    background: radial-gradient(circle at 50% 50%, var(--bubble-popped-inner) 0%, var(--bubble-popped) 70%, #a8bec6 100%);
+    box-shadow:
+      0 1px 3px rgba(90,130,160,0.15),
+      0 -1px 3px rgba(0,0,0,0.08) inset,
+      0 2px 6px rgba(0,0,0,0.06) inset;
+    cursor: default;
+    transform: scale(0.88);
+  }
+  .bubble.popped::before { display: none; }
+  .bubble.popped::after {
+    content: '';
+    position: absolute;
+    inset: 18%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 45% 40%, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.12) 100%);
+  }
+
+  .actions {
+    margin: 14px 0 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  button.action-btn {
+    padding: 9px 22px;
+    border: none;
+    border-radius: 24px;
+    background: var(--btn-bg);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px var(--shadow);
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    font-family: inherit;
+  }
+  button.action-btn:hover {
+    background: var(--btn-hover);
+    box-shadow: 0 6px 20px var(--shadow);
+  }
+  button.action-btn:active { transform: scale(0.96); }
+
+  button.action-btn.secondary {
+    background: rgba(255,255,255,0.6);
+    color: var(--text);
+    box-shadow: 0 2px 8px rgba(90,150,200,0.15);
+    border: 1px solid rgba(90,150,200,0.25);
+  }
+  button.action-btn.secondary:hover {
+    background: rgba(255,255,255,0.85);
+  }
+
+  .completion-banner {
+    display: none;
+    text-align: center;
+    padding: 10px 20px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 14px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    box-shadow: 0 4px 16px var(--shadow);
+    animation: banner-in 0.4s ease;
+  }
+  .completion-banner.visible { display: block; }
+  @keyframes banner-in {
+    from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @media (max-width: 480px) {
+    .bubble { width: 34px; height: 34px; }
+    #bubble-grid { gap: 4px; padding: 10px; }
+    header h1 { font-size: 18px; }
+  }
+  @media (max-width: 360px) {
+    .bubble { width: 28px; height: 28px; }
+    #bubble-grid { gap: 3px; padding: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<header>
+  <h1>🫧 捏泡泡纸</h1>
+  <p>点击或划过气泡，轻松解压</p>
+</header>
+
+<div id="wrap-container">
+  <div class="stats" id="stats-text">加载中…</div>
+  <div class="completion-banner" id="completion-banner">🎉 全部戳破！太爽了！</div>
+  <div id="bubble-grid"></div>
+  <div class="actions">
+    <button class="action-btn" id="reset-btn">重置泡泡纸</button>
+    <button class="action-btn secondary" id="pop-all-btn">一键全爆</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ── 配置 ── */
+  var COLS = 12;
+  var ROWS = 16;
+  var TOTAL = COLS * ROWS;
+  var STORAGE_KEY = "bubble-wrap-state-v2";
+
+  /* ── 状态 ── */
+  var poppedSet = null;   // Set<number>
+  var audioCtx = null;
+  var isMouseDown = false;
+
+  /* ── DOM refs ── */
+  var grid = null;
+  var statsEl = null;
+  var bannerEl = null;
+  var resetBtn = null;
+  var popAllBtn = null;
+
+  /* ── WebAudio ── */
+  function getAudioCtx() {
+    if (!audioCtx) {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (e) { audioCtx = null; }
+    }
+    return audioCtx;
+  }
+
+  function playPop(index) {
+    var ctx = getAudioCtx();
+    if (!ctx) return;
+
+    var now = ctx.currentTime;
+    var seed = (index % 8) / 8;
+
+    /* 噪声缓冲 */
+    var bufLen = ctx.sampleRate * 0.12;
+    var buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    var data = buf.getChannelData(0);
+    for (var i = 0; i < bufLen; i++) {
+      data[i] = (Math.random() * 2 - 1);
+    }
+
+    var src = ctx.createBufferSource();
+    src.buffer = buf;
+
+    /* 带通滤波 → 产生"啵"感 */
+    var bpf = ctx.createBiquadFilter();
+    bpf.type = "bandpass";
+    bpf.frequency.value = 800 + seed * 600;
+    bpf.Q.value = 1.5;
+
+    /* 增益包络 */
+    var gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.28 + seed * 0.12, now + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+
+    src.connect(bpf);
+    bpf.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(now);
+    src.stop(now + 0.12);
+  }
+
+  /* ── 持久化 ── */
+  function saveState() {
+    try {
+      var arr = Array.from(poppedSet);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    } catch (e) {}
+  }
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var arr = JSON.parse(raw);
+        if (Array.isArray(arr)) {
+          return new Set(arr.filter(function(n){ return typeof n === "number"; }));
+        }
+      }
+    } catch (e) {}
+    return new Set();
+  }
+
+  /* ── UI 更新 ── */
+  function updateStats() {
+    var popped = poppedSet.size;
+    var pct = Math.round(popped / TOTAL * 100);
+    statsEl.textContent = "已戳破 " + popped + " / " + TOTAL + " 个（" + pct + "%）";
+
+    if (popped >= TOTAL) {
+      bannerEl.classList.add("visible");
+      statsEl.classList.add("done");
+    } else {
+      bannerEl.classList.remove("visible");
+      statsEl.classList.remove("done");
+    }
+  }
+
+  /* ── 单个气泡操作 ── */
+  function popBubble(idx, el) {
+    if (poppedSet.has(idx)) return;
+    poppedSet.add(idx);
+    el.classList.add("popping");
+    el.classList.add("popped");
+    playPop(idx);
+
+    var removePopping = function() {
+      el.classList.remove("popping");
+    };
+    el.addEventListener("animationend", removePopping, { once: true });
+
+    updateStats();
+    saveState();
+  }
+
+  /* ── 构建网格 ── */
+  function buildGrid() {
+    grid.innerHTML = "";
+
+    /* 计算列数（响应式） */
+    var vw = Math.min(window.innerWidth, 600);
+    var bubbleSize = vw < 361 ? 28 : vw < 481 ? 34 : 42;
+    var gap = vw < 361 ? 3 : vw < 481 ? 4 : 5;
+    var padding = vw < 361 ? 8 : vw < 481 ? 10 : 14;
+    var available = vw - padding * 2 - 32;
+    var cols = Math.max(6, Math.min(COLS, Math.floor((available + gap) / (bubbleSize + gap))));
+    var rows = Math.ceil(TOTAL / cols);
+
+    grid.style.gridTemplateColumns = "repeat(" + cols + ", " + bubbleSize + "px)";
+
+    var total = cols * rows;
+    for (var i = 0; i < total; i++) {
+      var el = document.createElement("div");
+      el.className = "bubble";
+      el.setAttribute("role", "button");
+      el.setAttribute("tabindex", "0");
+      el.setAttribute("aria-label", "气泡 " + (i + 1));
+      el.dataset.idx = i;
+
+      if (poppedSet.has(i)) {
+        el.classList.add("popped");
+      }
+
+      grid.appendChild(el);
+    }
+
+    /* 事件委托 */
+    grid.addEventListener("mousedown", function(e) {
+      isMouseDown = true;
+      var target = e.target.closest(".bubble");
+      if (target && !target.classList.contains("popped")) {
+        popBubble(parseInt(target.dataset.idx, 10), target);
+      }
+    });
+
+    grid.addEventListener("mouseover", function(e) {
+      if (!isMouseDown) return;
+      var target = e.target.closest(".bubble");
+      if (target && !target.classList.contains("popped")) {
+        popBubble(parseInt(target.dataset.idx, 10), target);
+      }
+    });
+
+    grid.addEventListener("touchstart", function(e) {
+      handleTouch(e);
+    }, { passive: true });
+
+    grid.addEventListener("touchmove", function(e) {
+      handleTouch(e);
+    }, { passive: true });
+
+    updateStats();
+  }
+
+  function handleTouch(e) {
+    var touches = e.changedTouches;
+    for (var t = 0; t < touches.length; t++) {
+      var touch = touches[t];
+      var el = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (el) {
+        var bubble = el.closest(".bubble");
+        if (bubble && !bubble.classList.contains("popped")) {
+          popBubble(parseInt(bubble.dataset.idx, 10), bubble);
+        }
+      }
+    }
+  }
+
+  /* ── 重置 ── */
+  function resetAll() {
+    poppedSet = new Set();
+    saveState();
+    buildGrid();
+  }
+
+  /* ── 全部爆破 ── */
+  function popAll() {
+    var bubbles = grid.querySelectorAll(".bubble:not(.popped)");
+    var delay = 0;
+    bubbles.forEach(function(el) {
+      setTimeout(function() {
+        var idx = parseInt(el.dataset.idx, 10);
+        if (!poppedSet.has(idx)) {
+          popBubble(idx, el);
+        }
+      }, delay);
+      delay += 12;
+    });
+  }
+
+  /* ── 初始化（脚本末尾执行）── */
+  function init() {
+    grid = document.getElementById("bubble-grid");
+    statsEl = document.getElementById("stats-text");
+    bannerEl = document.getElementById("completion-banner");
+    resetBtn = document.getElementById("reset-btn");
+    popAllBtn = document.getElementById("pop-all-btn");
+
+    poppedSet = loadState();
+
+    buildGrid();
+
+    document.addEventListener("mouseup", function() { isMouseDown = false; });
+
+    resetBtn.addEventListener("click", function() {
+      if (confirm("确定要重置所有泡泡吗？")) {
+        resetAll();
+      }
+    });
+
+    popAllBtn.addEventListener("click", function() {
+      popAll();
+    });
+
+    window.addEventListener("resize", function() {
+      buildGrid();
+    });
+  }
+
+  /* 等 DOM 就绪 */
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+
+}());
+</script>
+</body>
+</html>
