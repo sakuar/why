@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>藏头诗生成器</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #faf7f2;
+    --surface: #ffffff;
+    --border: #e8dfd0;
+    --text: #2c2416;
+    --muted: #8a7a68;
+    --accent: #8b4513;
+    --accent2: #c4852a;
+    --ink: #1a1008;
+    --paper: #fdf6e8;
+    --shadow: 0 2px 12px rgba(139,69,19,0.10);
+    --shadow-lg: 0 8px 32px rgba(139,69,19,0.14);
+    --radius: 12px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Noto Serif SC", "Source Han Serif CN", "SimSun", "宋体", serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%238b4513' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  .back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    font-family: system-ui, sans-serif;
+    transition: color 0.2s;
+    z-index: 100;
+  }
+  .back-link:hover { color: var(--accent); }
+
+  .container {
+    width: 100%;
+    max-width: 580px;
+    margin-top: 40px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .logo-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .logo-icon {
+    width: 42px;
+    height: 42px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(139,69,19,0.3);
+  }
+
+  h1 {
+    font-size: 26px;
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 4px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    font-family: system-ui, sans-serif;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 28px 24px;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+  }
+
+  .input-section label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    font-family: system-ui, sans-serif;
+    letter-spacing: 0.5px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  #keyword-input {
+    flex: 1;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 20px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    letter-spacing: 6px;
+  }
+  #keyword-input:focus {
+    border-color: var(--accent2);
+    box-shadow: 0 0 0 3px rgba(196,133,42,0.12);
+  }
+  #keyword-input::placeholder {
+    color: #cbbfa8;
+    letter-spacing: 2px;
+    font-size: 16px;
+  }
+
+  .char-count {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+    font-family: system-ui, sans-serif;
+  }
+  .char-count.warn { color: #e05c3a; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 22px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    font-family: inherit;
+    font-weight: 600;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(139,69,19,0.25);
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 16px rgba(139,69,19,0.32);
+  }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
+  }
+  .btn-outline:hover {
+    background: rgba(139,69,19,0.06);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1.5px solid var(--border);
+    font-size: 13px;
+    padding: 8px 14px;
+  }
+  .btn-ghost:hover { color: var(--accent); border-color: var(--accent2); }
+
+  .actions-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  /* poem display */
+  .poem-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 24px;
+    box-shadow: var(--shadow-lg);
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+    min-height: 180px;
+    display: none;
+  }
+  .poem-card.visible { display: block; animation: fadeSlide 0.45s ease; }
+
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .poem-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent));
+  }
+
+  .poem-ornament {
+    position: absolute;
+    right: 16px;
+    top: 16px;
+    opacity: 0.07;
+    font-size: 80px;
+    line-height: 1;
+    color: var(--accent);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .poem-title-line {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .poem-title {
+    font-size: 15px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    font-family: system-ui, sans-serif;
+  }
+  .acrostic-hint {
+    display: inline-block;
+    background: rgba(139,69,19,0.08);
+    color: var(--accent);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-left: 8px;
+    letter-spacing: 1px;
+    font-family: system-ui, sans-serif;
+  }
+
+  /* vertical layout */
+  .poem-vertical {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: center;
+    gap: 20px;
+  }
+  .poem-line-v {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: 22px;
+    line-height: 1.8;
+    color: var(--ink);
+    letter-spacing: 6px;
+  }
+  .poem-line-v .head-char {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 24px;
+  }
+
+  /* horizontal layout */
+  .poem-horizontal {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .poem-line-h {
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+    font-size: 20px;
+    color: var(--ink);
+    line-height: 1.6;
+    letter-spacing: 3px;
+  }
+  .poem-line-h .head-char {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 22px;
+    min-width: 1.1em;
+  }
+  .poem-line-h .rest-chars {
+    color: var(--ink);
+  }
+
+  .layout-toggle {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    display: flex;
+    gap: 6px;
+  }
+  .layout-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 3px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--muted);
+    font-family: system-ui, sans-serif;
+    transition: all 0.15s;
+  }
+  .layout-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  .poem-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* history */
+  .history-section { margin-bottom: 20px; }
+  .history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .section-label {
+    font-size: 13px;
+    color: var(--muted);
+    font-family: system-ui, sans-serif;
+    letter-spacing: 0.5px;
+  }
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .history-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .history-item:hover {
+    border-color: var(--accent2);
+    box-shadow: 0 2px 8px rgba(139,69,19,0.1);
+  }
+  .history-keyword {
+    font-size: 16px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    font-weight: 600;
+  }
+  .history-preview {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: system-ui, sans-serif;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .history-del {
+    background: none;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color 0.15s;
+    flex-shrink: 0;
+  }
+  .history-del:hover { color: #e05c3a; }
+
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink);
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-family: system-ui, sans-serif;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-family: system-ui, sans-serif;
+    font-size: 14px;
+  }
+  .empty-icon {
+    font-size: 36px;
+    margin-bottom: 10px;
+    opacity: 0.4;
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 12px; }
+    .container { margin-top: 32px; }
+    .card { padding: 20px 16px; }
+    .poem-card { padding: 28px 16px 24px; }
+    h1 { font-size: 22px; }
+    .poem-line-v { font-size: 18px; }
+    .poem-line-h { font-size: 17px; }
+    .poem-vertical { gap: 14px; }
+    .actions-row { gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">← 入口</a>
+
+<div class="container">
+  <header>
+    <div class="logo-wrap">
+      <div class="logo-icon">诗</div>
+      <h1>藏头诗</h1>
+    </div>
+    <p class="subtitle">输入汉字，生成古风藏头诗</p>
+  </header>
+
+  <div class="card input-section">
+    <label>输入藏头字（2-6个汉字）</label>
+    <div class="input-row">
+      <input type="text" id="keyword-input" placeholder="如：春风花月" maxlength="6" autocomplete="off" spellcheck="false">
+      <button class="btn btn-primary" id="gen-btn">生成</button>
+    </div>
+    <div class="char-count" id="char-count">已输入 0 / 6 字</div>
+  </div>
+
+  <div class="poem-card" id="poem-card">
+    <div class="poem-ornament">詩</div>
+    <div class="layout-toggle">
+      <button class="layout-btn active" id="layout-v" title="竖排">竖</button>
+      <button class="layout-btn" id="layout-h" title="横排">横</button>
+    </div>
+    <div class="poem-title-line">
+      <span class="poem-title" id="poem-title-text">藏头诗</span>
+      <span class="acrostic-hint" id="acrostic-badge">藏头：</span>
+    </div>
+    <div id="poem-body"></div>
+    <div class="poem-actions">
+      <button class="btn btn-outline" id="regen-btn">重新生成</button>
+      <button class="btn btn-ghost" id="copy-btn">复制</button>
+    </div>
+  </div>
+
+  <div class="history-section" id="history-section" style="display:none">
+    <div class="history-header">
+      <span class="section-label">历史记录</span>
+      <button class="btn btn-ghost" id="clear-history-btn">清空</button>
+    </div>
+    <div class="history-list" id="history-list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  "use strict";
+
+  /* ===================== 词库 ===================== */
+  var IMAGERY = {
+    nature: ["山川","云霄","烟波","霜天","雪月","松风","竹影","梅香","莲心","兰亭","桂魄","菊露","芙蓉","荷叶","柳丝","杏花","桃源","枫林","苍苔","幽兰"],
+    sky: ["碧霄","云端","星河","明月","斜阳","晓日","暮霭","彩霞","银汉","清辉","晴岚","长空","苍穹","霁色","朝霞","落霞","孤鸿","雁影","飞燕","鸥波"],
+    water: ["江流","溪声","潮生","浪卷","清泉","涧水","烟江","波光","沧海","玉泉","寒潭","碧波","漪涟","幽泉","涌浪","浮萍","鱼游","莲动","芦花","汀洲"],
+    wind: ["清风","微风","秋风","朔风","东风","暗香","轻烟","薄雾","晓雾","寒烟","冷露","凉意","飘絮","落叶","飞花","散雪","飘云","浮云","游丝","轻霜"],
+    time: ["古今","千载","岁月","流年","往昔","旧梦","悠悠","漫漫","寂寂","默默","时光","年华","春秋","冬夏","晨昏","朝暮","昔日","今朝","来日","永夜"],
+    emotion: ["情深","意远","心静","志高","思悠","怀古","感怀","离别","相思","寄语","无语","沉吟","低叹","长歌","独酌","清吟","孤往","淡然","超然","忘机"],
+    landscape: ["深山","幽谷","古寺","危楼","孤村","荒野","平原","远天","苍野","旷野","空林","疏林","竹林","松林","梅林","桃林","柳堤","花径","石桥","古道"],
+    color: ["碧绿","金黄","朱红","墨黑","雪白","青蓝","紫气","苍色","翠色","玉色","银白","漆黑","暗红","深蓝","淡绿","浅黄","烟灰","霜色","月白","云白"]
+  };
+
+  var ENDINGS = ["兮","矣","哉","也","乎","耶","焉","欤","已","然"];
+
+  var CONNECTORS = ["独","共","皆","犹","正","已","但","还","更","只","又","长","自","空","每","尚"];
+
+  var LINE_PATTERNS = [
+    // pattern: [{type, pool}] — each element is one char group
+    // type: 'head'=藏头字, 'imagery'=二字意象, 'connector'=连接字, 'ending'=韵尾字
+    [
+      {t:"head"}, {t:"imagery"}, {t:"connector"}, {t:"imagery"}
+    ],
+    [
+      {t:"head"}, {t:"imagery"}, {t:"imagery"}
+    ],
+    [
+      {t:"head"}, {t:"connector"}, {t:"imagery"}, {t:"imagery"}
+    ],
+    [
+      {t:"head"}, {t:"imagery"}, {t:"connector"}, {t:"imagery"}, {t:"ending"}
+    ],
+    [
+      {t:"head"}, {t:"imagery"}, {t:"imagery"}, {t:"ending"}
+    ]
+  ];
+
+  /* known tone groupings for rhyming feel (simplified) */
+  var RHYME_POOL = ["悠","流","秋","幽","愁","舟","头","楼","洲","丘","天","烟","年","仙","边","前","圆","眠","绵","泉","月","雪","阙","缺","绝","别","叶","夜","歇","节","风","空","中","鸿","同","东","通","浓","峰","松","花","家","华","沙","霞","涯","芽","霜","光","长","方","芳","香","凉","翔","苍","望","声","情","清","晴","灵","萍","星","鸣","青","平","诗","时","思","丝","知","枝","疑","迟","离","池","山","间","还","闲","关","颜","栏","湾","寒","残","春","人","新","身","尘","真","云","文","群","分","音","林","深","琴","禽","心","今","金","吟","阴","临","明","情","行","名","馨","经","宁","京","惊","声","青","平","生","清","晴","灵","萍","星","鸣"];
+
+  function rand(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function randImagery() {
+    var keys = Object.keys(IMAGERY);
+    var pool = IMAGERY[rand(keys)];
+    return rand(pool);
+  }
+
+  function buildLine(headChar, useRhyme, rhymeChar) {
+    var pattern = rand(LINE_PATTERNS);
+    var parts = [];
+    for (var i = 0; i < pattern.length; i++) {
+      var seg = pattern[i];
+      if (seg.t === "head") {
+        parts.push(headChar);
+      } else if (seg.t === "imagery") {
+        parts.push(randImagery());
+      } else if (seg.t === "connector") {
+        parts.push(rand(CONNECTORS));
+      } else if (seg.t === "ending") {
+        if (useRhyme && rhymeChar) {
+          parts.push(rhymeChar);
+        } else {
+          parts.push(rand(ENDINGS));
+        }
+      }
+    }
+    return parts.join("");
+  }
+
+  function generatePoem(keyword) {
+    var chars = keyword.split("");
+    var lines = [];
+    // pick rhyme char for odd/even lines
+    var rhymeA = rand(RHYME_POOL);
+    var rhymeB = rand(RHYME_POOL);
+    for (var i = 0; i < chars.length; i++) {
+      var useRhyme = true;
+      var rhyme = (i % 2 === 0) ? rhymeA : rhymeB;
+      lines.push(buildLine(chars[i], useRhyme, rhyme));
+    }
+    return lines;
+  }
+
+  /* ===================== State ===================== */
+  var currentKeyword = "";
+  var currentLines = [];
+  var currentLayout = "v"; // 'v' or 'h'
+  var history = [];
+
+  /* ===================== DOM refs ===================== */
+  var inputEl = document.getElementById("keyword-input");
+  var genBtn = document.getElementById("gen-btn");
+  var charCount = document.getElementById("char-count");
+  var poemCard = document.getElementById("poem-card");
+  var poemBody = document.getElementById("poem-body");
+  var poemTitleText = document.getElementById("poem-title-text");
+  var acrosticBadge = document.getElementById("acrostic-badge");
+  var regenBtn = document.getElementById("regen-btn");
+  var copyBtn = document.getElementById("copy-btn");
+  var layoutVBtn = document.getElementById("layout-v");
+  var layoutHBtn = document.getElementById("layout-h");
+  var historySection = document.getElementById("history-section");
+  var historyList = document.getElementById("history-list");
+  var clearHistoryBtn = document.getElementById("clear-history-btn");
+  var toastEl = document.getElementById("toast");
+
+  /* ===================== Toast ===================== */
+  var toastTimer = null;
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    if (toastTimer) { clearTimeout(toastTimer); }
+    toastTimer = setTimeout(function() {
+      toastEl.classList.remove("show");
+    }, 2000);
+  }
+
+  /* ===================== Render poem ===================== */
+  function renderPoem(lines, keyword, layout) {
+    poemBody.innerHTML = "";
+    if (layout === "v") {
+      var wrap = document.createElement("div");
+      wrap.className = "poem-vertical";
+      for (var i = 0; i < lines.length; i++) {
+        var lineEl = document.createElement("div");
+        lineEl.className = "poem-line-v";
+        var line = lines[i];
+        for (var j = 0; j < line.length; j++) {
+          var span = document.createElement("span");
+          span.textContent = line[j];
+          if (j === 0) { span.className = "head-char"; }
+          lineEl.appendChild(span);
+        }
+        wrap.appendChild(lineEl);
+      }
+      poemBody.appendChild(wrap);
+    } else {
+      var wrap2 = document.createElement("div");
+      wrap2.className = "poem-horizontal";
+      for (var k = 0; k < lines.length; k++) {
+        var lineEl2 = document.createElement("div");
+        lineEl2.className = "poem-line-h";
+        var line2 = lines[k];
+        var headSpan = document.createElement("span");
+        headSpan.className = "head-char";
+        headSpan.textContent = line2[0];
+        var restSpan = document.createElement("span");
+        restSpan.className = "rest-chars";
+        restSpan.textContent = line2.slice(1);
+        lineEl2.appendChild(headSpan);
+        lineEl2.appendChild(restSpan);
+        wrap2.appendChild(lineEl2);
+      }
+      poemBody.appendChild(wrap2);
+    }
+    acrosticBadge.textContent = "藏头：" + keyword;
+    poemTitleText.textContent = "《" + keyword + "》";
+    poemCard.classList.add("visible");
+  }
+
+  /* ===================== History ===================== */
+  function loadHistory() {
+    try {
+      var raw = localStorage.getItem("acrostic_history");
+      if (raw) { history = JSON.parse(raw); }
+    } catch(e) { history = []; }
+  }
+
+  function saveHistory() {
+    try {
+      localStorage.setItem("acrostic_history", JSON.stringify(history));
+    } catch(e) {}
+  }
+
+  function addHistory(keyword, lines) {
+    // remove duplicate
+    history = history.filter(function(h) { return h.keyword !== keyword; });
+    history.unshift({ keyword: keyword, lines: lines });
+    if (history.length > 10) { history = history.slice(0, 10); }
+    saveHistory();
+    renderHistory();
+  }
+
+  function renderHistory() {
+    if (history.length === 0) {
+      historySection.style.display = "none";
+      return;
+    }
+    historySection.style.display = "block";
+    historyList.innerHTML = "";
+    for (var i = 0; i < history.length; i++) {
+      (function(item) {
+        var div = document.createElement("div");
+        div.className = "history-item";
+        var preview = item.lines.join(" / ");
+        div.innerHTML =
+          '<span class="history-keyword">' + item.keyword + '</span>' +
+          '<span class="history-preview">' + preview + '</span>' +
+          '<button class="history-del" title="删除">✕</button>';
+        div.querySelector(".history-del").addEventListener("click", function(e) {
+          e.stopPropagation();
+          history = history.filter(function(h) { return h.keyword !== item.keyword; });
+          saveHistory();
+          renderHistory();
+        });
+        div.addEventListener("click", function() {
+          currentKeyword = item.keyword;
+          currentLines = item.lines;
+          inputEl.value = item.keyword;
+          updateCharCount();
+          renderPoem(currentLines, currentKeyword, currentLayout);
+        });
+        historyList.appendChild(div);
+      })(history[i]);
+    }
+  }
+
+  /* ===================== Char count ===================== */
+  function updateCharCount() {
+    var val = inputEl.value.replace(/\s/g, "");
+    var len = val.length;
+    charCount.textContent = "已输入 " + len + " / 6 字";
+    if (len > 6 || len < 2) {
+      charCount.classList.add("warn");
+    } else {
+      charCount.classList.remove("warn");
+    }
+  }
+
+  /* ===================== Generate ===================== */
+  function doGenerate() {
+    var val = inputEl.value.replace(/\s/g, "");
+    if (val.length < 2 || val.length > 6) {
+      showToast("请输入 2~6 个汉字");
+      return;
+    }
+    // basic CJK check
+    if (!/^[一-龥]+$/.test(val)) {
+      showToast("请输入汉字");
+      return;
+    }
+    currentKeyword = val;
+    currentLines = generatePoem(val);
+    renderPoem(currentLines, currentKeyword, currentLayout);
+    addHistory(currentKeyword, currentLines);
+  }
+
+  /* ===================== Copy ===================== */
+  function copyPoem() {
+    if (!currentLines.length) { return; }
+    var text = "《" + currentKeyword + "》\n" + currentLines.join("\n");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() {
+        showToast("已复制到剪贴板");
+      }).catch(function() {
+        fallbackCopy(text);
+      });
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+      showToast("已复制到剪贴板");
+    } catch(e) {
+      showToast("复制失败，请手动复制");
+    }
+    document.body.removeChild(ta);
+  }
+
+  /* ===================== Event listeners ===================== */
+  inputEl.addEventListener("input", function() {
+    // filter non-CJK
+    var v = inputEl.value.replace(/[^一-龥]/g, "");
+    if (v !== inputEl.value) { inputEl.value = v; }
+    updateCharCount();
+  });
+
+  inputEl.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") { doGenerate(); }
+  });
+
+  genBtn.addEventListener("click", doGenerate);
+  regenBtn.addEventListener("click", function() {
+    if (!currentKeyword) { return; }
+    currentLines = generatePoem(currentKeyword);
+    renderPoem(currentLines, currentKeyword, currentLayout);
+    addHistory(currentKeyword, currentLines);
+  });
+
+  copyBtn.addEventListener("click", copyPoem);
+
+  layoutVBtn.addEventListener("click", function() {
+    if (currentLayout === "v") { return; }
+    currentLayout = "v";
+    layoutVBtn.classList.add("active");
+    layoutHBtn.classList.remove("active");
+    if (currentLines.length) {
+      renderPoem(currentLines, currentKeyword, currentLayout);
+    }
+  });
+
+  layoutHBtn.addEventListener("click", function() {
+    if (currentLayout === "h") { return; }
+    currentLayout = "h";
+    layoutHBtn.classList.add("active");
+    layoutVBtn.classList.remove("active");
+    if (currentLines.length) {
+      renderPoem(currentLines, currentKeyword, currentLayout);
+    }
+  });
+
+  clearHistoryBtn.addEventListener("click", function() {
+    history = [];
+    saveHistory();
+    renderHistory();
+  });
+
+  /* ===================== Init ===================== */
+  loadHistory();
+  renderHistory();
+  updateCharCount();
+
+})();
+</script>
+</body>
+</html>
