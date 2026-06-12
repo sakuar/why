@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世界人口实时计数器</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #111827;
+    --bg3: #1f2937;
+    --accent: #3b82f6;
+    --accent2: #06b6d4;
+    --green: #10b981;
+    --red: #f43f5e;
+    --yellow: #f59e0b;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --border: #1e293b;
+    --glow: rgba(59,130,246,0.3);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 100;
+    color: var(--text3);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+  .back-link:hover { color: var(--text2); background: rgba(255,255,255,0.08); }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 80px 20px 40px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .header h1 {
+    font-size: clamp(20px, 4vw, 28px);
+    font-weight: 700;
+    color: var(--text2);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .header .subtitle {
+    font-size: 13px;
+    color: var(--text3);
+  }
+
+  /* Main counter */
+  .main-counter {
+    background: linear-gradient(135deg, #0f1729 0%, #0a1628 50%, #0d1520 100%);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 24px;
+    padding: 40px 24px;
+    text-align: center;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(59,130,246,0.08), 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .main-counter::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at center, rgba(59,130,246,0.04) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .counter-label {
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+
+  .counter-number {
+    font-size: clamp(36px, 9vw, 80px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(135deg, #e2e8f0 0%, #93c5fd 50%, #67e8f9 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    min-height: 1.2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .digit-group {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .digit-wrapper {
+    overflow: hidden;
+    height: 1.2em;
+    display: inline-block;
+    position: relative;
+  }
+
+  .digit-inner {
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .digit-char {
+    display: block;
+    line-height: 1.2em;
+  }
+
+  .counter-sep {
+    color: rgba(148,163,184,0.4);
+    margin: 0 2px;
+    font-weight: 400;
+  }
+
+  .counter-refresh {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 16px;
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+
+  .stat-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .stat-value {
+    font-size: clamp(22px, 4vw, 32px);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-label {
+    font-size: 12px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .stat-births .stat-value { color: var(--green); }
+  .stat-deaths .stat-value { color: var(--red); }
+  .stat-net .stat-value { color: var(--accent); }
+  .stat-rate .stat-value { color: var(--yellow); }
+
+  /* Pulse animation for live indicator */
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--green);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 12px;
+  }
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse-dot 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  /* Progress bar */
+  .year-progress {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .year-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .year-progress-title {
+    font-size: 13px;
+    color: var(--text2);
+    font-weight: 600;
+  }
+  .year-progress-pct {
+    font-size: 13px;
+    color: var(--accent2);
+    font-weight: 700;
+  }
+  .progress-track {
+    height: 8px;
+    background: var(--bg3);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 99px;
+    transition: width 1s linear;
+    position: relative;
+  }
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 20px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+    animation: shimmer 2s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+  }
+  .year-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+  .year-stat {
+    font-size: 12px;
+    color: var(--text3);
+  }
+  .year-stat span {
+    color: var(--text2);
+    font-weight: 600;
+    display: block;
+    font-size: 14px;
+  }
+
+  /* Facts section */
+  .facts-section {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .facts-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .fact-item {
+    display: flex;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    transition: opacity 0.3s;
+  }
+  .fact-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .fact-item:first-child { padding-top: 0; }
+
+  .fact-num {
+    min-width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(59,130,246,0.1);
+    border: 1px solid rgba(59,130,246,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .fact-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text2);
+  }
+  .fact-text strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* Interactive counter */
+  .compare-section {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .compare-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+  .compare-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .compare-item {
+    background: var(--bg3);
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .compare-item:hover, .compare-item.active {
+    border-color: var(--accent);
+    background: rgba(59,130,246,0.08);
+  }
+  .compare-item-icon { font-size: 24px; margin-bottom: 6px; }
+  .compare-item-label { font-size: 12px; color: var(--text3); margin-bottom: 4px; }
+  .compare-item-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Chart bars */
+  .chart-section {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .chart-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+  }
+  .chart-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .chart-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .chart-label {
+    min-width: 90px;
+    font-size: 13px;
+    color: var(--text2);
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .chart-bar-track {
+    flex: 1;
+    height: 28px;
+    background: var(--bg3);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+  }
+  .chart-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    color: var(--text3);
+    font-size: 12px;
+    line-height: 1.8;
+    padding-top: 8px;
+  }
+
+  /* Animate number update */
+  @keyframes flash-green {
+    0% { text-shadow: 0 0 20px rgba(16,185,129,0.8); }
+    100% { text-shadow: none; }
+  }
+  .flash { animation: flash-green 0.5s ease-out; }
+
+  @media (max-width: 480px) {
+    .container { padding: 70px 12px 32px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .compare-grid { grid-template-columns: 1fr 1fr; }
+    .main-counter { padding: 28px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<div class="container">
+  <div class="header">
+    <h1>世界人口实时计数器</h1>
+    <p class="subtitle">基于联合国2024年数据估算 · 每秒自动更新</p>
+  </div>
+
+  <!-- Main Counter -->
+  <div class="main-counter">
+    <div class="counter-label">当前世界人口估算</div>
+    <div class="counter-number" id="mainCounter">—</div>
+    <div class="live-badge">
+      <span class="live-dot"></span>
+      实时跳动
+    </div>
+    <div class="counter-refresh">数据基于2024年1月1日基准人口 + 增长率推算</div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card stat-births">
+      <span class="stat-icon">👶</span>
+      <div class="stat-value" id="todayBirths">0</div>
+      <div class="stat-label">今日出生人数</div>
+    </div>
+    <div class="stat-card stat-deaths">
+      <span class="stat-icon">🕯️</span>
+      <div class="stat-value" id="todayDeaths">0</div>
+      <div class="stat-label">今日死亡人数</div>
+    </div>
+    <div class="stat-card stat-net">
+      <span class="stat-icon">📈</span>
+      <div class="stat-value" id="todayNet">0</div>
+      <div class="stat-label">今日净增人口</div>
+    </div>
+    <div class="stat-card stat-rate">
+      <span class="stat-icon">⚡</span>
+      <div class="stat-value" id="perSecond">0</div>
+      <div class="stat-label">每秒净增人口</div>
+    </div>
+  </div>
+
+  <!-- Year Progress -->
+  <div class="year-progress">
+    <div class="year-progress-header">
+      <span class="year-progress-title">2025年已过时间</span>
+      <span class="year-progress-pct" id="yearPct">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="yearBar" style="width:0%"></div>
+    </div>
+    <div class="year-stats">
+      <div class="year-stat">本年新增人口<span id="yearBirthsTotal">-</span></div>
+      <div class="year-stat" style="text-align:center">本年死亡人口<span id="yearDeathsTotal">-</span></div>
+      <div class="year-stat" style="text-align:right">本年净增人口<span id="yearNetTotal">-</span></div>
+    </div>
+  </div>
+
+  <!-- Compare Section -->
+  <div class="compare-section">
+    <div class="compare-title">⏱ 这段时间里，世界人口净增了...</div>
+    <div class="compare-grid">
+      <div class="compare-item" id="cmp1s" onclick="startCompare(1)">
+        <div class="compare-item-icon">⚡</div>
+        <div class="compare-item-label">1 秒</div>
+        <div class="compare-item-value" id="val1s">-</div>
+      </div>
+      <div class="compare-item" id="cmp1m" onclick="startCompare(60)">
+        <div class="compare-item-icon">🕐</div>
+        <div class="compare-item-label">1 分钟</div>
+        <div class="compare-item-value" id="val1m">-</div>
+      </div>
+      <div class="compare-item" id="cmp1h" onclick="startCompare(3600)">
+        <div class="compare-item-icon">🕙</div>
+        <div class="compare-item-label">1 小时</div>
+        <div class="compare-item-value" id="val1h">-</div>
+      </div>
+      <div class="compare-item" id="cmp1d" onclick="startCompare(86400)">
+        <div class="compare-item-icon">📅</div>
+        <div class="compare-item-label">1 天</div>
+        <div class="compare-item-value" id="val1d">-</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Populations Chart -->
+  <div class="chart-section">
+    <div class="chart-title">🌍 主要国家人口占比（2024年估算）</div>
+    <div class="chart-bars" id="countryChart"></div>
+  </div>
+
+  <!-- Facts -->
+  <div class="facts-section">
+    <div class="facts-title">💡 人口冷知识</div>
+    <div id="factsList"></div>
+  </div>
+
+  <div class="footer">
+    数据来源参考：联合国世界人口展望2024 · 全球出生率约18.5‰/年 · 死亡率约7.7‰/年<br>
+    净增长率约0.87%/年（约2.37人/秒）· 基准人口：2024年1月1日约81.9亿
+  </div>
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  // ── Constants ────────────────────────────────────────────────
+  var BASE_POP       = 8190000000;        // 2024-01-1 估算
+  var BASE_TS        = new Date('2024-01-01T00:00:00Z').getTime();
+  var BIRTH_RATE     = 18.5 / 1000 / 365.25 / 86400; // per second
+  var DEATH_RATE     = 7.7  / 1000 / 365.25 / 86400;
+  var NET_RATE       = BIRTH_RATE - DEATH_RATE;       // ~2.37/s
+  var SECONDS_IN_DAY = 86400;
+  var SECONDS_IN_YR  = 365.25 * 86400;
+
+  // Country data [name, population, color]
+  var COUNTRIES = [
+    ['印度',   1441719852, '#f59e0b'],
+    ['中国',   1409670000, '#3b82f6'],
+    ['美国',    334914895, '#10b981'],
+    ['印度尼西亚', 277534122, '#8b5cf6'],
+    ['巴基斯坦', 240485658, '#f43f5e'],
+    ['巴西',   215313498, '#06b6d4'],
+    ['尼日利亚', 218541212, '#ec4899'],
+  ];
+
+  var FACTS = [
+    '全球每天约有 <strong>36.5万</strong> 名婴儿出生，相当于每秒超过 4 个新生命降临。',
+    '世界人口从 <strong>10亿到80亿</strong> 仅用了约 200 年，而从 0 到 10亿却花了整个人类历史。',
+    '按现有人口排列，若每人站成一排，<strong>可绕地球赤道约 217 圈</strong>。',
+    '全球超过 <strong>60%</strong> 的人口集中在亚洲，印度与中国合计占世界人口的约 35%。',
+    '预计到 <strong>2050 年</strong>，全球人口将达到约 97 亿，届时非洲人口将超过亚洲。',
+    '目前地球上 <strong>有史以来</strong> 生活过的人类总数估计约为 1080 亿，当代人约占其中 7%。',
+    '每年新增的世界人口相当于再多一个 <strong>德国</strong> 的人口（约 8000 万人）。',
+    '全球人口中位年龄约 <strong>31 岁</strong>，日本拥有全球最高的人口中位年龄（约 49 岁）。',
+  ];
+
+  // ── DOM refs ─────────────────────────────────────────────────
+  var elMainCounter   = document.getElementById('mainCounter');
+  var elTodayBirths   = document.getElementById('todayBirths');
+  var elTodayDeaths   = document.getElementById('todayDeaths');
+  var elTodayNet      = document.getElementById('todayNet');
+  var elPerSecond     = document.getElementById('perSecond');
+  var elYearPct       = document.getElementById('yearPct');
+  var elYearBar       = document.getElementById('yearBar');
+  var elYearBirths    = document.getElementById('yearBirthsTotal');
+  var elYearDeaths    = document.getElementById('yearDeathsTotal');
+  var elYearNet       = document.getElementById('yearNetTotal');
+  var elVal1s         = document.getElementById('val1s');
+  var elVal1m         = document.getElementById('val1m');
+  var elVal1h         = document.getElementById('val1h');
+  var elVal1d         = document.getElementById('val1d');
+
+  // ── State ────────────────────────────────────────────────────
+  var prevPop = 0;
+
+  // ── Digit counter (animated) ─────────────────────────────────
+  var digitEls = [];   // array of {wrapper, inner} per digit slot
+  var prevDigits = []; // previous digit chars
+
+  function initDigits() {
+    var digits = '00000000000'.split('');
+    var html = '';
+    // We'll use 11 digit slots + separators
+    // Render placeholder; actual digits built dynamically
+    elMainCounter.innerHTML = '';
+    elMainCounter.style.fontVariantNumeric = 'tabular-nums';
+    digitEls = [];
+    prevDigits = [];
+  }
+
+  function renderCounter(pop) {
+    var s = Math.round(pop).toString();
+    // Format with separators: 1,234,567,890
+    var formatted = [];
+    for (var i = 0; i < s.length; i++) {
+      formatted.push(s[i]);
+      var remaining = s.length - i - 1;
+      if (remaining > 0 && remaining % 3 === 0) {
+        formatted.push(',');
+      }
+    }
+
+    // Build DOM if digit count changed
+    if (formatted.length !== digitEls.length) {
+      elMainCounter.innerHTML = '';
+      digitEls = [];
+      prevDigits = [];
+      for (var j = 0; j < formatted.length; j++) {
+        var ch = formatted[j];
+        if (ch === ',') {
+          var sep = document.createElement('span');
+          sep.className = 'counter-sep';
+          sep.textContent = ',';
+          elMainCounter.appendChild(sep);
+          digitEls.push(null);
+          prevDigits.push(',');
+        } else {
+          var wrapper = document.createElement('span');
+          wrapper.className = 'digit-wrapper';
+          var inner = document.createElement('span');
+          inner.className = 'digit-inner';
+          // Populate 10 digits 0-9 for animation
+          for (var d = 0; d <= 9; d++) {
+            var span = document.createElement('span');
+            span.className = 'digit-char';
+            span.textContent = d;
+            inner.appendChild(span);
+          }
+          var dh = parseFloat(getComputedStyle(document.documentElement).fontSize) * 1.2;
+          // Use em units
+          wrapper.style.height = '1.2em';
+          wrapper.appendChild(inner);
+          elMainCounter.appendChild(wrapper);
+          digitEls.push({ wrapper: wrapper, inner: inner });
+          prevDigits.push('-1');
+        }
+      }
+    }
+
+    // Animate each digit
+    for (var k = 0; k < formatted.length; k++) {
+      var c = formatted[k];
+      if (c === ',') continue;
+      if (c !== prevDigits[k] && digitEls[k]) {
+        var num = parseInt(c, 10);
+        // Move inner strip so that digit num is visible
+        digitEls[k].inner.style.transform = 'translateY(-' + (num * 10) + '%)';
+        prevDigits[k] = c;
+      }
+    }
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────
+  function fmt(n, decimals) {
+    if (decimals === undefined) decimals = 0;
+    return Math.round(n).toLocaleString('zh-CN');
+  }
+
+  function fmtDec(n, d) {
+    return n.toFixed(d);
+  }
+
+  function calcPop(ts) {
+    var elapsed = (ts - BASE_TS) / 1000; // seconds
+    return BASE_POP + elapsed * (BASE_POP * NET_RATE);
+  }
+
+  function todayElapsedSeconds() {
+    var now = new Date();
+    return now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  }
+
+  function yearElapsedSeconds() {
+    var now = new Date();
+    var startOfYear = new Date(now.getFullYear(), 0, 1);
+    return (now.getTime() - startOfYear.getTime()) / 1000;
+  }
+
+  function yearTotalSeconds(year) {
+    var d = new Date(year, 11, 31);
+    var s = new Date(year, 0, 1);
+    return (d.getTime() - s.getTime()) / 1000 + 86400;
+  }
+
+  // ── Update loop ───────────────────────────────────────────────
+  function update() {
+    var now = Date.now();
+    var pop = calcPop(now);
+
+    // Main counter
+    renderCounter(pop);
+
+    // Today stats
+    var todaySec = todayElapsedSeconds();
+    var base100k = BASE_POP; // approximate, use current pop for rate
+    var todayBirths = Math.round(pop * BIRTH_RATE * todaySec);
+    var todayDeaths = Math.round(pop * DEATH_RATE * todaySec);
+    var todayNet    = todayBirths - todayDeaths;
+
+    elTodayBirths.textContent = fmt(todayBirths);
+    elTodayDeaths.textContent = fmt(todayDeaths);
+    elTodayNet.textContent    = '+' + fmt(todayNet);
+
+    var perSec = pop * NET_RATE;
+    elPerSecond.textContent = '+' + fmtDec(perSec, 2);
+
+    // Year progress
+    var yrElapsed = yearElapsedSeconds();
+    var yrNow     = new Date().getFullYear();
+    var yrTotal   = yearTotalSeconds(yrNow);
+    var pct       = yrElapsed / yrTotal * 100;
+    elYearPct.textContent       = pct.toFixed(2) + '%';
+    elYearBar.style.width       = pct.toFixed(3) + '%';
+    elYearBirths.textContent    = fmt(pop * BIRTH_RATE * yrElapsed);
+    elYearDeaths.textContent    = fmt(pop * DEATH_RATE * yrElapsed);
+    elYearNet.textContent       = '+' + fmt(pop * NET_RATE * yrElapsed);
+
+    // Compare values (static calculations)
+    elVal1s.textContent = '+' + fmtDec(pop * NET_RATE * 1,     2);
+    elVal1m.textContent = '+' + fmt(pop * NET_RATE * 60);
+    elVal1h.textContent = '+' + fmt(pop * NET_RATE * 3600);
+    elVal1d.textContent = '+' + fmt(pop * NET_RATE * 86400);
+
+    prevPop = pop;
+  }
+
+  // ── Country chart ─────────────────────────────────────────────
+  function buildChart() {
+    var container = document.getElementById('countryChart');
+    if (!container) return;
+    var totalShown = COUNTRIES.reduce(function(a, c) { return a + c[1]; }, 0);
+    var worldPop = calcPop(Date.now());
+    var maxPop = COUNTRIES[0][1];
+
+    container.innerHTML = '';
+    COUNTRIES.forEach(function(c) {
+      var name = c[0], pop = c[1], color = c[2];
+      var worldPct = (pop / worldPop * 100).toFixed(1);
+      var barW     = (pop / maxPop * 100).toFixed(1);
+
+      var row = document.createElement('div');
+      row.className = 'chart-row';
+
+      var label = document.createElement('div');
+      label.className = 'chart-label';
+      label.textContent = name;
+
+      var track = document.createElement('div');
+      track.className = 'chart-bar-track';
+
+      var fill = document.createElement('div');
+      fill.className = 'chart-bar-fill';
+      fill.style.background = 'linear-gradient(90deg, ' + color + 'cc, ' + color + '88)';
+      fill.style.width = '0%';
+      fill.textContent = worldPct + '%  (' + fmt(pop) + ')';
+
+      track.appendChild(fill);
+      row.appendChild(label);
+      row.appendChild(track);
+      container.appendChild(row);
+
+      // Animate in
+      setTimeout(function() {
+        fill.style.width = barW + '%';
+      }, 100);
+    });
+  }
+
+  // ── Facts ────────────────────────────────────────────────────
+  function buildFacts() {
+    var container = document.getElementById('factsList');
+    if (!container) return;
+    container.innerHTML = '';
+    FACTS.forEach(function(f, i) {
+      var item = document.createElement('div');
+      item.className = 'fact-item';
+
+      var num = document.createElement('div');
+      num.className = 'fact-num';
+      num.textContent = i + 1;
+
+      var text = document.createElement('div');
+      text.className = 'fact-text';
+      text.innerHTML = f;
+
+      item.appendChild(num);
+      item.appendChild(text);
+      container.appendChild(item);
+    });
+  }
+
+  // ── Compare highlight ─────────────────────────────────────────
+  var compareIds = ['cmp1s', 'cmp1m', 'cmp1h', 'cmp1d'];
+  function startCompare(seconds) {
+    compareIds.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.remove('active');
+    });
+    var map = { 1: 'cmp1s', 60: 'cmp1m', 3600: 'cmp1h', 86400: 'cmp1d' };
+    var target = document.getElementById(map[seconds]);
+    if (target) target.classList.add('active');
+  }
+
+  // ── Init & start ──────────────────────────────────────────────
+  initDigits();
+  buildFacts();
+  buildChart();
+  update();
+
+  // Update every 100ms for smooth counter
+  setInterval(update, 100);
+
+})();
+</script>
+</body>
+</html>
