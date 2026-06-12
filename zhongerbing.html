@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中二台词机</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --grad1: #0a0015;
+    --grad2: #1a003a;
+    --grad3: #0d0025;
+    --accent: #bf5fff;
+    --accent2: #5fc8ff;
+    --gold: #ffd700;
+    --text: #f0e6ff;
+    --card-bg: rgba(30, 0, 60, 0.72);
+    --border: rgba(191, 95, 255, 0.35);
+  }
+
+  html, body {
+    min-height: 100%;
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  }
+
+  body {
+    background: linear-gradient(135deg, var(--grad1) 0%, var(--grad2) 50%, var(--grad3) 100%);
+    background-attachment: fixed;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 40px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Animated background particles */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 20%, rgba(100, 0, 200, 0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 80% at 80% 80%, rgba(0, 80, 200, 0.15) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 60% 30%, rgba(191, 95, 255, 0.10) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+    animation: bgPulse 8s ease-in-out infinite alternate;
+  }
+
+  @keyframes bgPulse {
+    0% { opacity: 0.7; transform: scale(1); }
+    100% { opacity: 1; transform: scale(1.05); }
+  }
+
+  /* Back link */
+  .back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    z-index: 100;
+    color: rgba(191, 95, 255, 0.65);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--accent); }
+
+  /* Stars canvas */
+  #stars {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 680px;
+    margin-top: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+  }
+  .header h1 {
+    font-size: clamp(26px, 6vw, 42px);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    background: linear-gradient(90deg, #bf5fff, #5fc8ff, #ffd700, #bf5fff);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 4s linear infinite;
+    text-shadow: none;
+    margin-bottom: 6px;
+  }
+  @keyframes shimmer {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
+  }
+  .header .subtitle {
+    font-size: 13px;
+    color: rgba(191, 95, 255, 0.55);
+    letter-spacing: 0.1em;
+  }
+
+  /* Eye symbol */
+  .eye-symbol {
+    font-size: 36px;
+    margin-bottom: 4px;
+    animation: eyeSpin 6s ease-in-out infinite;
+    display: block;
+    filter: drop-shadow(0 0 12px var(--accent));
+  }
+  @keyframes eyeSpin {
+    0%, 100% { transform: rotate(-5deg) scale(1); filter: drop-shadow(0 0 12px var(--accent)); }
+    50% { transform: rotate(5deg) scale(1.12); filter: drop-shadow(0 0 24px var(--accent2)); }
+  }
+
+  /* Quote card */
+  .quote-card {
+    width: 100%;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 28px;
+    text-align: center;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow:
+      0 0 0 1px rgba(191,95,255,0.10),
+      0 8px 40px rgba(0,0,0,0.5),
+      inset 0 1px 0 rgba(255,255,255,0.07);
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .quote-card::before {
+    content: "";
+    position: absolute;
+    top: -2px; left: -2px; right: -2px; bottom: -2px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, rgba(191,95,255,0.4), rgba(95,200,255,0.2), rgba(255,215,0,0.2), rgba(191,95,255,0.4));
+    background-size: 400% 400%;
+    animation: borderGlow 5s ease infinite;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  .quote-card.active::before { opacity: 1; }
+
+  @keyframes borderGlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .quote-label {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: rgba(191,95,255,0.5);
+    text-transform: uppercase;
+  }
+
+  .quote-text {
+    font-size: clamp(16px, 4vw, 22px);
+    font-weight: 700;
+    line-height: 1.6;
+    color: #f0e6ff;
+    text-shadow: 0 0 20px rgba(191,95,255,0.6), 0 2px 4px rgba(0,0,0,0.5);
+    letter-spacing: 0.03em;
+    transition: opacity 0.25s;
+  }
+  .quote-text.fade { opacity: 0; transform: translateY(8px); }
+  .quote-text { transition: opacity 0.3s, transform 0.3s; }
+
+  .quote-divider {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+
+  /* Shake animation */
+  @keyframes shakeCard {
+    0%, 100% { transform: translateX(0) rotate(0deg); }
+    15% { transform: translateX(-6px) rotate(-0.8deg); }
+    30% { transform: translateX(6px) rotate(0.8deg); }
+    45% { transform: translateX(-4px) rotate(-0.4deg); }
+    60% { transform: translateX(4px) rotate(0.4deg); }
+    75% { transform: translateX(-2px) rotate(-0.2deg); }
+    90% { transform: translateX(2px) rotate(0.2deg); }
+  }
+  .quote-card.shaking { animation: shakeCard 0.55s ease; }
+
+  /* Tags */
+  .quote-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+  .tag {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(191,95,255,0.15);
+    border: 1px solid rgba(191,95,255,0.3);
+    color: rgba(191,95,255,0.85);
+    letter-spacing: 0.05em;
+  }
+
+  /* Buttons */
+  .btn-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .btn {
+    cursor: pointer;
+    border: none;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 14px 32px;
+    transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn:active { transform: scale(0.96); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #7b2fff, #bf5fff, #5fc8ff);
+    background-size: 200% 100%;
+    color: #fff;
+    box-shadow: 0 4px 24px rgba(123,47,255,0.5), 0 1px 0 rgba(255,255,255,0.2) inset;
+    animation: btnShimmer 3s ease infinite;
+    flex: 1;
+    min-width: 140px;
+  }
+  @keyframes btnShimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(123,47,255,0.65), 0 1px 0 rgba(255,255,255,0.2) inset;
+    filter: brightness(1.1);
+  }
+
+  .btn-secondary {
+    background: rgba(30, 0, 60, 0.7);
+    color: var(--accent);
+    border: 1px solid rgba(191,95,255,0.4);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  .btn-secondary:hover {
+    background: rgba(60, 0, 100, 0.7);
+    box-shadow: 0 4px 20px rgba(191,95,255,0.25);
+    transform: translateY(-1px);
+  }
+
+  .btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* Copy feedback */
+  .copy-feedback {
+    font-size: 12px;
+    color: var(--gold);
+    letter-spacing: 0.1em;
+    height: 18px;
+    transition: opacity 0.3s;
+    opacity: 0;
+  }
+  .copy-feedback.show { opacity: 1; }
+
+  /* History */
+  .history-section {
+    width: 100%;
+  }
+  .history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .history-title {
+    font-size: 13px;
+    color: rgba(191,95,255,0.6);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .btn-clear {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: rgba(191,95,255,0.4);
+    padding: 2px 8px;
+    border-radius: 8px;
+    transition: color 0.2s, background 0.2s;
+    letter-spacing: 0.05em;
+  }
+  .btn-clear:hover { color: #ff6b9d; background: rgba(255,107,157,0.08); }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .history-list::-webkit-scrollbar { width: 4px; }
+  .history-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 2px; }
+  .history-list::-webkit-scrollbar-thumb { background: rgba(191,95,255,0.3); border-radius: 2px; }
+
+  .history-item {
+    background: rgba(20, 0, 40, 0.5);
+    border: 1px solid rgba(191,95,255,0.15);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: rgba(240,230,255,0.75);
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    line-height: 1.5;
+  }
+  .history-item:hover {
+    background: rgba(60, 0, 100, 0.5);
+    border-color: rgba(191,95,255,0.4);
+    color: var(--text);
+  }
+
+  .empty-history {
+    text-align: center;
+    color: rgba(191,95,255,0.3);
+    font-size: 13px;
+    padding: 20px;
+    letter-spacing: 0.05em;
+  }
+
+  /* Counter */
+  .counter {
+    font-size: 12px;
+    color: rgba(191,95,255,0.4);
+    letter-spacing: 0.1em;
+  }
+  .counter span {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Burst effect */
+  .burst {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    font-size: 18px;
+    animation: burstAnim 0.8s ease forwards;
+    user-select: none;
+  }
+  @keyframes burstAnim {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+    60% { opacity: 1; transform: translate(-50%, -120%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -200%) scale(0.8); }
+  }
+
+  @media (max-width: 420px) {
+    .container { margin-top: 50px; gap: 20px; }
+    .quote-card { padding: 24px 18px; }
+    .btn { padding: 12px 20px; font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">← 入口</a>
+<canvas id="stars"></canvas>
+
+<div class="container">
+  <div class="header">
+    <span class="eye-symbol">👁</span>
+    <h1>中二台词机</h1>
+    <p class="subtitle">觉醒汝之漆黑力量</p>
+  </div>
+
+  <div class="quote-card" id="quoteCard">
+    <div class="quote-label">◆ 神启台词 ◆</div>
+    <div class="quote-text" id="quoteText">点击下方按钮，召唤你的中二台词</div>
+    <div class="quote-divider"></div>
+    <div class="quote-tags" id="quoteTags"></div>
+  </div>
+
+  <div class="copy-feedback" id="copyFeedback">✦ 台词已复制到剪贴板 ✦</div>
+
+  <div class="btn-group">
+    <button class="btn btn-primary" id="btnGenerate">⚡ 召唤台词</button>
+    <button class="btn btn-secondary" id="btnCopy">复制</button>
+  </div>
+
+  <div class="counter">已召唤 <span id="countNum">0</span> 次</div>
+
+  <div class="history-section">
+    <div class="history-header">
+      <span class="history-title">◈ 召唤记录</span>
+      <button class="btn-clear" id="btnClear">清空</button>
+    </div>
+    <div class="history-list" id="historyList">
+      <div class="empty-history" id="emptyHint">暂无记录，快去召唤吧</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  /* ===== 词库 ===== */
+  var nouns = [
+    "漆黑的力量","封印之力","禁断的契约","黑暗之眼","深渊之瞳","绝对领域",
+    "虚空之刃","命运的锁链","灵魂碎片","黑翼之翎","混沌之核","永恒的诅咒",
+    "禁忌之血","深渊契约","暗黑之心","寂灭之源","禁断的果实","时之裂缝",
+    "湮灭之力","深渊凝视","黑雾缠绕","漆黑之炎","幽冥之门","末日之钟",
+    "虚无之眼","破碎的神格","命运齿轮","封禁的灵核"
+  ];
+
+  var verbs = [
+    "正在觉醒","开始显现","即将降临","已然苏醒","缓缓流动","开始燃烧",
+    "在虚空中回响","彻底爆发","开始侵蚀","悄然降临","已被解封","汹涌涌现",
+    "在黑暗中低鸣","开始崩解","逐渐吞噬","向深渊敞开","开始融合","彻底觉醒"
+  ];
+
+  var subjects = [
+    "吾","吾辈","本王","予","本座","吾之存在","吾之意志","予之力量",
+    "吾之灵魂","本体","真正的自我","隐藏的本我","觉醒之身"
+  ];
+
+  var adjectives = [
+    "无可匹敌","超越神明","毁天灭地","震撼宇宙","绝对无敌","冠绝古今",
+    "无法抵挡","摧枯拉朽","凌驾一切","不可直视","令人战栗","超越极限"
+  ];
+
+  var endings = [
+    "汝等凡人，颤抖吧！","这就是……真正的力量！","万物皆为吾之棋子。",
+    "无人能够阻止吾！","黑暗……将永远统治一切！","此刻，时间已经停止。",
+    "吾的孤独是无法言说的。","你们……根本无法理解这种痛苦。",
+    "在这无尽的黑暗中……只有吾独自燃烧。","这世界……配不上吾的存在。",
+    "汝等的命运，早已被吾掌控。","就算是神明……也无法束缚吾的意志！",
+    "哈哈……哈哈哈……吾早已超越了人类的界限。",
+    "悲哀的命运啊……吾注定孤独地承受这一切。",
+    "黑暗与光明……在吾的掌心中交融。"
+  ];
+
+  var templates = [
+    function() {
+      return nouns[rand(nouns.length)] + "，" + verbs[rand(verbs.length)] + "。" + endings[rand(endings.length)];
+    },
+    function() {
+      return subjects[rand(subjects.length)] + "的" + nouns[rand(nouns.length)] + "，" + verbs[rand(verbs.length)] + "！" + endings[rand(endings.length)];
+    },
+    function() {
+      return adjectives[rand(adjectives.length)] + "的" + nouns[rand(nouns.length)] + "——" + verbs[rand(verbs.length)] + "……" + endings[rand(endings.length)];
+    },
+    function() {
+      return "沉睡千年的" + nouns[rand(nouns.length)] + "，此刻" + verbs[rand(verbs.length)] + "！" + endings[rand(endings.length)];
+    },
+    function() {
+      return "当" + nouns[rand(nouns.length)] + verbs[rand(verbs.length)] + "，" + subjects[rand(subjects.length)] + "便成为" + adjectives[rand(adjectives.length)] + "的存在。";
+    },
+    function() {
+      return subjects[rand(subjects.length)] + "已经觉醒——" + adjectives[rand(adjectives.length)] + "的" + nouns[rand(nouns.length)] + "，" + verbs[rand(verbs.length)] + "！";
+    },
+    function() {
+      return "封印……解除。" + nouns[rand(nouns.length)] + verbs[rand(verbs.length)] + "。" + endings[rand(endings.length)];
+    }
+  ];
+
+  var tagPool = [
+    "漆黑","封印","力量","瞳","契约","深渊","觉醒","禁忌",
+    "命运","黑暗","虚空","灵魂","混沌","永恒","绝对"
+  ];
+
+  /* ===== DOM ===== */
+  var quoteCard = document.getElementById("quoteCard");
+  var quoteText = document.getElementById("quoteText");
+  var quoteTags = document.getElementById("quoteTags");
+  var btnGenerate = document.getElementById("btnGenerate");
+  var btnCopy = document.getElementById("btnCopy");
+  var btnClear = document.getElementById("btnClear");
+  var copyFeedback = document.getElementById("copyFeedback");
+  var historyList = document.getElementById("historyList");
+  var emptyHint = document.getElementById("emptyHint");
+  var countNum = document.getElementById("countNum");
+  var starsCanvas = document.getElementById("stars");
+
+  /* ===== State ===== */
+  var currentQuote = "";
+  var history = [];
+  var count = 0;
+  var copyTimer = null;
+  var shakeTimer = null;
+  var feedbackTimer = null;
+
+  /* ===== Utils ===== */
+  function rand(n) { return Math.floor(Math.random() * n); }
+
+  function pickTags() {
+    var shuffled = tagPool.slice().sort(function() { return Math.random() - 0.5; });
+    return shuffled.slice(0, rand(3) + 2);
+  }
+
+  /* ===== Stars ===== */
+  function initStars() {
+    var ctx = starsCanvas.getContext("2d");
+    var W, H, stars;
+
+    function resize() {
+      W = starsCanvas.width = window.innerWidth;
+      H = starsCanvas.height = window.innerHeight;
+      stars = [];
+      var n = Math.floor((W * H) / 4000);
+      for (var i = 0; i < n; i++) {
+        stars.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          r: Math.random() * 1.2 + 0.2,
+          a: Math.random(),
+          speed: Math.random() * 0.008 + 0.002,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+    }
+
+    function draw(ts) {
+      ctx.clearRect(0, 0, W, H);
+      var t = ts / 1000;
+      for (var i = 0; i < stars.length; i++) {
+        var s = stars[i];
+        var alpha = 0.3 + 0.5 * Math.sin(t * s.speed * 6 + s.phase);
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(191,95,255," + (alpha * 0.7) + ")";
+        ctx.fill();
+      }
+      requestAnimationFrame(draw);
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+    requestAnimationFrame(draw);
+  }
+
+  /* ===== Load from localStorage ===== */
+  function loadState() {
+    try {
+      var saved = localStorage.getItem("zhonger_history");
+      if (saved) { history = JSON.parse(saved); }
+      var savedCount = localStorage.getItem("zhonger_count");
+      if (savedCount) { count = parseInt(savedCount, 10) || 0; }
+    } catch (e) {
+      history = [];
+      count = 0;
+    }
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem("zhonger_history", JSON.stringify(history.slice(0, 50)));
+      localStorage.setItem("zhonger_count", String(count));
+    } catch (e) {}
+  }
+
+  /* ===== Render history ===== */
+  function renderHistory() {
+    countNum.textContent = count;
+    if (history.length === 0) {
+      historyList.innerHTML = "";
+      historyList.appendChild(emptyHint);
+      emptyHint.style.display = "";
+      return;
+    }
+    emptyHint.style.display = "none";
+    historyList.innerHTML = "";
+    for (var i = history.length - 1; i >= 0; i--) {
+      (function(q) {
+        var item = document.createElement("div");
+        item.className = "history-item";
+        item.textContent = q;
+        item.title = "点击复制";
+        item.addEventListener("click", function() {
+          copyText(q);
+        });
+        historyList.appendChild(item);
+      })(history[i]);
+    }
+  }
+
+  /* ===== Generate ===== */
+  function generate() {
+    var fn = templates[rand(templates.length)];
+    currentQuote = fn();
+
+    quoteText.classList.add("fade");
+    setTimeout(function() {
+      quoteText.textContent = currentQuote;
+      quoteText.classList.remove("fade");
+
+      var tags = pickTags();
+      quoteTags.innerHTML = "";
+      tags.forEach(function(t) {
+        var span = document.createElement("span");
+        span.className = "tag";
+        span.textContent = "# " + t;
+        quoteTags.appendChild(span);
+      });
+    }, 120);
+
+    quoteCard.classList.add("active");
+
+    if (shakeTimer) { clearTimeout(shakeTimer); }
+    quoteCard.classList.remove("shaking");
+    void quoteCard.offsetWidth;
+    quoteCard.classList.add("shaking");
+    shakeTimer = setTimeout(function() {
+      quoteCard.classList.remove("shaking");
+    }, 600);
+
+    history.push(currentQuote);
+    if (history.length > 50) { history.shift(); }
+    count++;
+    saveState();
+    renderHistory();
+
+    spawnBurst();
+  }
+
+  /* ===== Burst ===== */
+  var bursts = ["✦","★","⚡","♦","◆","✧","☆","⚔","👁","🌑"];
+  function spawnBurst() {
+    for (var i = 0; i < 5; i++) {
+      (function(idx) {
+        setTimeout(function() {
+          var el = document.createElement("div");
+          el.className = "burst";
+          el.textContent = bursts[rand(bursts.length)];
+          el.style.left = (20 + rand(60)) + "vw";
+          el.style.top = (30 + rand(40)) + "vh";
+          el.style.animationDuration = (0.6 + Math.random() * 0.5) + "s";
+          document.body.appendChild(el);
+          setTimeout(function() { el.parentNode && el.parentNode.removeChild(el); }, 1200);
+        }, idx * 80);
+      })(i);
+    }
+  }
+
+  /* ===== Copy ===== */
+  function copyText(text) {
+    if (!text) { return; }
+    if (feedbackTimer) { clearTimeout(feedbackTimer); }
+
+    function showFeedback() {
+      copyFeedback.classList.add("show");
+      feedbackTimer = setTimeout(function() {
+        copyFeedback.classList.remove("show");
+      }, 2000);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(showFeedback).catch(function() {
+        fallbackCopy(text);
+        showFeedback();
+      });
+    } else {
+      fallbackCopy(text);
+      showFeedback();
+    }
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  /* ===== Clear history ===== */
+  function clearHistory() {
+    history = [];
+    count = 0;
+    saveState();
+    renderHistory();
+  }
+
+  /* ===== Event listeners ===== */
+  btnGenerate.addEventListener("click", generate);
+
+  btnCopy.addEventListener("click", function() {
+    if (currentQuote) {
+      copyText(currentQuote);
+    }
+  });
+
+  btnClear.addEventListener("click", function() {
+    if (history.length > 0) {
+      clearHistory();
+    }
+  });
+
+  /* ===== Init ===== */
+  loadState();
+  renderHistory();
+  initStars();
+
+})();
+</script>
+</body>
+</html>
