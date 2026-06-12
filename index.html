@@ -3,72 +3,107 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小众创意 · 四个小网站</title>
+<title>小站合集 · Mini Sites</title>
 <style>
   * { box-sizing:border-box; margin:0; padding:0; }
   body { min-height:100vh; background:#0c0f1a; color:#e8eef7;
     font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
-    display:flex; flex-direction:column; align-items:center; padding:48px 16px 60px; }
-  .hero{ text-align:center; margin-bottom:38px; }
+    padding:48px 16px 70px; }
+  .hero{ text-align:center; margin-bottom:14px; }
   h1{ font-size:clamp(26px,5vw,40px); font-weight:800; letter-spacing:1px;
-    background:linear-gradient(90deg,#ffd166,#ff8aa0,#b98cff,#56b6ff); -webkit-background-clip:text;
-    background-clip:text; color:transparent; }
+    background:linear-gradient(90deg,#ffd166,#ff8aa0,#b98cff,#56b6ff);
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
   .hero p{ color:#8090a8; margin-top:10px; font-size:14px; }
-  .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px;
-    width:min(840px,100%); }
+  .progress{ max-width:840px; margin:18px auto 36px; }
+  .progress .bar{ height:8px; background:rgba(255,255,255,.08); border-radius:6px; overflow:hidden; }
+  .progress .bar i{ display:block; height:100%; width:10%;
+    background:linear-gradient(90deg,#b98cff,#56b6ff); border-radius:6px; }
+  .progress .lbl{ text-align:center; color:#8090a8; font-size:12px; margin-top:8px; letter-spacing:1px; }
+  .cat{ max-width:840px; margin:0 auto 26px; }
+  .cat h2{ font-size:14px; color:#aab6cc; font-weight:600; letter-spacing:2px;
+    margin:0 4px 12px; display:flex; align-items:center; gap:8px; }
+  .cat h2::after{ content:""; flex:1; height:1px; background:rgba(255,255,255,.08); }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; }
   a.card{ text-decoration:none; color:inherit; position:relative; overflow:hidden;
-    border-radius:16px; padding:24px 22px; min-height:170px; display:flex; flex-direction:column;
-    justify-content:flex-end; border:1px solid rgba(255,255,255,.08); transition:.25s;
-    background-size:cover; }
-  a.card:hover{ transform:translateY(-4px); border-color:rgba(255,255,255,.25);
-    box-shadow:0 18px 40px rgba(0,0,0,.5); }
-  .c1{ background:radial-gradient(ellipse at top right,#1b3a6b,#0a1428); }
-  .c2{ background:radial-gradient(ellipse at top right,#0f3320,#0a1410); }
-  .c3{ background:radial-gradient(ellipse at top right,#2a5a35,#13301a); }
-  .c4{ background:radial-gradient(ellipse at top right,#3a2a5e,#160f28); }
-  .emoji{ font-size:34px; position:absolute; top:20px; left:22px; filter:drop-shadow(0 3px 8px rgba(0,0,0,.4)); }
-  .card h2{ font-size:20px; font-weight:700; }
-  .card .desc{ color:#aab6cc; font-size:13px; margin-top:6px; line-height:1.5; }
-  .card .arrow{ color:#fff; font-size:13px; margin-top:12px; opacity:.7; }
-  footer{ margin-top:40px; color:#5a6680; font-size:12px; text-align:center; line-height:1.7; }
+    border-radius:14px; padding:18px; min-height:120px; display:flex; flex-direction:column;
+    justify-content:flex-end; border:1px solid rgba(255,255,255,.08); transition:.22s; }
+  a.card:hover{ transform:translateY(-4px); border-color:rgba(255,255,255,.28);
+    box-shadow:0 16px 36px rgba(0,0,0,.5); }
+  .card .emoji{ font-size:26px; position:absolute; top:16px; left:18px;
+    filter:drop-shadow(0 3px 8px rgba(0,0,0,.4)); }
+  .card h3{ font-size:17px; font-weight:700; }
+  .card .desc{ color:#aab6cc; font-size:12px; margin-top:5px; line-height:1.5; }
+  .c-time{ background:radial-gradient(ellipse at top right,#1b3a6b,#0a1428); }
+  .c-decide{ background:radial-gradient(ellipse at top right,#3a2a5e,#160f28); }
+  .c-tool{ background:radial-gradient(ellipse at top right,#0f3330,#0a1414); }
+  .c-visual{ background:radial-gradient(ellipse at top right,#5e2a48,#280f1f); }
+  .c-game{ background:radial-gradient(ellipse at top right,#2a4a2f,#101f14); }
+  .c-heal{ background:radial-gradient(ellipse at top right,#3a5a35,#13301a); }
+  footer{ max-width:840px; margin:34px auto 0; color:#5a6680; font-size:12px;
+    text-align:center; line-height:1.8; }
+  footer a{ color:#8090a8; }
 </style>
 </head>
 <body>
 <div class="hero">
-  <h1>四个小众创意小站</h1>
-  <p>都是纯前端单文件 · 双击即开 · 不需要联网也不需要后端</p>
+  <h1>小站合集</h1>
+  <p>一堆纯前端单文件小玩具 · 双击即开 · 无需联网</p>
 </div>
 
-<div class="grid">
-  <a class="card c1" href="earth-night.html">
-    <span class="emoji">🌍</span>
-    <h2>此刻，地球的夜晚</h2>
-    <div class="desc">输入一座城市，看全球真实的昼夜分界线，读一句属于那里此刻的心情。</div>
-    <div class="arrow">进入 →</div>
-  </a>
-  <a class="card c2" href="fake-work.html">
-    <span class="emoji">💻</span>
-    <h2>假装在工作</h2>
-    <div class="desc">全屏滚动的假编译/部署/扫描日志，还有代码雨。终极摸鱼神器。</div>
-    <div class="arrow">进入 →</div>
-  </a>
-  <a class="card c3" href="pixel-garden.html">
-    <span class="emoji">🌱</span>
-    <h2>像素花园</h2>
-    <div class="desc">种一颗按真实时间生长的像素植物。关掉网页它也在长，明天回来看看。</div>
-    <div class="arrow">进入 →</div>
-  </a>
-  <a class="card c4" href="decision-maker.html">
-    <span class="emoji">🎲</span>
-    <h2>一句话决定器</h2>
-    <div class="desc">纠结时把选项扔进去，用抛硬币、塔罗、摇卦等荒诞算法替你拍板。</div>
-    <div class="arrow">进入 →</div>
-  </a>
+<div class="progress">
+  <div class="bar"><i></i></div>
+  <div class="lbl">已上线 10 个 · 目标 100</div>
 </div>
+
+<section class="cat">
+  <h2>🌍 时间 · 天文</h2>
+  <div class="grid">
+    <a class="card c-time" href="earth-night.html"><span class="emoji">🌍</span><h3>此刻地球的夜晚</h3><div class="desc">看全球真实昼夜分界线，读此刻的心情</div></a>
+  </div>
+</section>
+
+<section class="cat">
+  <h2>🎲 决策 · 占卜</h2>
+  <div class="grid">
+    <a class="card c-decide" href="decision-maker.html"><span class="emoji">🎲</span><h3>一句话决定器</h3><div class="desc">荒诞占卜帮你拍板</div></a>
+    <a class="card c-decide" href="dinner-wheel.html"><span class="emoji">🍽️</span><h3>晚饭转盘</h3><div class="desc">今天吃什么交给转盘</div></a>
+  </div>
+</section>
+
+<section class="cat">
+  <h2>🛠️ 工具 · 实用</h2>
+  <div class="grid">
+    <a class="card c-tool" href="fake-work.html"><span class="emoji">💻</span><h3>假装在工作</h3><div class="desc">全屏假日志摸鱼神器</div></a>
+    <a class="card c-tool" href="breathing.html"><span class="emoji">🫧</span><h3>呼吸引导</h3><div class="desc">跟着 4-7-8 呼吸静下来</div></a>
+  </div>
+</section>
+
+<section class="cat">
+  <h2>🎨 视觉 · 生成艺术</h2>
+  <div class="grid">
+    <a class="card c-visual" href="fireworks.html"><span class="emoji">🎆</span><h3>点击烟花</h3><div class="desc">指尖绽放粒子烟花</div></a>
+    <a class="card c-visual" href="mandala.html"><span class="emoji">🌸</span><h3>曼陀罗生成器</h3><div class="desc">画一朵对称的花</div></a>
+  </div>
+</section>
+
+<section class="cat">
+  <h2>🕹️ 小游戏</h2>
+  <div class="grid">
+    <a class="card c-game" href="game-2048.html"><span class="emoji">🔢</span><h3>2048</h3><div class="desc">合并数字方块</div></a>
+    <a class="card c-game" href="snake.html"><span class="emoji">🐍</span><h3>贪吃蛇</h3><div class="desc">经典贪吃蛇</div></a>
+  </div>
+</section>
+
+<section class="cat">
+  <h2>🌱 情绪 · 治愈</h2>
+  <div class="grid">
+    <a class="card c-heal" href="pixel-garden.html"><span class="emoji">🌱</span><h3>像素花园</h3><div class="desc">按真实时间生长的像素植物</div></a>
+  </div>
+</section>
 
 <footer>
   全部代码在本地，数据只存在你自己的浏览器里。<br>
-  随便改、随便拆 —— 这本来就是给你折腾的小玩具。
+  持续生长中，朝着 100 个小站前进 · <a href="https://github.com/sakuar/why">源码</a>
 </footer>
 </body>
 </html>
