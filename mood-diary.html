@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>情绪日记</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fdf6f0;
+    --surface: #fff9f5;
+    --surface2: #fff3ec;
+    --border: #f0ddd0;
+    --accent: #e8916a;
+    --accent-soft: #f5c4a8;
+    --accent-hover: #d97a52;
+    --text-main: #4a3728;
+    --text-sub: #8c6c5c;
+    --text-mute: #c4a090;
+    --shadow: rgba(180, 100, 60, 0.08);
+    --radius: 18px;
+    --radius-sm: 10px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
+
+  /* back link */
+  .back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    font-size: 13px;
+    color: var(--text-mute);
+    text-decoration: none;
+    z-index: 100;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--accent); }
+
+  /* header */
+  .header {
+    text-align: center;
+    padding: 52px 20px 28px;
+  }
+  .header-title {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text-main);
+  }
+  .header-sub {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--text-mute);
+    letter-spacing: 1px;
+  }
+
+  /* card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 4px 20px var(--shadow);
+    padding: 28px 26px;
+    max-width: 520px;
+    margin: 0 auto 20px;
+    width: calc(100% - 32px);
+  }
+
+  /* date label */
+  .today-label {
+    font-size: 12px;
+    color: var(--text-mute);
+    margin-bottom: 16px;
+    letter-spacing: 0.5px;
+  }
+
+  /* mood row */
+  .mood-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-sub);
+    margin-bottom: 12px;
+  }
+  .mood-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+  }
+  .mood-btn {
+    background: var(--surface2);
+    border: 2px solid transparent;
+    border-radius: 14px;
+    cursor: pointer;
+    padding: 8px 10px;
+    font-size: 22px;
+    line-height: 1;
+    transition: transform 0.15s, border-color 0.15s, background 0.15s;
+    position: relative;
+    outline: none;
+  }
+  .mood-btn:hover {
+    transform: scale(1.15);
+    background: #ffeee3;
+  }
+  .mood-btn.selected {
+    border-color: var(--accent);
+    background: #ffeee3;
+    transform: scale(1.18);
+  }
+  .mood-btn.selected::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 16px;
+    border: 2px solid var(--accent-soft);
+    pointer-events: none;
+  }
+
+  /* mood name hint */
+  .mood-hint {
+    font-size: 12px;
+    color: var(--accent);
+    min-height: 18px;
+    margin-top: -14px;
+    margin-bottom: 18px;
+    text-align: center;
+    transition: opacity 0.2s;
+  }
+
+  /* textarea */
+  .note-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-sub);
+    margin-bottom: 10px;
+  }
+  .note-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-main);
+    font-size: 15px;
+    font-family: inherit;
+    padding: 12px 14px;
+    resize: none;
+    min-height: 90px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    line-height: 1.7;
+  }
+  .note-input::placeholder { color: var(--text-mute); }
+  .note-input:focus {
+    border-color: var(--accent-soft);
+    box-shadow: 0 0 0 3px rgba(232, 145, 106, 0.12);
+  }
+
+  /* char count */
+  .char-count {
+    text-align: right;
+    font-size: 11px;
+    color: var(--text-mute);
+    margin-top: 5px;
+    margin-bottom: 18px;
+  }
+  .char-count.warn { color: var(--accent); }
+
+  /* save button */
+  .save-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 13px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 3px 12px rgba(232, 145, 106, 0.35);
+  }
+  .save-btn:hover:not(:disabled) {
+    background: var(--accent-hover);
+    box-shadow: 0 5px 16px rgba(232, 145, 106, 0.45);
+  }
+  .save-btn:active:not(:disabled) { transform: scale(0.98); }
+  .save-btn:disabled {
+    background: var(--accent-soft);
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* toast */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--text-main);
+    color: #fff;
+    font-size: 13px;
+    padding: 10px 22px;
+    border-radius: 30px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 200;
+    white-space: nowrap;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* history section */
+  .history-header {
+    max-width: 520px;
+    margin: 10px auto 14px;
+    width: calc(100% - 32px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .history-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-sub);
+    letter-spacing: 1px;
+  }
+  .history-count {
+    font-size: 12px;
+    color: var(--text-mute);
+    background: var(--surface2);
+    border-radius: 20px;
+    padding: 2px 10px;
+    border: 1px solid var(--border);
+  }
+
+  /* empty state */
+  .empty-state {
+    text-align: center;
+    padding: 36px 20px;
+    color: var(--text-mute);
+    font-size: 14px;
+    line-height: 2;
+  }
+  .empty-icon { font-size: 36px; display: block; margin-bottom: 8px; }
+
+  /* record item */
+  .record-list {
+    max-width: 520px;
+    margin: 0 auto;
+    width: calc(100% - 32px);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .record-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    box-shadow: 0 2px 10px var(--shadow);
+    animation: slideIn 0.3s ease;
+    transition: box-shadow 0.2s;
+  }
+  .record-item:hover { box-shadow: 0 4px 18px var(--shadow); }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .record-emoji {
+    font-size: 30px;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .record-body { flex: 1; min-width: 0; }
+  .record-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .record-mood-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    background: #ffeee3;
+    border-radius: 20px;
+    padding: 2px 9px;
+  }
+  .record-time {
+    font-size: 11px;
+    color: var(--text-mute);
+  }
+  .record-text {
+    font-size: 14px;
+    color: var(--text-main);
+    line-height: 1.7;
+    word-break: break-all;
+  }
+  .record-text.empty { color: var(--text-mute); font-style: italic; }
+
+  .delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-mute);
+    font-size: 15px;
+    padding: 4px;
+    border-radius: 6px;
+    line-height: 1;
+    transition: color 0.2s, background 0.2s;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .delete-btn:hover {
+    color: #e07070;
+    background: #fff0f0;
+  }
+
+  /* divider */
+  .divider {
+    max-width: 520px;
+    margin: 24px auto 20px;
+    width: calc(100% - 32px);
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border), transparent);
+  }
+
+  @media (max-width: 400px) {
+    .mood-btn { font-size: 20px; padding: 7px 8px; }
+    .card { padding: 22px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<div class="header">
+  <div class="header-title">情绪日记</div>
+  <div class="header-sub">记下此刻，温柔以待</div>
+</div>
+
+<div class="card">
+  <div class="today-label" id="todayLabel"></div>
+
+  <div class="mood-label">今天的心情</div>
+  <div class="mood-row" id="moodRow"></div>
+  <div class="mood-hint" id="moodHint"></div>
+
+  <div class="note-label">写一句话</div>
+  <textarea
+    class="note-input"
+    id="noteInput"
+    placeholder="此刻的感受、一个想法、或者什么都不说也可以…"
+    maxlength="200"
+  ></textarea>
+  <div class="char-count" id="charCount">0 / 200</div>
+
+  <button class="save-btn" id="saveBtn">保存今天的心情</button>
+</div>
+
+<div class="divider"></div>
+
+<div class="history-header">
+  <span class="history-title">心情记录</span>
+  <span class="history-count" id="historyCount">0 条</span>
+</div>
+
+<div class="record-list" id="recordList"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---- 数据 ---- */
+  var STORAGE_KEY = "mood_diary_records";
+
+  var MOODS = [
+    { emoji: "😄", name: "开心" },
+    { emoji: "🥰", name: "幸福" },
+    { emoji: "😌", name: "平静" },
+    { emoji: "🤔", name: "思考" },
+    { emoji: "😴", name: "困倦" },
+    { emoji: "😢", name: "难过" },
+    { emoji: "😤", name: "烦躁" },
+    { emoji: "😨", name: "焦虑" },
+    { emoji: "🥺", name: "委屈" },
+    { emoji: "😎", name: "自信" },
+  ];
+
+  /* ---- DOM 引用 ---- */
+  var todayLabelEl = document.getElementById("todayLabel");
+  var moodRowEl = document.getElementById("moodRow");
+  var moodHintEl = document.getElementById("moodHint");
+  var noteInputEl = document.getElementById("noteInput");
+  var charCountEl = document.getElementById("charCount");
+  var saveBtnEl = document.getElementById("saveBtn");
+  var recordListEl = document.getElementById("recordList");
+  var historyCountEl = document.getElementById("historyCount");
+  var toastEl = document.getElementById("toast");
+
+  /* ---- 状态 ---- */
+  var selectedMoodIndex = -1;
+  var toastTimer = null;
+
+  /* ---- 工具函数 ---- */
+  function loadRecords() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveRecords(records) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function formatDateTime(ts) {
+    var d = new Date(ts);
+    var y = d.getFullYear();
+    var mo = String(d.getMonth() + 1).padStart(2, "0");
+    var da = String(d.getDate()).padStart(2, "0");
+    var h = String(d.getHours()).padStart(2, "0");
+    var mi = String(d.getMinutes()).padStart(2, "0");
+    return y + "-" + mo + "-" + da + " " + h + ":" + mi;
+  }
+
+  function getTodayStr() {
+    var d = new Date();
+    var days = ["日", "一", "二", "三", "四", "五", "六"];
+    var y = d.getFullYear();
+    var mo = String(d.getMonth() + 1).padStart(2, "0");
+    var da = String(d.getDate()).padStart(2, "0");
+    var wd = days[d.getDay()];
+    return y + " 年 " + mo + " 月 " + da + " 日  星期" + wd;
+  }
+
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      toastEl.classList.remove("show");
+    }, 2000);
+  }
+
+  /* ---- 渲染心情按钮 ---- */
+  function renderMoodRow() {
+    moodRowEl.innerHTML = "";
+    MOODS.forEach(function (mood, idx) {
+      var btn = document.createElement("button");
+      btn.className = "mood-btn" + (selectedMoodIndex === idx ? " selected" : "");
+      btn.textContent = mood.emoji;
+      btn.title = mood.name;
+      btn.setAttribute("type", "button");
+      btn.addEventListener("click", function () {
+        selectedMoodIndex = idx;
+        renderMoodRow();
+        moodHintEl.textContent = mood.name;
+        updateSaveBtn();
+      });
+      moodRowEl.appendChild(btn);
+    });
+  }
+
+  /* ---- 更新保存按钮状态 ---- */
+  function updateSaveBtn() {
+    saveBtnEl.disabled = selectedMoodIndex < 0;
+  }
+
+  /* ---- 渲染历史记录 ---- */
+  function renderRecords() {
+    var records = loadRecords();
+    historyCountEl.textContent = records.length + " 条";
+
+    if (records.length === 0) {
+      recordListEl.innerHTML =
+        '<div class="empty-state"><span class="empty-icon">🌱</span>还没有记录，先记下今天的心情吧</div>';
+      return;
+    }
+
+    // 倒序
+    var sorted = records.slice().sort(function (a, b) { return b.ts - a.ts; });
+
+    recordListEl.innerHTML = "";
+    sorted.forEach(function (rec) {
+      var item = document.createElement("div");
+      item.className = "record-item";
+
+      var emojiSpan = document.createElement("div");
+      emojiSpan.className = "record-emoji";
+      emojiSpan.textContent = rec.emoji;
+
+      var body = document.createElement("div");
+      body.className = "record-body";
+
+      var meta = document.createElement("div");
+      meta.className = "record-meta";
+
+      var nameTag = document.createElement("span");
+      nameTag.className = "record-mood-name";
+      nameTag.textContent = rec.moodName;
+
+      var timeTag = document.createElement("span");
+      timeTag.className = "record-time";
+      timeTag.textContent = formatDateTime(rec.ts);
+
+      meta.appendChild(nameTag);
+      meta.appendChild(timeTag);
+
+      var textDiv = document.createElement("div");
+      textDiv.className = "record-text" + (rec.note ? "" : " empty");
+      textDiv.textContent = rec.note || "（没有写什么）";
+
+      body.appendChild(meta);
+      body.appendChild(textDiv);
+
+      var delBtn = document.createElement("button");
+      delBtn.className = "delete-btn";
+      delBtn.textContent = "×";
+      delBtn.title = "删除";
+      delBtn.setAttribute("type", "button");
+      delBtn.setAttribute("data-id", rec.ts);
+      delBtn.addEventListener("click", function () {
+        deleteRecord(rec.ts);
+      });
+
+      item.appendChild(emojiSpan);
+      item.appendChild(body);
+      item.appendChild(delBtn);
+
+      recordListEl.appendChild(item);
+    });
+  }
+
+  /* ---- 删除记录 ---- */
+  function deleteRecord(ts) {
+    var records = loadRecords();
+    var newRecords = records.filter(function (r) { return r.ts !== ts; });
+    saveRecords(newRecords);
+    renderRecords();
+    showToast("已删除这条记录");
+  }
+
+  /* ---- 保存记录 ---- */
+  function handleSave() {
+    if (selectedMoodIndex < 0) return;
+    var mood = MOODS[selectedMoodIndex];
+    var note = noteInputEl.value.trim();
+
+    var record = {
+      ts: Date.now(),
+      emoji: mood.emoji,
+      moodName: mood.name,
+      note: note,
+    };
+
+    var records = loadRecords();
+    records.push(record);
+    saveRecords(records);
+
+    // 重置
+    selectedMoodIndex = -1;
+    noteInputEl.value = "";
+    charCountEl.textContent = "0 / 200";
+    charCountEl.classList.remove("warn");
+    moodHintEl.textContent = "";
+    renderMoodRow();
+    updateSaveBtn();
+    renderRecords();
+    showToast("心情已保存 " + mood.emoji);
+  }
+
+  /* ---- 字数统计 ---- */
+  function handleNoteInput() {
+    var len = noteInputEl.value.length;
+    charCountEl.textContent = len + " / 200";
+    if (len > 160) {
+      charCountEl.classList.add("warn");
+    } else {
+      charCountEl.classList.remove("warn");
+    }
+  }
+
+  /* ---- 初始化 ---- */
+  function init() {
+    todayLabelEl.textContent = getTodayStr();
+    renderMoodRow();
+    updateSaveBtn();
+    renderRecords();
+
+    saveBtnEl.addEventListener("click", handleSave);
+    noteInputEl.addEventListener("input", handleNoteInput);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
