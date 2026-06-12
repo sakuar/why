@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>几何海报生成器</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a22;
+    --border: #2e2e3e;
+    --text: #e8e8f0;
+    --muted: #7878a0;
+    --accent: #7c6af7;
+    --radius: 14px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    transition: color 0.2s;
+    z-index: 100;
+  }
+  .back-link:hover { color: var(--text); }
+
+  header {
+    margin-top: 32px;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+  header h1 {
+    font-size: clamp(22px, 5vw, 30px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  header p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 6px;
+  }
+
+  .canvas-wrap {
+    position: relative;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    transition: box-shadow 0.3s;
+    cursor: pointer;
+  }
+  .canvas-wrap:hover {
+    box-shadow: 0 28px 80px rgba(0,0,0,0.65);
+  }
+
+  #poster-canvas {
+    display: block;
+    width: 100%;
+    max-width: 540px;
+    height: auto;
+  }
+
+  .controls {
+    margin-top: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    width: 100%;
+    max-width: 540px;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s, box-shadow 0.15s;
+    letter-spacing: 0.01em;
+  }
+  .btn:active { transform: scale(0.96); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(124,106,247,0.35);
+  }
+  .btn-primary:hover { opacity: 0.9; box-shadow: 0 6px 28px rgba(124,106,247,0.5); }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--border); }
+
+  .style-row {
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    max-width: 540px;
+  }
+
+  .style-chip {
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: all 0.18s;
+    letter-spacing: 0.03em;
+  }
+  .style-chip.active {
+    border-color: var(--accent);
+    background: rgba(124,106,247,0.15);
+    color: var(--accent);
+  }
+  .style-chip:not(.active) {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--muted);
+  }
+  .style-chip:not(.active):hover {
+    border-color: var(--muted);
+    color: var(--text);
+  }
+
+  .slogan-row {
+    margin-top: 16px;
+    max-width: 540px;
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .slogan-label {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .slogan-toggle {
+    width: 40px;
+    height: 22px;
+    background: var(--border);
+    border-radius: 999px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: none;
+    flex-shrink: 0;
+  }
+  .slogan-toggle.on { background: var(--accent); }
+  .slogan-toggle::after {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: transform 0.2s;
+  }
+  .slogan-toggle.on::after { transform: translateX(18px); }
+
+  .hint {
+    margin-top: 28px;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .canvas-wrap { animation: fadeIn 0.4s ease both; }
+</style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">← 入口</a>
+
+<header>
+  <h1>几何海报</h1>
+  <p>每一次生成，都是独一无二的构图</p>
+</header>
+
+<div class="canvas-wrap" id="canvas-wrap" title="点击重新生成">
+  <canvas id="poster-canvas" width="1080" height="1440"></canvas>
+</div>
+
+<div class="controls">
+  <button class="btn btn-primary" id="btn-gen">重新生成</button>
+  <button class="btn btn-secondary" id="btn-dl">下载 PNG</button>
+</div>
+
+<div class="style-row" id="style-row"></div>
+
+<div class="slogan-row">
+  <span class="slogan-label">显示标语</span>
+  <button class="slogan-toggle on" id="slogan-toggle"></button>
+</div>
+
+<p class="hint">点击画布或按钮可以重新生成 · 切换风格以改变配色</p>
+
+<script>
+(function() {
+  "use strict";
+
+  /* ============================================================
+     调色板定义
+  ============================================================ */
+  var PALETTES = {
+    "极夜": {
+      bg: ["#050510","#0a0a18","#08080f"],
+      shapes: ["#4f46e5","#7c3aed","#2563eb","#0ea5e9","#6366f1","#818cf8","#c4b5fd"],
+      accent: "#c4b5fd",
+      textCol: "#f0f0ff"
+    },
+    "珊瑚": {
+      bg: ["#1a0a0a","#1f0d0d","#180808"],
+      shapes: ["#f43f5e","#fb7185","#fda4af","#e11d48","#ff6b6b","#fbbf24","#f97316"],
+      accent: "#fda4af",
+      textCol: "#fff5f5"
+    },
+    "翠绿": {
+      bg: ["#021a0f","#031f12","#010f09"],
+      shapes: ["#10b981","#34d399","#6ee7b7","#059669","#a7f3d0","#14b8a6","#2dd4bf"],
+      accent: "#a7f3d0",
+      textCol: "#f0fff8"
+    },
+    "沙漠": {
+      bg: ["#1a1208","#1f160a","#120d05"],
+      shapes: ["#f59e0b","#fbbf24","#fcd34d","#d97706","#b45309","#f97316","#fed7aa"],
+      accent: "#fcd34d",
+      textCol: "#fffbeb"
+    },
+    "极光": {
+      bg: ["#050f1a","#060f1c","#030b14"],
+      shapes: ["#06b6d4","#22d3ee","#67e8f9","#0284c7","#7c3aed","#8b5cf6","#a78bfa"],
+      accent: "#67e8f9",
+      textCol: "#f0faff"
+    },
+    "水墨": {
+      bg: ["#f5f0eb","#eee8e0","#f8f4ef"],
+      shapes: ["#1c1917","#292524","#44403c","#78716c","#a8a29e","#57534e","#231f1d"],
+      accent: "#1c1917",
+      textCol: "#1c1917"
+    }
+  };
+
+  var SLOGANS = [
+    "形即思想", "秩序中的混沌", "无限延伸", "静谧之境",
+    "构建宇宙", "色彩即语言", "边界之外", "纯粹几何",
+    "空间的诗", "平衡与张力", "形与意之间", "解构重组",
+    "永恒的形式", "节奏与韵律", "虚空中的存在",
+    "轮廓的回响", "光的折叠", "比例之美"
+  ];
+
+  var canvas = document.getElementById("poster-canvas");
+  var ctx = canvas.getContext("2d");
+  var W = canvas.width;
+  var H = canvas.height;
+
+  var currentPalette = "极夜";
+  var showSlogan = true;
+  var seed = 0;
+
+  /* ============================================================
+     伪随机数（可播种）
+  ============================================================ */
+  function seededRand(s) {
+    var x = Math.sin(s + 1) * 43758.5453123;
+    return x - Math.floor(x);
+  }
+
+  var _randIdx = 0;
+  function rand() {
+    _randIdx++;
+    return seededRand(seed + _randIdx * 0.37);
+  }
+  function randRange(a, b) { return a + rand() * (b - a); }
+  function randInt(a, b) { return Math.floor(randRange(a, b + 1)); }
+  function randPick(arr) { return arr[Math.floor(rand() * arr.length)]; }
+
+  /* ============================================================
+     绘制工具函数
+  ============================================================ */
+  function hexToRgb(hex) {
+    var r = parseInt(hex.slice(1,3), 16);
+    var g = parseInt(hex.slice(3,5), 16);
+    var b = parseInt(hex.slice(5,7), 16);
+    return [r, g, b];
+  }
+
+  function withAlpha(hex, a) {
+    var rgb = hexToRgb(hex);
+    return "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + "," + a + ")";
+  }
+
+  function drawBackground(pal) {
+    var bg = pal.bg;
+    var grad = ctx.createLinearGradient(0, 0, W * 0.5, H);
+    var c0 = bg[0], c1 = bg[Math.floor(rand() * bg.length)];
+    grad.addColorStop(0, c0);
+    grad.addColorStop(1, c1);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawCircle(x, y, r, color, alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawRing(x, y, r, lineW, color, alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineW;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawRect(x, y, w, h, color, alpha, angle) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x + w / 2, y + h / 2);
+    ctx.rotate(angle);
+    ctx.fillStyle = color;
+    ctx.fillRect(-w / 2, -h / 2, w, h);
+    ctx.restore();
+  }
+
+  function drawLine(x1, y1, x2, y2, color, lineW, alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineW;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawTriangle(cx, cy, r, color, alpha, angle) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.moveTo(0, -r);
+    ctx.lineTo(r * 0.866, r * 0.5);
+    ctx.lineTo(-r * 0.866, r * 0.5);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawArc(cx, cy, r, startA, endA, lineW, color, alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startA, endA);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineW;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* ============================================================
+     海报生成逻辑
+  ============================================================ */
+  function generatePoster() {
+    seed = Math.floor(Math.random() * 99999);
+    _randIdx = 0;
+
+    var pal = PALETTES[currentPalette];
+    var shapes = pal.shapes;
+
+    ctx.clearRect(0, 0, W, H);
+    drawBackground(pal);
+
+    var layout = randInt(0, 3);
+
+    if (layout === 0) drawLayoutConcentric(pal, shapes);
+    else if (layout === 1) drawLayoutGrid(pal, shapes);
+    else if (layout === 2) drawLayoutDiagonal(pal, shapes);
+    else drawLayoutFree(pal, shapes);
+
+    drawDetails(pal, shapes);
+
+    if (showSlogan) drawSlogan(pal);
+
+    drawVignette();
+  }
+
+  /* 构图1: 同心圆 + 放射线 */
+  function drawLayoutConcentric(pal, shapes) {
+    var cx = W * randRange(0.3, 0.7);
+    var cy = H * randRange(0.3, 0.6);
+
+    var lineCount = randInt(6, 14);
+    for (var i = 0; i < lineCount; i++) {
+      var angle = (i / lineCount) * Math.PI * 2;
+      var len = randRange(W * 0.4, W * 0.8);
+      drawLine(cx, cy,
+        cx + Math.cos(angle) * len,
+        cy + Math.sin(angle) * len,
+        randPick(shapes), randRange(1, 4), randRange(0.06, 0.18));
+    }
+
+    var rings = randInt(5, 10);
+    for (var r = 0; r < rings; r++) {
+      var radius = (r + 1) * (W * 0.08) + randRange(-20, 20);
+      var ringColor = randPick(shapes);
+      if (rand() > 0.5) {
+        drawRing(cx, cy, radius, randRange(1, 5), ringColor, randRange(0.15, 0.55));
+      } else {
+        drawCircle(cx, cy, radius, ringColor, randRange(0.05, 0.2));
+      }
+    }
+
+    var bigCount = randInt(2, 4);
+    for (var b = 0; b < bigCount; b++) {
+      var bx = W * randRange(0.1, 0.9);
+      var by = H * randRange(0.1, 0.9);
+      var br = randRange(W * 0.05, W * 0.18);
+      drawCircle(bx, by, br, randPick(shapes), randRange(0.08, 0.3));
+    }
+
+    var accent = pal.accent;
+    drawCircle(cx, cy, randRange(30, 80), accent, randRange(0.6, 0.9));
+
+    var blockW = randRange(W * 0.15, W * 0.3);
+    var blockH = randRange(H * 0.03, H * 0.06);
+    drawRect(
+      W * randRange(0.05, 0.6), H * randRange(0.72, 0.85),
+      blockW, blockH,
+      randPick(shapes), randRange(0.4, 0.75),
+      randRange(-0.2, 0.2)
+    );
+  }
+
+  /* 构图2: 网格色块 */
+  function drawLayoutGrid(pal, shapes) {
+    var cols = randInt(3, 6);
+    var rows = randInt(4, 7);
+    var cellW = W / cols;
+    var cellH = H / rows;
+    var skip = randInt(3, 8);
+
+    for (var row = 0; row < rows; row++) {
+      for (var col = 0; col < cols; col++) {
+        if (rand() < skip / (cols * rows)) continue;
+        var x = col * cellW;
+        var y = row * cellH;
+        var alpha = randRange(0.1, 0.45);
+        var color = randPick(shapes);
+        var shapeType = rand();
+        if (shapeType < 0.4) {
+          drawRect(x, y, cellW, cellH, color, alpha, 0);
+        } else if (shapeType < 0.7) {
+          var cr = Math.min(cellW, cellH) * randRange(0.2, 0.48);
+          drawCircle(x + cellW / 2, y + cellH / 2, cr, color, alpha);
+        } else {
+          drawTriangle(x + cellW / 2, y + cellH / 2, Math.min(cellW, cellH) * 0.4,
+            color, alpha, rand() * Math.PI * 2);
+        }
+      }
+    }
+
+    var bigR = W * randRange(0.2, 0.35);
+    var bigX = W * randRange(0.25, 0.75);
+    var bigY = H * randRange(0.25, 0.6);
+    drawCircle(bigX, bigY, bigR, pal.accent, randRange(0.12, 0.25));
+    drawRing(bigX, bigY, bigR, randRange(3, 8), pal.accent, randRange(0.3, 0.6));
+
+    for (var li = 0; li < randInt(3, 7); li++) {
+      drawLine(
+        W * rand(), H * rand(), W * rand(), H * rand(),
+        randPick(shapes), randRange(1, 3), randRange(0.1, 0.25)
+      );
+    }
+  }
+
+  /* 构图3: 对角线构图 */
+  function drawLayoutDiagonal(pal, shapes) {
+    var mainAngle = rand() > 0.5 ? Math.PI / 4 : -Math.PI / 4;
+
+    for (var li = 0; li < randInt(8, 16); li++) {
+      var offset = randRange(-W * 0.5, W * 1.5);
+      var lx1 = offset;
+      var ly1 = 0;
+      var lx2 = offset + H * Math.tan(Math.PI / 2 - Math.abs(mainAngle));
+      var ly2 = H;
+      drawLine(lx1, ly1, lx2, ly2,
+        randPick(shapes), randRange(0.5, 3),
+        randRange(0.05, 0.2));
+    }
+
+    var blockCount = randInt(3, 6);
+    for (var bi = 0; bi < blockCount; bi++) {
+      var bw = randRange(W * 0.1, W * 0.5);
+      var bh = randRange(H * 0.03, H * 0.15);
+      drawRect(
+        randRange(0, W - bw), randRange(0, H - bh),
+        bw, bh,
+        randPick(shapes), randRange(0.15, 0.5),
+        mainAngle * randRange(0.5, 1.5)
+      );
+    }
+
+    var circCount = randInt(3, 7);
+    for (var ci = 0; ci < circCount; ci++) {
+      var cr = randRange(30, W * 0.2);
+      drawCircle(W * rand(), H * rand(), cr,
+        randPick(shapes), randRange(0.08, 0.35));
+    }
+
+    var accentX = W * randRange(0.15, 0.85);
+    var accentY = H * randRange(0.2, 0.75);
+    var accentR = randRange(W * 0.08, W * 0.18);
+    drawCircle(accentX, accentY, accentR, pal.accent, randRange(0.5, 0.8));
+
+    for (var ai = 0; ai < randInt(2, 5); ai++) {
+      drawRing(accentX, accentY,
+        accentR + randRange(20, 120),
+        randRange(1, 4), pal.accent, randRange(0.15, 0.4));
+    }
+  }
+
+  /* 构图4: 自由散点 */
+  function drawLayoutFree(pal, shapes) {
+    var count = randInt(12, 22);
+    for (var i = 0; i < count; i++) {
+      var t = rand();
+      var x = W * rand();
+      var y = H * rand();
+      if (t < 0.3) {
+        drawCircle(x, y, randRange(20, W * 0.22), randPick(shapes), randRange(0.06, 0.35));
+      } else if (t < 0.55) {
+        drawRing(x, y, randRange(40, W * 0.25), randRange(1, 6), randPick(shapes), randRange(0.1, 0.45));
+      } else if (t < 0.75) {
+        var rw = randRange(W * 0.04, W * 0.35);
+        var rh = randRange(H * 0.02, H * 0.1);
+        drawRect(x, y, rw, rh, randPick(shapes), randRange(0.1, 0.45), rand() * Math.PI);
+      } else {
+        drawTriangle(x, y, randRange(30, W * 0.15), randPick(shapes),
+          randRange(0.1, 0.45), rand() * Math.PI * 2);
+      }
+    }
+
+    for (var li = 0; li < randInt(4, 9); li++) {
+      drawLine(W * rand(), H * rand(), W * rand(), H * rand(),
+        randPick(shapes), randRange(0.5, 4), randRange(0.05, 0.2));
+    }
+
+    var focusX = W * randRange(0.2, 0.8);
+    var focusY = H * randRange(0.25, 0.65);
+    var focusR = randRange(W * 0.06, W * 0.14);
+    drawCircle(focusX, focusY, focusR, pal.accent, 0.85);
+    drawRing(focusX, focusY, focusR * 1.4, 2, pal.accent, 0.35);
+    drawRing(focusX, focusY, focusR * 2.0, 1, pal.accent, 0.18);
+  }
+
+  /* 细节装饰 */
+  function drawDetails(pal, shapes) {
+    var dotCount = randInt(15, 35);
+    for (var d = 0; d < dotCount; d++) {
+      drawCircle(W * rand(), H * rand(),
+        randRange(2, 10), randPick(shapes), randRange(0.2, 0.6));
+    }
+
+    var arcCount = randInt(2, 5);
+    for (var a = 0; a < arcCount; a++) {
+      var startA = rand() * Math.PI * 2;
+      var span = randRange(0.3, 1.8);
+      drawArc(
+        W * randRange(0.1, 0.9), H * randRange(0.1, 0.9),
+        randRange(40, W * 0.2),
+        startA, startA + span,
+        randRange(1, 5), randPick(shapes), randRange(0.15, 0.5)
+      );
+    }
+
+    var cornerAccent = randPick(shapes);
+    var corner = randInt(0, 3);
+    var cxArr = [W * 0.05, W * 0.95, W * 0.05, W * 0.95];
+    var cyArr = [H * 0.04, H * 0.04, H * 0.96, H * 0.96];
+    drawRing(cxArr[corner], cyArr[corner], randRange(30, 70), 1.5, cornerAccent, 0.3);
+    drawRing(cxArr[corner], cyArr[corner], randRange(15, 30), 1, cornerAccent, 0.2);
+  }
+
+  /* 标语 */
+  function drawSlogan(pal) {
+    var text = randPick(SLOGANS);
+    var y = H * randRange(0.82, 0.92);
+    var size = randRange(52, 78);
+
+    ctx.save();
+    ctx.font = "bold " + size + "px -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+
+    var measured = ctx.measureText(text);
+    var textW = measured.width;
+    var x = W * randRange(0.05, Math.max(0.06, 1 - textW / W - 0.05));
+
+    ctx.fillStyle = withAlpha(pal.accent, 0.08);
+    ctx.fillRect(x - 12, y - size - 8, textW + 24, size + 20);
+
+    ctx.fillStyle = withAlpha(pal.textCol, 0.85);
+    ctx.fillText(text, x, y);
+
+    ctx.fillStyle = pal.accent;
+    ctx.fillRect(x, y + 10, textW * randRange(0.3, 0.7), 3);
+
+    ctx.restore();
+
+    var smallText = "GEOMETRIC POSTER";
+    ctx.save();
+    ctx.font = "300 28px -apple-system, 'PingFang SC', sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = withAlpha(pal.textCol, 0.25);
+    ctx.letterSpacing = "0.15em";
+    ctx.fillText(smallText, x, y + 46);
+    ctx.restore();
+  }
+
+  /* 暗角效果 */
+  function drawVignette() {
+    var grad = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.85);
+    grad.addColorStop(0, "rgba(0,0,0,0)");
+    grad.addColorStop(1, "rgba(0,0,0,0.45)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  /* ============================================================
+     UI 交互
+  ============================================================ */
+  function buildStyleChips() {
+    var row = document.getElementById("style-row");
+    row.innerHTML = "";
+    Object.keys(PALETTES).forEach(function(name) {
+      var chip = document.createElement("button");
+      chip.className = "style-chip" + (name === currentPalette ? " active" : "");
+      chip.textContent = name;
+      chip.addEventListener("click", function() {
+        currentPalette = name;
+        document.querySelectorAll(".style-chip").forEach(function(c) {
+          c.classList.toggle("active", c.textContent === name);
+        });
+        savePrefs();
+        generatePoster();
+      });
+      row.appendChild(chip);
+    });
+  }
+
+  function savePrefs() {
+    try {
+      localStorage.setItem("geo_poster_palette", currentPalette);
+      localStorage.setItem("geo_poster_slogan", showSlogan ? "1" : "0");
+    } catch(e) {}
+  }
+
+  function loadPrefs() {
+    try {
+      var p = localStorage.getItem("geo_poster_palette");
+      if (p && PALETTES[p]) currentPalette = p;
+      var s = localStorage.getItem("geo_poster_slogan");
+      if (s !== null) showSlogan = s === "1";
+    } catch(e) {}
+  }
+
+  function updateSloganToggle() {
+    var btn = document.getElementById("slogan-toggle");
+    if (showSlogan) btn.classList.add("on");
+    else btn.classList.remove("on");
+  }
+
+  function download() {
+    var a = document.createElement("a");
+    a.download = "geometric-poster-" + Date.now() + ".png";
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+  }
+
+  /* ============================================================
+     事件绑定
+  ============================================================ */
+  document.getElementById("btn-gen").addEventListener("click", function() {
+    generatePoster();
+  });
+
+  document.getElementById("btn-dl").addEventListener("click", function() {
+    download();
+  });
+
+  document.getElementById("canvas-wrap").addEventListener("click", function() {
+    generatePoster();
+  });
+
+  document.getElementById("slogan-toggle").addEventListener("click", function() {
+    showSlogan = !showSlogan;
+    updateSloganToggle();
+    savePrefs();
+    generatePoster();
+  });
+
+  /* ============================================================
+     初始化
+  ============================================================ */
+  loadPrefs();
+  buildStyleChips();
+  updateSloganToggle();
+  generatePoster();
+
+})();
+</script>
+</body>
+</html>
