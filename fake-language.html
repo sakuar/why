@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>假语言生成器</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222635;
+    --border: #2e3248;
+    --accent-elf: #7c9fff;
+    --accent-orc: #ff7c5a;
+    --accent-ancient: #c4a85a;
+    --accent: #7c9fff;
+    --text: #e8eaf2;
+    --text-muted: #7a7f9a;
+    --radius: 14px;
+    --transition: 0.25s cubic-bezier(.4,0,.2,1);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    opacity: 0.7;
+    transition: opacity var(--transition);
+    z-index: 100;
+    background: rgba(15,17,23,0.7);
+    padding: 4px 10px;
+    border-radius: 20px;
+    backdrop-filter: blur(8px);
+  }
+  .back-link:hover { opacity: 1; }
+
+  .hero-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .hero-bg::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(124,159,255,0.08) 0%, transparent 70%);
+    top: -200px; left: -200px;
+  }
+  .hero-bg::after {
+    content: '';
+    position: absolute;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(196,168,90,0.07) 0%, transparent 70%);
+    bottom: -200px; right: -150px;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 80px 20px 60px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .header h1 {
+    font-size: clamp(26px, 5vw, 38px);
+    font-weight: 700;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, #7c9fff 0%, #c4a85a 50%, #ff7c5a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+  .header p {
+    color: var(--text-muted);
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+
+  .lang-switcher {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+  .lang-btn {
+    padding: 8px 20px;
+    border-radius: 30px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all var(--transition);
+    font-family: inherit;
+    letter-spacing: 0.5px;
+  }
+  .lang-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .lang-btn.active {
+    color: var(--bg);
+    font-weight: 600;
+    border-color: transparent;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  .lang-btn[data-lang="elf"].active  { background: var(--accent-elf); }
+  .lang-btn[data-lang="orc"].active  { background: var(--accent-orc); }
+  .lang-btn[data-lang="ancient"].active { background: var(--accent-ancient); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    transition: border-color var(--transition);
+  }
+  .card:hover { border-color: var(--accent); }
+
+  .card-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 110px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 16px;
+    font-family: inherit;
+    padding: 14px;
+    resize: vertical;
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    line-height: 1.6;
+  }
+  textarea::placeholder { color: var(--text-muted); }
+  textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,159,255,0.12);
+  }
+
+  .translate-btn {
+    width: 100%;
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 10px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all var(--transition);
+    font-family: inherit;
+    position: relative;
+    overflow: hidden;
+  }
+  .translate-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0);
+    transition: background var(--transition);
+  }
+  .translate-btn:hover::after { background: rgba(255,255,255,0.08); }
+  .translate-btn:active { transform: scale(0.98); }
+  .translate-btn.elf   { background: linear-gradient(135deg, #5a7fff, #7c9fff); color: #fff; }
+  .translate-btn.orc   { background: linear-gradient(135deg, #d45a3a, #ff7c5a); color: #fff; }
+  .translate-btn.ancient { background: linear-gradient(135deg, #9a7a2a, #c4a85a); color: #fff; }
+
+  .output-box {
+    min-height: 110px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 18px;
+    line-height: 1.8;
+    letter-spacing: 1.5px;
+    color: var(--text);
+    word-break: break-all;
+    white-space: pre-wrap;
+    transition: all var(--transition);
+    min-height: 80px;
+  }
+  .output-box.has-content {
+    border-color: var(--accent);
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(124,159,255,0.25);
+  }
+  .output-box.elf.has-content   { border-color: var(--accent-elf); color: var(--accent-elf); text-shadow: 0 0 20px rgba(124,159,255,0.25); }
+  .output-box.orc.has-content   { border-color: var(--accent-orc); color: var(--accent-orc); text-shadow: 0 0 20px rgba(255,124,90,0.25); }
+  .output-box.ancient.has-content { border-color: var(--accent-ancient); color: var(--accent-ancient); text-shadow: 0 0 20px rgba(196,168,90,0.25); }
+
+  .placeholder-text {
+    color: var(--text-muted);
+    font-size: 14px;
+    font-style: italic;
+    letter-spacing: 0.5px;
+  }
+
+  .copy-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .copy-btn {
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all var(--transition);
+    font-family: inherit;
+  }
+  .copy-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .copy-btn.copied {
+    border-color: #4caf82;
+    color: #4caf82;
+    background: rgba(76,175,130,0.08);
+  }
+
+  .phonetic-info {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .history-section { margin-top: 10px; }
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .history-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    transition: border-color var(--transition);
+    cursor: pointer;
+  }
+  .history-item:hover { border-color: var(--accent); }
+  .history-item-texts { flex: 1; min-width: 0; }
+  .history-original {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .history-translated {
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: 1px;
+  }
+  .history-translated.elf     { color: var(--accent-elf); }
+  .history-translated.orc     { color: var(--accent-orc); }
+  .history-translated.ancient { color: var(--accent-ancient); }
+  .history-lang-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .tag-elf     { background: rgba(124,159,255,0.15); color: var(--accent-elf); }
+  .tag-orc     { background: rgba(255,124,90,0.15);  color: var(--accent-orc); }
+  .tag-ancient { background: rgba(196,168,90,0.15);  color: var(--accent-ancient); }
+
+  .clear-history {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: inherit;
+    transition: color var(--transition);
+    margin-top: 6px;
+    display: inline-block;
+  }
+  .clear-history:hover { color: var(--accent-orc); }
+
+  .empty-history {
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: center;
+    padding: 20px 0;
+    font-style: italic;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px 0 16px;
+    opacity: 0.5;
+  }
+
+  .lang-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 20px;
+    min-height: 18px;
+    transition: opacity var(--transition);
+  }
+
+  @media (max-width: 480px) {
+    .container { padding: 70px 14px 50px; }
+    .card { padding: 16px; }
+    .lang-btn { padding: 7px 14px; font-size: 13px; }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in { animation: fadeIn 0.3s ease forwards; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+  .translating { animation: pulse 0.8s ease infinite; }
+</style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">← 入口</a>
+<div class="hero-bg"></div>
+
+<div class="container">
+  <div class="header">
+    <h1>异界译典</h1>
+    <p>将中文翻译为虚构的异世界语言</p>
+  </div>
+
+  <div class="lang-switcher">
+    <button class="lang-btn active" data-lang="elf">精灵语</button>
+    <button class="lang-btn" data-lang="orc">兽人语</button>
+    <button class="lang-btn" data-lang="ancient">古语</button>
+  </div>
+
+  <div class="lang-desc" id="langDesc">轻柔流动，多用软辅音与长元音，如古老森林的低语</div>
+
+  <div class="card">
+    <div class="card-label">输入中文</div>
+    <textarea id="inputText" placeholder="输入想要翻译的中文句子……例如：你好，勇士。欢迎来到这片土地。"></textarea>
+    <button class="translate-btn elf" id="translateBtn">翻 译</button>
+  </div>
+
+  <div class="card">
+    <div class="card-label">翻译结果</div>
+    <div class="output-box" id="outputBox">
+      <span class="placeholder-text">翻译结果将在此显示……</span>
+    </div>
+    <div class="copy-row">
+      <span class="phonetic-info" id="phoneticInfo"></span>
+      <button class="copy-btn" id="copyBtn">复制结果</button>
+    </div>
+  </div>
+
+  <div class="card history-section">
+    <div class="card-label">翻译历史</div>
+    <div class="divider"></div>
+    <div class="history-list" id="historyList">
+      <div class="empty-history">暂无翻译记录</div>
+    </div>
+    <button class="clear-history" id="clearHistory">清空历史</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  // ── 音节映射表 ──────────────────────────────────────────────────────────────
+
+  // 汉字拆分：声母 + 韵母 → 目标语音节
+  // 用稳定哈希保证同字同结果
+
+  var ELF_ONSET = {
+    "b":"val","p":"phal","m":"mel","f":"fael",
+    "d":"del","t":"thal","n":"nael","l":"lae",
+    "g":"gal","k":"kal","h":"hal","j":"jael",
+    "q":"qiel","x":"xael","zh":"zhal","ch":"chal",
+    "sh":"shal","r":"rael","z":"zael","c":"cael",
+    "s":"sael","y":"yal","w":"wal",""  :"ae"
+  };
+  var ELF_FINAL = {
+    "a":"aria","o":"oel","e":"ael","i":"iel","u":"uol","v":"yel",
+    "ai":"aiel","ei":"eiel","ui":"uiel","ao":"aoel","ou":"ouel","iu":"iuel",
+    "ie":"iael","ue":"uael","er":"arel","an":"anil","en":"enil","in":"inil",
+    "un":"unil","vn":"ynil","ang":"angael","eng":"engael","ing":"ingiel",
+    "ong":"ongael","ian":"ianil","uan":"uanil","van":"yanil","iang":"iangael",
+    "uang":"uangael","iong":"iongael","uen":"uenil","uai":"uaiel","ing":"ingiel",
+    ""  :"el"
+  };
+
+  var ORC_ONSET = {
+    "b":"brog","p":"prak","m":"mog","f":"frak",
+    "d":"drak","t":"thrak","n":"nog","l":"lorg",
+    "g":"grog","k":"krak","h":"hruk","j":"jrak",
+    "q":"qrok","x":"xrak","zh":"zhrak","ch":"chrak",
+    "sh":"shrak","r":"ruk","z":"zrak","c":"crak",
+    "s":"srak","y":"yok","w":"worg","":"ork"
+  };
+  var ORC_FINAL = {
+    "a":"agh","o":"og","e":"uk","i":"ig","u":"ug","v":"yg",
+    "ai":"aig","ei":"eig","ui":"uig","ao":"aog","ou":"oug","iu":"iug",
+    "ie":"ieg","ue":"ueg","er":"urg","an":"ang","en":"eng","in":"ing",
+    "un":"ung","vn":"yng","ang":"akk","eng":"ekk","ing":"ikk",
+    "ong":"okk","ian":"iang","uan":"uang","van":"yang","iang":"iakk",
+    "uang":"uakk","iong":"iokk","uen":"ueng","uai":"uaig","":"ok"
+  };
+
+  var ANC_ONSET = {
+    "b":"byr","p":"pyr","m":"myr","f":"fyr",
+    "d":"dyr","t":"tyr","n":"nyr","l":"lyr",
+    "g":"gyr","k":"kyr","h":"hyr","j":"jyr",
+    "q":"qyr","x":"xyr","zh":"zhyr","ch":"chyr",
+    "sh":"shyr","r":"ryr","z":"zyr","c":"cyr",
+    "s":"syr","y":"yr","w":"wyr","":"yr"
+  };
+  var ANC_FINAL = {
+    "a":"ath","o":"oth","e":"eth","i":"ith","u":"uth","v":"yth",
+    "ai":"aith","ei":"eith","ui":"uith","ao":"aoth","ou":"outh","iu":"iuth",
+    "ie":"ieth","ue":"ueth","er":"erth","an":"annt","en":"ennt","in":"innt",
+    "un":"unnt","vn":"ynnt","ang":"angar","eng":"engar","ing":"innar",
+    "ong":"onnar","ian":"iannt","uan":"uannt","van":"yannt","iang":"iannar",
+    "uang":"uannar","iong":"ionnar","uen":"uennt","uai":"uaith","":"ast"
+  };
+
+  // 拼音声母表（按长度降序以正确匹配）
+  var ONSETS = ["zh","ch","sh","b","p","m","f","d","t","n","l","g","k","h","j","q","x","r","z","c","s","y","w"];
+
+  // 常用汉字 → 拼音（简化版，覆盖日常用字）
+  var PINYIN_MAP = {
+    "的":"de","一":"yi","是":"shi","在":"zai","了":"le","不":"bu","和":"he","有":"you",
+    "大":"da","这":"zhe","主":"zhu","人":"ren","中":"zhong","来":"lai","上":"shang",
+    "国":"guo","个":"ge","到":"dao","说":"shuo","们":"men","为":"wei","子":"zi",
+    "和":"he","你":"ni","地":"di","出":"chu","道":"dao","也":"ye","时":"shi",
+    "年":"nian","得":"de","就":"jiu","那":"na","要":"yao","下":"xia","以":"yi",
+    "生":"sheng","会":"hui","自":"zi","着":"zhe","去":"qu","之":"zhi","过":"guo",
+    "家":"jia","学":"xue","对":"dui","可":"ke","她":"ta","里":"li","后":"hou",
+    "小":"xiao","么":"me","心":"xin","多":"duo","天":"tian","而":"er","能":"neng",
+    "好":"hao","都":"dou","然":"ran","虽":"sui","起":"qi","还":"hai","发":"fa",
+    "成":"cheng","事":"shi","只":"zhi","作":"zuo","当":"dang","想":"xiang","看":"kan",
+    "文":"wen","无":"wu","开":"kai","手":"shou","十":"shi","用":"yong","主":"zhu",
+    "行":"xing","方":"fang","又":"you","如":"ru","前":"qian","所":"suo","本":"ben",
+    "见":"jian","经":"jing","头":"tou","面":"mian","公":"gong","同":"tong","三":"san",
+    "已":"yi","老":"lao","从":"cong","动":"dong","两":"liang","长":"chang","知":"zhi",
+    "民":"min","太":"tai","次":"ci","气":"qi","高":"gao","系":"xi","先":"xian",
+    "夫":"fu","内":"nei","进":"jin","重":"zhong","问":"wen","别":"bie","几":"ji",
+    "道":"dao","向":"xiang","平":"ping","更":"geng","英":"ying","些":"xie","外":"wai",
+    "天":"tian","政":"zheng","四":"si","当":"dang","被":"bei","新":"xin","做":"zuo",
+    "实":"shi","家":"jia","给":"gei","十":"shi","我":"wo","他":"ta","它":"ta",
+    "她":"ta","么":"me","什":"shen","没":"mei","很":"hen","就":"jiu","这":"zhe",
+    "那":"na","哪":"na","谁":"shei","因":"yin","为":"wei","所":"suo","以":"yi",
+    "但":"dan","和":"he","或":"huo","与":"yu","及":"ji","而":"er","且":"qie",
+    "虽":"sui","然":"ran","如":"ru","果":"guo","若":"ruo","则":"ze","既":"ji",
+    "又":"you","既":"ji","各":"ge","每":"mei","某":"mou","另":"ling","别":"bie",
+    "该":"gai","此":"ci","其":"qi","这":"zhe","那":"na","之":"zhi","哦":"o",
+    "啊":"a","嗯":"en","喂":"wei","嘿":"hei","嗨":"hai","哇":"wa","呀":"ya",
+    "哈":"ha","嘻":"xi","笑":"xiao","哭":"ku","怒":"nu","喜":"xi","悲":"bei",
+    "爱":"ai","恨":"hen","怕":"pa","勇":"yong","士":"shi","欢":"huan","迎":"ying",
+    "来":"lai","到":"dao","片":"pian","土":"tu","地":"di","这":"zhe","世":"shi",
+    "界":"jie","异":"yi","古":"gu","语":"yu","精":"jing","灵":"ling","兽":"shou",
+    "人":"ren","王":"wang","国":"guo","城":"cheng","山":"shan","河":"he","海":"hai",
+    "树":"shu","花":"hua","草":"cao","风":"feng","雨":"yu","雪":"xue","火":"huo",
+    "水":"shui","光":"guang","暗":"an","魔":"mo","法":"fa","剑":"jian","盾":"dun",
+    "宝":"bao","藏":"zang","秘":"mi","密":"mi","传":"chuan","说":"shuo","传说":"chuanshuo",
+    "英雄":"yingxiong","勇士":"yongshi","公主":"gongzhu","王子":"wangzi","龙":"long",
+    "凤":"feng","虎":"hu","狼":"lang","熊":"xiong","鹰":"ying","蛇":"she","鱼":"yu",
+    "星":"xing","月":"yue","日":"ri","云":"yun","雷":"lei","电":"dian","冰":"bing",
+    "热":"re","冷":"leng","快":"kuai","慢":"man","大":"da","小":"xiao","高":"gao",
+    "低":"di","强":"qiang","弱":"ruo","善":"shan","恶":"e","美":"mei","丑":"chou",
+    "真":"zhen","假":"jia","对":"dui","错":"cuo","是":"shi","否":"fou","生":"sheng",
+    "死":"si","永":"yong","远":"yuan","近":"jin","时":"shi","空":"kong","间":"jian",
+    "维":"wei","度":"du","次":"ci","元":"yuan","神":"shen","圣":"sheng","邪":"xie",
+    "光":"guang","暗":"an","力":"li","量":"liang","能":"neng","源":"yuan","核":"he"
+  };
+
+  // ── 工具函数 ─────────────────────────────────────────────────────────────────
+
+  function charToNum(ch) {
+    var code = ch.charCodeAt(0);
+    // 简单稳定哈希，保证同字同结果
+    return ((code * 2654435761) >>> 0) % 65536;
+  }
+
+  function getPinyin(ch) {
+    if (PINYIN_MAP[ch]) return PINYIN_MAP[ch];
+    // 未收录的汉字，用字符编码生成伪拼音
+    var n = charToNum(ch);
+    var onsets2 = ["b","p","m","d","t","n","l","g","k","h","j","q","x","zh","ch","sh","r","z","c","s"];
+    var finals2 = ["a","e","i","u","ao","ei","ou","an","en","ang","ing","ong","ian","uan","ie"];
+    return onsets2[n % onsets2.length] + finals2[Math.floor(n / onsets2.length) % finals2.length];
+  }
+
+  function splitPinyin(py) {
+    var onset = "";
+    for (var i = 0; i < ONSETS.length; i++) {
+      if (py.indexOf(ONSETS[i]) === 0) {
+        onset = ONSETS[i];
+        break;
+      }
+    }
+    var final_ = py.slice(onset.length);
+    return { onset: onset, final: final_ };
+  }
+
+  function pinyinToLang(py, lang) {
+    var parts = splitPinyin(py);
+    var on = parts.onset;
+    var fn = parts.final;
+    var onMap, fnMap;
+    if (lang === "elf") {
+      onMap = ELF_ONSET; fnMap = ELF_FINAL;
+    } else if (lang === "orc") {
+      onMap = ORC_ONSET; fnMap = ORC_FINAL;
+    } else {
+      onMap = ANC_ONSET; fnMap = ANC_FINAL;
+    }
+    var onSyl = onMap[on] !== undefined ? onMap[on] : (onMap[""] || "a");
+    var fnSyl = fnMap[fn] !== undefined ? fnMap[fn] : (fnMap[""] || "el");
+    return onSyl + fnSyl;
+  }
+
+  function translateChar(ch, lang) {
+    // 标点符号直接保留或映射
+    var punct = {
+      "，":" · ","。":" ✦ ","！":" ！","？":" ？","：":"：",
+      "、":" ","；":" ","（":"(","）":")","「":"『","」":"』",
+      "…":"···","——":"—",",":","，":".":"。"
+    };
+    if (punct[ch] !== undefined) return punct[ch];
+    // 空格
+    if (ch.trim() === "") return " ";
+    // ASCII字符直接保留
+    if (ch.charCodeAt(0) < 128) return ch;
+    // 汉字
+    var py = getPinyin(ch);
+    return pinyinToLang(py, lang);
+  }
+
+  function translateText(text, lang) {
+    if (!text || !text.trim()) return "";
+    var result = [];
+    var i = 0;
+    while (i < text.length) {
+      // 尝试两字词
+      if (i + 1 < text.length && PINYIN_MAP[text.slice(i, i+2)]) {
+        var py2 = PINYIN_MAP[text.slice(i, i+2)];
+        result.push(pinyinToLang(py2, lang));
+        i += 2;
+      } else {
+        result.push(translateChar(text[i], lang));
+        i++;
+      }
+    }
+    // 词间加空格处理：在生成词汇间添加间距
+    var out = result.join("");
+    // 后处理：合并多余空格
+    out = out.replace(/\s{2,}/g, " ");
+    return out;
+  }
+
+  function getPhoneticNote(lang) {
+    var notes = {
+      "elf": "发音指引：连绵如流水，元音延长，辅音柔和",
+      "orc": "发音指引：短促有力，喉音浑厚，爆破辅音强烈",
+      "ancient": "发音指引：庄严古朴，每字清晰，结尾辅音咬实"
+    };
+    return notes[lang] || "";
+  }
+
+  // ── 状态 ─────────────────────────────────────────────────────────────────────
+
+  var currentLang = "elf";
+  var currentOutput = "";
+  var history = [];
+  var MAX_HISTORY = 20;
+
+  var LANG_DESC = {
+    "elf":     "轻柔流动，多用软辅音与长元音，如古老森林的低语",
+    "orc":     "短促强硬，喉音爆发，每个音节都如战鼓轰鸣",
+    "ancient": "庄严古朴，音节分明，如古卷文字刻入石碑"
+  };
+
+  var LANG_NAMES = { "elf": "精灵语", "orc": "兽人语", "ancient": "古语" };
+
+  // ── DOM 引用 ─────────────────────────────────────────────────────────────────
+
+  var inputText    = document.getElementById("inputText");
+  var translateBtn = document.getElementById("translateBtn");
+  var outputBox    = document.getElementById("outputBox");
+  var copyBtn      = document.getElementById("copyBtn");
+  var historyList  = document.getElementById("historyList");
+  var clearHistory = document.getElementById("clearHistory");
+  var langDesc     = document.getElementById("langDesc");
+  var phoneticInfo = document.getElementById("phoneticInfo");
+  var langBtns     = document.querySelectorAll(".lang-btn");
+
+  // ── 渲染函数 ─────────────────────────────────────────────────────────────────
+
+  function updateAccentCSS(lang) {
+    var map = { elf: "#7c9fff", orc: "#ff7c5a", ancient: "#c4a85a" };
+    document.documentElement.style.setProperty("--accent", map[lang] || "#7c9fff");
+  }
+
+  function renderLangButtons() {
+    langBtns.forEach(function(btn) {
+      btn.classList.toggle("active", btn.dataset.lang === currentLang);
+    });
+    langDesc.textContent = LANG_DESC[currentLang] || "";
+    translateBtn.className = "translate-btn " + currentLang;
+    updateAccentCSS(currentLang);
+  }
+
+  function renderOutput(text, animate) {
+    outputBox.className = "output-box " + currentLang + (text ? " has-content" : "");
+    if (text) {
+      outputBox.textContent = text;
+      if (animate) {
+        outputBox.classList.add("fade-in");
+        setTimeout(function() { outputBox.classList.remove("fade-in"); }, 400);
+      }
+      phoneticInfo.textContent = getPhoneticNote(currentLang);
+    } else {
+      outputBox.innerHTML = '<span class="placeholder-text">翻译结果将在此显示……</span>';
+      phoneticInfo.textContent = "";
+    }
+  }
+
+  function renderHistory() {
+    if (history.length === 0) {
+      historyList.innerHTML = '<div class="empty-history">暂无翻译记录</div>';
+      return;
+    }
+    var html = "";
+    for (var i = history.length - 1; i >= 0; i--) {
+      var item = history[i];
+      html += '<div class="history-item" data-index="' + i + '">' +
+        '<div class="history-item-texts">' +
+          '<div class="history-original">' + escHtml(item.original) + '</div>' +
+          '<div class="history-translated ' + escHtml(item.lang) + '">' + escHtml(item.translated) + '</div>' +
+        '</div>' +
+        '<span class="history-lang-tag tag-' + escHtml(item.lang) + '">' + escHtml(LANG_NAMES[item.lang] || item.lang) + '</span>' +
+      '</div>';
+    }
+    historyList.innerHTML = html;
+    // 点击历史恢复
+    historyList.querySelectorAll(".history-item").forEach(function(el) {
+      el.addEventListener("click", function() {
+        var idx = parseInt(el.dataset.index, 10);
+        var it = history[idx];
+        if (!it) return;
+        inputText.value = it.original;
+        currentLang = it.lang;
+        currentOutput = it.translated;
+        renderLangButtons();
+        renderOutput(currentOutput, true);
+      });
+    });
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function saveHistory() {
+    try { localStorage.setItem("fakeLangHistory", JSON.stringify(history)); } catch(e) {}
+  }
+
+  function loadHistory() {
+    try {
+      var raw = localStorage.getItem("fakeLangHistory");
+      if (raw) history = JSON.parse(raw);
+      if (!Array.isArray(history)) history = [];
+    } catch(e) { history = []; }
+  }
+
+  function loadPrefs() {
+    try {
+      var saved = localStorage.getItem("fakeLangStyle");
+      if (saved && ["elf","orc","ancient"].indexOf(saved) !== -1) {
+        currentLang = saved;
+      }
+    } catch(e) {}
+  }
+
+  // ── 事件处理 ─────────────────────────────────────────────────────────────────
+
+  function doTranslate() {
+    var text = inputText.value.trim();
+    if (!text) {
+      inputText.focus();
+      inputText.style.borderColor = "var(--accent-orc)";
+      setTimeout(function() { inputText.style.borderColor = ""; }, 800);
+      return;
+    }
+    translateBtn.textContent = "翻译中…";
+    translateBtn.disabled = true;
+    outputBox.classList.add("translating");
+
+    // 微小延迟营造仪式感
+    setTimeout(function() {
+      var result = translateText(text, currentLang);
+      currentOutput = result;
+      translateBtn.textContent = "翻 译";
+      translateBtn.disabled = false;
+      outputBox.classList.remove("translating");
+      renderOutput(result, true);
+
+      // 存入历史
+      history.push({ original: text, translated: result, lang: currentLang });
+      if (history.length > MAX_HISTORY) history.shift();
+      saveHistory();
+      renderHistory();
+    }, 300);
+  }
+
+  langBtns.forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      currentLang = btn.dataset.lang;
+      try { localStorage.setItem("fakeLangStyle", currentLang); } catch(e) {}
+      renderLangButtons();
+      // 如有输出则重新翻译
+      if (inputText.value.trim() && currentOutput) {
+        doTranslate();
+      }
+    });
+  });
+
+  translateBtn.addEventListener("click", doTranslate);
+
+  inputText.addEventListener("keydown", function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      doTranslate();
+    }
+  });
+
+  copyBtn.addEventListener("click", function() {
+    if (!currentOutput) return;
+    var txt = currentOutput;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(function() {
+        copyBtn.textContent = "已复制！";
+        copyBtn.classList.add("copied");
+        setTimeout(function() {
+          copyBtn.textContent = "复制结果";
+          copyBtn.classList.remove("copied");
+        }, 1800);
+      }).catch(function() { fallbackCopy(txt); });
+    } else {
+      fallbackCopy(txt);
+    }
+  });
+
+  function fallbackCopy(txt) {
+    var ta = document.createElement("textarea");
+    ta.value = txt;
+    ta.style.cssText = "position:fixed;top:-9999px;left:-9999px;opacity:0;";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+      copyBtn.textContent = "已复制！";
+      copyBtn.classList.add("copied");
+      setTimeout(function() {
+        copyBtn.textContent = "复制结果";
+        copyBtn.classList.remove("copied");
+      }, 1800);
+    } catch(e) {}
+    document.body.removeChild(ta);
+  }
+
+  clearHistory.addEventListener("click", function() {
+    history = [];
+    saveHistory();
+    renderHistory();
+  });
+
+  // ── 初始化 ───────────────────────────────────────────────────────────────────
+
+  loadPrefs();
+  loadHistory();
+  renderLangButtons();
+  renderHistory();
+
+})();
+</script>
+</body>
+</html>
