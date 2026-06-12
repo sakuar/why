@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>虚拟篝火</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0a0f;
+    color: #e8d5b0;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  #back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    color: #7a6a50;
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    z-index: 100;
+  }
+  #back-link:hover { opacity: 1; }
+
+  .scene {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 20px 40px;
+    gap: 0;
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 400;
+    letter-spacing: 0.2em;
+    color: #c8a87a;
+    margin-bottom: 8px;
+    opacity: 0.9;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: #5a4e3a;
+    letter-spacing: 0.1em;
+    margin-bottom: 32px;
+  }
+
+  #fire-canvas {
+    border-radius: 20px;
+    display: block;
+    cursor: pointer;
+    box-shadow: 0 0 60px rgba(200, 100, 20, 0.18), 0 0 120px rgba(180, 60, 10, 0.10);
+    transition: box-shadow 0.4s;
+  }
+  #fire-canvas.stoked {
+    box-shadow: 0 0 80px rgba(220, 120, 20, 0.35), 0 0 160px rgba(200, 80, 10, 0.20);
+  }
+
+  .controls {
+    margin-top: 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+  }
+
+  #add-wood-btn {
+    background: linear-gradient(135deg, #7a4a1a 0%, #5c3210 100%);
+    color: #e8c890;
+    border: 1px solid #a06828;
+    border-radius: 50px;
+    padding: 12px 36px;
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    transition: all 0.25s;
+    box-shadow: 0 2px 12px rgba(160, 80, 20, 0.25);
+    font-family: inherit;
+    position: relative;
+    overflow: hidden;
+  }
+  #add-wood-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(255,200,80,0.15) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  #add-wood-btn:hover {
+    background: linear-gradient(135deg, #9a5a1e 0%, #7a4218 100%);
+    box-shadow: 0 4px 20px rgba(180, 100, 30, 0.45);
+    transform: translateY(-1px);
+  }
+  #add-wood-btn:hover::after { opacity: 1; }
+  #add-wood-btn:active { transform: translateY(0px); }
+
+  .row-btns {
+    display: flex;
+    gap: 12px;
+  }
+
+  .icon-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 50px;
+    padding: 9px 20px;
+    font-size: 13px;
+    color: #8a7a60;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    letter-spacing: 0.08em;
+  }
+  .icon-btn:hover {
+    background: rgba(255,255,255,0.08);
+    color: #c8a870;
+    border-color: rgba(200,160,80,0.2);
+  }
+  .icon-btn.active {
+    background: rgba(200,120,30,0.15);
+    color: #d4a060;
+    border-color: rgba(200,130,40,0.35);
+  }
+
+  .status-bar {
+    margin-top: 24px;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .stat-val {
+    font-size: 22px;
+    font-weight: 300;
+    color: #d4a060;
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 10px;
+    color: #5a4e3a;
+    letter-spacing: 0.1em;
+  }
+
+  .divider {
+    width: 1px;
+    height: 30px;
+    background: rgba(255,255,255,0.07);
+  }
+
+  .warmth-bar-wrap {
+    margin-top: 20px;
+    width: 100%;
+    max-width: 300px;
+  }
+  .warmth-label {
+    font-size: 11px;
+    color: #5a4e3a;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .warmth-track {
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  #warmth-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #8b3a0a, #e07020, #f0c040);
+    transition: width 0.4s ease;
+    width: 40%;
+  }
+
+  .ambience-note {
+    margin-top: 28px;
+    font-size: 11px;
+    color: #3a3228;
+    letter-spacing: 0.08em;
+    text-align: center;
+    line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+<a href="index.html" id="back-link">← 入口</a>
+
+<div class="scene">
+  <h1>篝 火</h1>
+  <p class="subtitle">深夜・静心・取暖</p>
+
+  <canvas id="fire-canvas" width="340" height="320"></canvas>
+
+  <div class="controls">
+    <button id="add-wood-btn">🪵 添柴</button>
+    <div class="row-btns">
+      <button class="icon-btn active" id="sound-btn">🔊 声音</button>
+      <button class="icon-btn" id="dim-btn">🌙 夜间</button>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="stat">
+      <span class="stat-val" id="stat-logs">0</span>
+      <span class="stat-label">添柴次数</span>
+    </div>
+    <div class="divider"></div>
+    <div class="stat">
+      <span class="stat-val" id="stat-mins">0</span>
+      <span class="stat-label">陪伴分钟</span>
+    </div>
+    <div class="divider"></div>
+    <div class="stat">
+      <span class="stat-val" id="stat-nights">0</span>
+      <span class="stat-label">深夜次数</span>
+    </div>
+  </div>
+
+  <div class="warmth-bar-wrap">
+    <div class="warmth-label">火势强度</div>
+    <div class="warmth-track"><div id="warmth-fill"></div></div>
+  </div>
+
+  <p class="ambience-note">点击画面或按钮添柴，让篝火更旺<br>声音需在安静环境中聆听效果更佳</p>
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  // ── Constants ──────────────────────────────────────────────────────────────
+  var CANVAS_W = 340;
+  var CANVAS_H = 320;
+  var MAX_PARTICLES = 220;
+  var BASE_EMIT = 3;
+  var STOKE_EMIT = 8;
+  var STOKE_DURATION = 4000;
+  var EMBER_COUNT = 18;
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  var particles = [];
+  var embers = [];
+  var stokeTimer = 0;
+  var stokeLevel = 0; // 0..1
+  var soundEnabled = true;
+  var dimMode = false;
+  var animFrame = null;
+  var lastTime = 0;
+  var audioCtx = null;
+  var crackleInterval = null;
+  var sessionStart = Date.now();
+  var statLogs = 0;
+  var statMins = 0;
+  var statNights = 0;
+
+  // ── DOM refs ───────────────────────────────────────────────────────────────
+  var canvas = document.getElementById("fire-canvas");
+  var ctx = canvas.getContext("2d");
+  var addWoodBtn = document.getElementById("add-wood-btn");
+  var soundBtn = document.getElementById("sound-btn");
+  var dimBtn = document.getElementById("dim-btn");
+  var warmthFill = document.getElementById("warmth-fill");
+  var statLogsEl = document.getElementById("stat-logs");
+  var statMinsEl = document.getElementById("stat-mins");
+  var statNightsEl = document.getElementById("stat-nights");
+
+  // ── localStorage ───────────────────────────────────────────────────────────
+  function loadStats() {
+    try {
+      var raw = localStorage.getItem("bonfire_stats");
+      if (raw) {
+        var d = JSON.parse(raw);
+        statLogs = d.logs || 0;
+        statNights = d.nights || 0;
+      }
+      var lastVisit = localStorage.getItem("bonfire_last");
+      var now = Date.now();
+      var hour = new Date(now).getHours();
+      if (hour >= 21 || hour < 5) {
+        var lastNight = parseInt(localStorage.getItem("bonfire_last_night") || "0", 10);
+        if (now - lastNight > 3600000) {
+          statNights++;
+          localStorage.setItem("bonfire_last_night", String(now));
+        }
+      }
+      localStorage.setItem("bonfire_last", String(now));
+    } catch(e) {}
+  }
+
+  function saveStats() {
+    try {
+      localStorage.setItem("bonfire_stats", JSON.stringify({ logs: statLogs, nights: statNights }));
+    } catch(e) {}
+  }
+
+  function updateStatsDisplay() {
+    statLogsEl.textContent = statLogs;
+    statMinsEl.textContent = statMins;
+    statNightsEl.textContent = statNights;
+  }
+
+  // ── Particle system ────────────────────────────────────────────────────────
+  function rnd(a, b) { return a + Math.random() * (b - a); }
+  function rndInt(a, b) { return Math.floor(rnd(a, b + 1)); }
+
+  var baseX = CANVAS_W / 2;
+  var baseY = CANVAS_H - 60;
+
+  function createParticle(boosted) {
+    var spread = boosted ? 28 : 18;
+    var speed = boosted ? rnd(1.6, 3.2) : rnd(1.0, 2.4);
+    var life = boosted ? rnd(0.7, 1.0) : rnd(0.5, 0.9);
+    return {
+      x: baseX + rnd(-spread, spread),
+      y: baseY + rnd(-8, 8),
+      vx: rnd(-0.6, 0.6),
+      vy: -speed,
+      ax: rnd(-0.04, 0.04),
+      size: rnd(boosted ? 10 : 6, boosted ? 24 : 18),
+      alpha: rnd(0.7, 1.0),
+      life: life,
+      maxLife: life,
+      hue: rndInt(boosted ? 15 : 10, boosted ? 45 : 38),
+      sat: rndInt(80, 100),
+      phase: rnd(0, Math.PI * 2),
+      waver: rnd(0.015, 0.04)
+    };
+  }
+
+  function createEmber() {
+    return {
+      x: baseX + rnd(-22, 22),
+      y: baseY + rnd(-12, 4),
+      vx: rnd(-1.2, 1.2),
+      vy: rnd(-2.5, -0.8),
+      life: rnd(0.6, 1.2),
+      maxLife: 1.0,
+      size: rnd(1.5, 3.0),
+      alpha: 1.0,
+      t: 0
+    };
+  }
+
+  // ── Draw helpers ───────────────────────────────────────────────────────────
+  function drawLog(cx, cy, w, h, color) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, w / 2, h / 2, 0, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawGround() {
+    // ground shadow
+    var grd = ctx.createRadialGradient(baseX, baseY + 20, 10, baseX, baseY + 20, 90);
+    grd.addColorStop(0, "rgba(200,80,10,0.22)");
+    grd.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+    // logs
+    ctx.save();
+    ctx.shadowColor = "rgba(200,80,10,0.5)";
+    ctx.shadowBlur = 10;
+    // left log
+    ctx.save();
+    ctx.translate(baseX - 28, baseY + 18);
+    ctx.rotate(-0.45);
+    ctx.beginPath();
+    ctx.roundRect(-38, -7, 76, 14, 7);
+    ctx.fillStyle = "#3a1e08";
+    ctx.fill();
+    ctx.strokeStyle = "#5a2e10";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+    // right log
+    ctx.save();
+    ctx.translate(baseX + 28, baseY + 18);
+    ctx.rotate(0.45);
+    ctx.beginPath();
+    ctx.roundRect(-38, -7, 76, 14, 7);
+    ctx.fillStyle = "#3a1e08";
+    ctx.fill();
+    ctx.strokeStyle = "#5a2e10";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+    // glowing coal center
+    var coal = ctx.createRadialGradient(baseX, baseY + 16, 0, baseX, baseY + 16, 30);
+    coal.addColorStop(0, "rgba(255,160,30,0.9)");
+    coal.addColorStop(0.4, "rgba(200,60,10,0.6)");
+    coal.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = coal;
+    ctx.beginPath();
+    ctx.ellipse(baseX, baseY + 16, 30, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawParticles(dt) {
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.t = (p.t || 0) + dt;
+      p.life -= dt * 0.9;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+
+      p.ax += rnd(-0.006, 0.006);
+      p.ax = Math.max(-0.08, Math.min(0.08, p.ax));
+      p.vx += p.ax;
+      p.vx *= 0.97;
+      p.vy -= 0.012;
+      p.x += p.vx + Math.sin(p.t * p.waver + p.phase) * 0.5;
+      p.y += p.vy;
+
+      var frac = p.life / p.maxLife;
+      var sizeCur = p.size * (0.4 + frac * 0.6);
+      var alphaCur = p.alpha * Math.min(1, frac * 2.5) * (dimMode ? 0.85 : 1.0);
+
+      var lum = 30 + frac * 55;
+      var grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, sizeCur);
+      grd.addColorStop(0, "hsla(" + p.hue + "," + p.sat + "%," + (lum + 20) + "%," + alphaCur + ")");
+      grd.addColorStop(0.5, "hsla(" + p.hue + "," + p.sat + "%," + lum + "%," + (alphaCur * 0.6) + ")");
+      grd.addColorStop(1, "hsla(" + p.hue + "," + p.sat + "%," + lum + "%,0)");
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, sizeCur, 0, Math.PI * 2);
+      ctx.fillStyle = grd;
+      ctx.fill();
+    }
+  }
+
+  function drawEmbers(dt) {
+    for (var i = embers.length - 1; i >= 0; i--) {
+      var e = embers[i];
+      e.t = (e.t || 0) + dt;
+      e.life -= dt * 0.7;
+      if (e.life <= 0) { embers.splice(i, 1); continue; }
+      e.vx *= 0.98;
+      e.vy += 0.02;
+      e.x += e.vx;
+      e.y += e.vy;
+      var frac = Math.max(0, e.life / (e.maxLife || 1));
+      var al = frac * 0.9;
+      var hue = rnd(20, 50);
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
+      ctx.fillStyle = "hsla(" + hue + ",100%,70%," + al + ")";
+      ctx.fill();
+    }
+  }
+
+  function drawAmbientGlow(t) {
+    var flicker = 0.88 + 0.12 * Math.sin(t * 2.1) * Math.sin(t * 3.7 + 1.2);
+    var intensity = (0.35 + stokeLevel * 0.3) * flicker;
+    var grd = ctx.createRadialGradient(baseX, baseY - 30, 10, baseX, baseY - 30, 160);
+    grd.addColorStop(0, "rgba(220,100,20," + (intensity * 0.55) + ")");
+    grd.addColorStop(0.4, "rgba(180,60,10," + (intensity * 0.25) + ")");
+    grd.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  }
+
+  // ── Main render loop ───────────────────────────────────────────────────────
+  var elapsed = 0;
+
+  function render(now) {
+    animFrame = requestAnimationFrame(render);
+    var dt = Math.min((now - lastTime) / 1000, 0.05);
+    lastTime = now;
+    elapsed += dt;
+
+    // decay stoke
+    if (stokeTimer > 0) {
+      stokeTimer -= dt * 1000;
+      stokeLevel = Math.min(1, stokeTimer / STOKE_DURATION * 2.5);
+    } else {
+      stokeLevel = Math.max(0, stokeLevel - dt * 0.4);
+    }
+
+    // update warmth bar
+    var wPct = 30 + stokeLevel * 65;
+    warmthFill.style.width = wPct + "%";
+
+    // emit particles
+    var emitCount = Math.round(BASE_EMIT + stokeLevel * (STOKE_EMIT - BASE_EMIT));
+    if (particles.length < MAX_PARTICLES) {
+      for (var i = 0; i < emitCount; i++) {
+        if (Math.random() < 0.7 + stokeLevel * 0.3) {
+          particles.push(createParticle(stokeLevel > 0.4));
+        }
+      }
+    }
+    // emit embers occasionally
+    if (Math.random() < 0.15 + stokeLevel * 0.2) {
+      embers.push(createEmber());
+    }
+
+    // clear
+    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+    // bg
+    ctx.fillStyle = dimMode ? "#060508" : "#0d0b0f";
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+    // ambient glow beneath particles
+    drawAmbientGlow(elapsed);
+    drawGround();
+    drawParticles(dt);
+    drawEmbers(dt);
+
+    // vignette
+    var vig = ctx.createRadialGradient(CANVAS_W/2, CANVAS_H/2, CANVAS_H * 0.3, CANVAS_W/2, CANVAS_H/2, CANVAS_H * 0.8);
+    vig.addColorStop(0, "rgba(0,0,0,0)");
+    vig.addColorStop(1, "rgba(0,0,0,0.55)");
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  }
+
+  // ── Audio (WebAudio crackle) ───────────────────────────────────────────────
+  function ensureAudio() {
+    if (audioCtx) return audioCtx;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch(e) {}
+    return audioCtx;
+  }
+
+  function playClick(freq, dur, vol) {
+    var ac = ensureAudio();
+    if (!ac || !soundEnabled) return;
+    try {
+      var buf = ac.createBuffer(1, Math.floor(ac.sampleRate * dur), ac.sampleRate);
+      var data = buf.getChannelData(0);
+      for (var i = 0; i < data.length; i++) {
+        var t2 = i / ac.sampleRate;
+        var env = Math.exp(-t2 * 40);
+        data[i] = (Math.random() * 2 - 1) * env * vol;
+      }
+      var src = ac.createBufferSource();
+      src.buffer = buf;
+      var filter = ac.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = freq;
+      filter.Q.value = 0.8;
+      var gain = ac.createGain();
+      gain.gain.value = 0.35;
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(ac.destination);
+      src.start();
+    } catch(e) {}
+  }
+
+  function playCrackle() {
+    var ac = ensureAudio();
+    if (!ac || !soundEnabled) return;
+    try {
+      var dur = rnd(0.04, 0.12);
+      var buf = ac.createBuffer(1, Math.floor(ac.sampleRate * dur), ac.sampleRate);
+      var data = buf.getChannelData(0);
+      for (var i = 0; i < data.length; i++) {
+        var t2 = i / ac.sampleRate;
+        var env = Math.exp(-t2 * (rnd(25, 60)));
+        var crunch = Math.random() < 0.3 ? (Math.random() * 2 - 1) : 0;
+        data[i] = ((Math.random() * 2 - 1) * 0.7 + crunch * 0.3) * env;
+      }
+      var src = ac.createBufferSource();
+      src.buffer = buf;
+      var hp = ac.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.value = rnd(800, 2200);
+      var gain = ac.createGain();
+      gain.gain.value = (0.12 + stokeLevel * 0.08) * (rnd(0.5, 1.0));
+      src.connect(hp);
+      hp.connect(gain);
+      gain.connect(ac.destination);
+      src.start();
+    } catch(e) {}
+  }
+
+  function playDeepCrackle() {
+    var ac = ensureAudio();
+    if (!ac || !soundEnabled) return;
+    try {
+      var dur = rnd(0.08, 0.22);
+      var buf = ac.createBuffer(1, Math.floor(ac.sampleRate * dur), ac.sampleRate);
+      var data = buf.getChannelData(0);
+      for (var i = 0; i < data.length; i++) {
+        var t2 = i / ac.sampleRate;
+        var env = Math.pow(Math.max(0, 1 - t2 / dur), 2.5);
+        data[i] = (Math.random() * 2 - 1) * env;
+      }
+      var src = ac.createBufferSource();
+      src.buffer = buf;
+      var lp = ac.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.frequency.value = rnd(300, 700);
+      var gain = ac.createGain();
+      gain.gain.value = 0.08 + stokeLevel * 0.06;
+      src.connect(lp);
+      lp.connect(gain);
+      gain.connect(ac.destination);
+      src.start();
+    } catch(e) {}
+  }
+
+  function startAmbientCrackle() {
+    if (crackleInterval) return;
+    crackleInterval = setInterval(function() {
+      if (!soundEnabled) return;
+      var roll = Math.random();
+      if (roll < 0.55) {
+        playCrackle();
+      }
+      if (roll < 0.18) {
+        playDeepCrackle();
+      }
+    }, rnd(180, 520));
+  }
+
+  function stopAmbientCrackle() {
+    if (crackleInterval) {
+      clearInterval(crackleInterval);
+      crackleInterval = null;
+    }
+  }
+
+  // ── Stoke action ──────────────────────────────────────────────────────────
+  function stokeFire() {
+    stokeTimer = STOKE_DURATION;
+    stokeLevel = 1.0;
+    statLogs++;
+    saveStats();
+    updateStatsDisplay();
+    canvas.classList.add("stoked");
+    setTimeout(function() { canvas.classList.remove("stoked"); }, STOKE_DURATION);
+    // burst of embers
+    for (var i = 0; i < 12; i++) {
+      embers.push(createEmber());
+    }
+    // sound
+    playClick(300, 0.15, 0.9);
+    setTimeout(function() { playClick(500, 0.08, 0.5); }, 80);
+    setTimeout(function() { playDeepCrackle(); }, 120);
+    ensureAudio();
+    startAmbientCrackle();
+  }
+
+  // ── Minute tracker ────────────────────────────────────────────────────────
+  function updateMinutes() {
+    statMins = Math.floor((Date.now() - sessionStart) / 60000);
+    updateStatsDisplay();
+  }
+
+  // ── Event listeners ───────────────────────────────────────────────────────
+  addWoodBtn.addEventListener("click", function(e) {
+    e.stopPropagation();
+    stokeFire();
+  });
+
+  canvas.addEventListener("click", function() {
+    stokeFire();
+  });
+
+  soundBtn.addEventListener("click", function() {
+    soundEnabled = !soundEnabled;
+    soundBtn.classList.toggle("active", soundEnabled);
+    soundBtn.textContent = soundEnabled ? "🔊 声音" : "🔇 静音";
+    if (soundEnabled) {
+      ensureAudio();
+      startAmbientCrackle();
+    } else {
+      stopAmbientCrackle();
+    }
+  });
+
+  dimBtn.addEventListener("click", function() {
+    dimMode = !dimMode;
+    dimBtn.classList.toggle("active", dimMode);
+    document.body.style.background = dimMode ? "#050407" : "#0a0a0f";
+  });
+
+  // Canvas resize for mobile
+  function resizeCanvas() {
+    var maxW = Math.min(window.innerWidth - 40, 340);
+    var scale = maxW / 340;
+    canvas.style.width = maxW + "px";
+    canvas.style.height = Math.round(320 * scale) + "px";
+  }
+
+  window.addEventListener("resize", resizeCanvas);
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  loadStats();
+  updateStatsDisplay();
+  resizeCanvas();
+
+  // seed initial particles
+  for (var i = 0; i < 40; i++) {
+    var p = createParticle(false);
+    p.life = rnd(0.1, p.maxLife);
+    p.y -= rnd(0, 120);
+    particles.push(p);
+  }
+
+  lastTime = performance.now();
+  animFrame = requestAnimationFrame(render);
+  startAmbientCrackle();
+  setInterval(updateMinutes, 15000);
+
+})();
+</script>
+</body>
+</html>
