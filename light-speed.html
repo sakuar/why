@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>光速旅行计算器</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #06060f;
+    --bg2: #0d0d1f;
+    --bg3: #13132a;
+    --card: #161630;
+    --card2: #1e1e40;
+    --border: #2a2a55;
+    --accent: #7c6af7;
+    --accent2: #a78bfa;
+    --accent3: #38bdf8;
+    --gold: #fbbf24;
+    --text: #e8e8f5;
+    --text2: #9090b8;
+    --text3: #5a5a88;
+    --green: #34d399;
+    --pink: #f472b6;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* 星空背景 */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 20%, rgba(124,106,247,0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(56,189,248,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(30,30,64,0.6) 0%, transparent 80%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .stars {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .star {
+    position: absolute;
+    border-radius: 50%;
+    background: white;
+    animation: twinkle var(--dur, 3s) ease-in-out infinite;
+    animation-delay: var(--delay, 0s);
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: var(--min-op, 0.2); transform: scale(1); }
+    50% { opacity: var(--max-op, 1); transform: scale(1.3); }
+  }
+
+  /* 返回链接 */
+  .back-link {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 100;
+    color: var(--text3);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: rgba(13,13,31,0.8);
+    backdrop-filter: blur(10px);
+    transition: all 0.2s;
+  }
+  .back-link:hover { color: var(--text2); border-color: var(--accent); }
+
+  /* 主容器 */
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 80px 20px 60px;
+  }
+
+  /* 标题区 */
+  .hero {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .hero-icon {
+    font-size: 56px;
+    margin-bottom: 16px;
+    display: block;
+    animation: float 4s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .hero h1 {
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff 0%, var(--accent2) 50%, var(--accent3) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+  }
+
+  .hero p {
+    color: var(--text2);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* 光速数据条 */
+  .lightspeed-bar {
+    background: linear-gradient(135deg, var(--card) 0%, var(--card2) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .ls-label {
+    color: var(--text2);
+    font-size: 13px;
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .ls-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent2);
+    white-space: nowrap;
+  }
+
+  .ls-sub {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  .beam-anim {
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    min-width: 80px;
+  }
+
+  .beam-inner {
+    height: 100%;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, var(--accent2), var(--accent3), transparent);
+    border-radius: 3px;
+    animation: beam 1.5s linear infinite;
+  }
+
+  @keyframes beam {
+    0% { transform: translateX(-200%); }
+    100% { transform: translateX(400%); }
+  }
+
+  /* 目的地选择 */
+  .section-label {
+    font-size: 13px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+
+  .destinations {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .dest-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 14px;
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(.34,1.56,.64,1);
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .dest-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    opacity: 0;
+    transition: opacity 0.22s;
+  }
+
+  .dest-card:hover {
+    transform: translateY(-3px) scale(1.02);
+    border-color: var(--accent);
+  }
+
+  .dest-card:hover::before { opacity: 0.08; }
+
+  .dest-card.active {
+    border-color: var(--accent2);
+    background: var(--card2);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 0 0 1px var(--accent), 0 8px 32px rgba(124,106,247,0.25);
+  }
+
+  .dest-card.active::before { opacity: 0.12; }
+
+  .dest-emoji {
+    font-size: 28px;
+    margin-bottom: 8px;
+    position: relative;
+  }
+
+  .dest-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    position: relative;
+  }
+
+  .dest-dist {
+    font-size: 11px;
+    color: var(--text3);
+    position: relative;
+  }
+
+  .dest-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background: rgba(251,191,36,0.15);
+    color: var(--gold);
+    border: 1px solid rgba(251,191,36,0.3);
+    font-weight: 600;
+  }
+
+  /* 自定义输入 */
+  .custom-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 32px;
+  }
+
+  .custom-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .custom-row label {
+    font-size: 13px;
+    color: var(--text2);
+    white-space: nowrap;
+  }
+
+  .custom-input {
+    flex: 1;
+    min-width: 120px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .custom-input:focus { border-color: var(--accent); }
+
+  .unit-select {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .unit-select:focus { border-color: var(--accent); }
+
+  .calc-btn {
+    background: linear-gradient(135deg, var(--accent) 0%, #5b4fcf 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+
+  .calc-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(124,106,247,0.4); }
+  .calc-btn:active { transform: translateY(0); }
+
+  /* 结果面板 */
+  .result-panel {
+    background: linear-gradient(135deg, var(--card) 0%, var(--card2) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 32px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.4s cubic-bezier(.34,1.2,.64,1);
+    pointer-events: none;
+  }
+
+  .result-panel.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .result-emoji { font-size: 40px; }
+
+  .result-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .result-subtitle {
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 3px;
+  }
+
+  /* 光速时间 - 主要数字 */
+  .light-time-box {
+    background: linear-gradient(135deg, rgba(124,106,247,0.15) 0%, rgba(56,189,248,0.1) 100%);
+    border: 1px solid rgba(124,106,247,0.3);
+    border-radius: var(--radius-sm);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .light-time-label {
+    font-size: 12px;
+    color: var(--accent2);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+
+  .light-time-value {
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent2), var(--accent3));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+  }
+
+  .light-time-sub {
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 8px;
+  }
+
+  /* 对比卡片 */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .compare-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .compare-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .compare-card.plane::after { background: linear-gradient(90deg, var(--accent3), #60a5fa); }
+  .compare-card.train::after { background: linear-gradient(90deg, var(--green), #6ee7b7); }
+  .compare-card.walk::after { background: linear-gradient(90deg, var(--gold), #fde68a); }
+  .compare-card.rocket::after { background: linear-gradient(90deg, var(--pink), #fb7185); }
+
+  .compare-icon { font-size: 22px; margin-bottom: 8px; }
+
+  .compare-label {
+    font-size: 12px;
+    color: var(--text3);
+    margin-bottom: 6px;
+  }
+
+  .compare-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .compare-speed {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 4px;
+  }
+
+  /* 进度条对比 */
+  .scale-section {
+    margin-top: 20px;
+  }
+
+  .scale-title {
+    font-size: 12px;
+    color: var(--text3);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .scale-bar-wrap {
+    margin-bottom: 10px;
+  }
+
+  .scale-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 5px;
+  }
+
+  .scale-bar-track {
+    height: 8px;
+    background: var(--bg3);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .scale-bar-fill {
+    height: 100%;
+    border-radius: 8px;
+    transition: width 0.8s cubic-bezier(.34,1.2,.64,1);
+    width: 0;
+  }
+
+  .fill-light { background: linear-gradient(90deg, var(--accent), var(--accent3)); }
+  .fill-plane { background: linear-gradient(90deg, var(--accent3), #60a5fa); }
+  .fill-train { background: linear-gradient(90deg, var(--green), #6ee7b7); }
+  .fill-rocket { background: linear-gradient(90deg, var(--pink), #fb7185); }
+
+  /* 趣味事实 */
+  .fun-fact {
+    background: rgba(251,191,36,0.08);
+    border: 1px solid rgba(251,191,36,0.2);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  .fun-fact strong { color: var(--gold); }
+
+  /* 历史记录 */
+  .history-section {
+    margin-top: 32px;
+  }
+
+  .history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .clear-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text3);
+    font-size: 12px;
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+
+  .clear-btn:hover { color: var(--pink); border-color: var(--pink); }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .history-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .history-item:hover { border-color: var(--accent); background: var(--card2); }
+
+  .history-emoji { font-size: 20px; }
+
+  .history-info { flex: 1; }
+
+  .history-name { font-size: 13px; font-weight: 600; color: var(--text); }
+
+  .history-time { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .history-light { font-size: 12px; color: var(--accent2); font-weight: 600; }
+
+  /* 响应式 */
+  @media (max-width: 500px) {
+    .destinations { grid-template-columns: repeat(2, 1fr); }
+    .compare-grid { grid-template-columns: 1fr 1fr; }
+    .container { padding: 70px 16px 40px; }
+  }
+
+  /* 脉冲动画 */
+  @keyframes pulse-ring {
+    0% { transform: scale(0.8); opacity: 1; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+
+  .pulse-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    position: relative;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  .pulse-dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse-ring 1.5s ease-out infinite;
+  }
+
+  /* 无历史提示 */
+  .no-history {
+    text-align: center;
+    color: var(--text3);
+    font-size: 13px;
+    padding: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="stars" id="starsContainer"></div>
+
+<a href="index.html" class="back-link">← 入口</a>
+
+<div class="container">
+  <div class="hero">
+    <span class="hero-icon">🚀</span>
+    <h1>光速旅行计算器</h1>
+    <p>选择宇宙目的地，感受光速的极限与宇宙的辽阔</p>
+  </div>
+
+  <!-- 光速数据条 -->
+  <div class="lightspeed-bar">
+    <div style="flex:1;min-width:140px">
+      <div class="ls-label"><span class="pulse-dot"></span>宇宙速度极限</div>
+      <div class="ls-value">299,792 km/s</div>
+      <div class="ls-sub">约 30 万公里每秒</div>
+    </div>
+    <div class="beam-anim"><div class="beam-inner"></div></div>
+    <div style="text-align:right;min-width:120px">
+      <div class="ls-label" style="text-align:right">绕地球一圈仅需</div>
+      <div class="ls-value">0.133 秒</div>
+      <div class="ls-sub">相当于眨眼的 1/30</div>
+    </div>
+  </div>
+
+  <!-- 目的地选择 -->
+  <div class="section-label">选择目的地</div>
+  <div class="destinations" id="destinationsGrid"></div>
+
+  <!-- 自定义距离 -->
+  <div class="custom-section">
+    <div class="section-label" style="margin-bottom:12px">自定义距离</div>
+    <div class="custom-row">
+      <label>距离：</label>
+      <input type="number" class="custom-input" id="customDist" placeholder="输入数值" min="0" step="any">
+      <select class="unit-select" id="customUnit">
+        <option value="km">公里 (km)</option>
+        <option value="au">天文单位 (AU)</option>
+        <option value="ly">光年 (ly)</option>
+      </select>
+      <button class="calc-btn" id="customCalcBtn">计算</button>
+    </div>
+  </div>
+
+  <!-- 结果面板 -->
+  <div class="result-panel" id="resultPanel">
+    <div class="result-header">
+      <div class="result-emoji" id="resEmoji">🌕</div>
+      <div>
+        <div class="result-title" id="resTitle">月球</div>
+        <div class="result-subtitle" id="resSubtitle">距离：384,400 km</div>
+      </div>
+    </div>
+
+    <div class="light-time-box">
+      <div class="light-time-label">⚡ 以光速抵达需要</div>
+      <div class="light-time-value" id="resLightTime">1.28 秒</div>
+      <div class="light-time-sub" id="resLightSub">光子从地球出发，眨眼即到</div>
+    </div>
+
+    <div class="compare-grid">
+      <div class="compare-card plane">
+        <div class="compare-icon">✈️</div>
+        <div class="compare-label">民航飞机 (900 km/h)</div>
+        <div class="compare-value" id="resPlane">—</div>
+        <div class="compare-speed" id="resPlaneSub"></div>
+      </div>
+      <div class="compare-card train">
+        <div class="compare-icon">🚄</div>
+        <div class="compare-label">高铁 (350 km/h)</div>
+        <div class="compare-value" id="resTrain">—</div>
+        <div class="compare-speed" id="resTrainSub"></div>
+      </div>
+      <div class="compare-card rocket">
+        <div class="compare-icon">🛸</div>
+        <div class="compare-label">旅行者号 (17 km/s)</div>
+        <div class="compare-value" id="resRocket">—</div>
+        <div class="compare-speed" id="resRocketSub"></div>
+      </div>
+      <div class="compare-card walk">
+        <div class="compare-icon">🚶</div>
+        <div class="compare-label">步行 (5 km/h)</div>
+        <div class="compare-value" id="resWalk">—</div>
+        <div class="compare-speed" id="resWalkSub"></div>
+      </div>
+    </div>
+
+    <div class="scale-section">
+      <div class="scale-title">速度对比（以光速为基准）</div>
+      <div class="scale-bar-wrap">
+        <div class="scale-bar-label"><span>⚡ 光速</span><span>100%</span></div>
+        <div class="scale-bar-track"><div class="scale-bar-fill fill-light" id="barLight" style="width:100%"></div></div>
+      </div>
+      <div class="scale-bar-wrap">
+        <div class="scale-bar-label"><span>🛸 旅行者号</span><span id="barRocketPct">—</span></div>
+        <div class="scale-bar-track"><div class="scale-bar-fill fill-rocket" id="barRocket"></div></div>
+      </div>
+      <div class="scale-bar-wrap">
+        <div class="scale-bar-label"><span>✈️ 飞机</span><span id="barPlanePct">—</span></div>
+        <div class="scale-bar-track"><div class="scale-bar-fill fill-plane" id="barPlane"></div></div>
+      </div>
+      <div class="scale-bar-wrap">
+        <div class="scale-bar-label"><span>🚄 高铁</span><span id="barTrainPct">—</span></div>
+        <div class="scale-bar-track"><div class="scale-bar-fill fill-train" id="barTrain"></div></div>
+      </div>
+    </div>
+
+    <div class="fun-fact" id="resFunFact">
+      <strong>🌟 趣味事实：</strong>这段旅程中，光已经走完了。
+    </div>
+  </div>
+
+  <!-- 历史记录 -->
+  <div class="history-section" id="historySection">
+    <div class="history-header">
+      <div class="section-label" style="margin-bottom:0">查询历史</div>
+      <button class="clear-btn" id="clearHistoryBtn">清空</button>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  // ── 常量 ──────────────────────────────────────────────────
+  var C_KM_S = 299792.458;          // 光速 km/s
+  var PLANE_KM_H = 900;             // 飞机 km/h
+  var TRAIN_KM_H = 350;             // 高铁 km/h
+  var WALK_KM_H = 5;                // 步行 km/h
+  var VOYAGER_KM_S = 17;            // 旅行者号 km/s
+  var KM_PER_AU = 149597870.7;      // 1天文单位 km
+  var KM_PER_LY = 9.461e12;         // 1光年 km
+
+  var SECS_MIN = 60;
+  var SECS_HOUR = 3600;
+  var SECS_DAY = 86400;
+  var SECS_YEAR = 365.25 * SECS_DAY;
+
+  var STORAGE_KEY = "lightspeed_history";
+  var MAX_HISTORY = 10;
+
+  // ── 目的地数据 ────────────────────────────────────────────
+  var DESTINATIONS = [
+    {
+      id: "moon",
+      name: "月球",
+      emoji: "🌕",
+      km: 384400,
+      badge: null,
+      fact: "月球是地球唯一的天然卫星，人类已于1969年登月。光从地球到月球仅需1.28秒，而阿波罗飞船用了约3天。"
+    },
+    {
+      id: "sun",
+      name: "太阳",
+      emoji: "☀️",
+      km: 149597870.7,
+      badge: "1 AU",
+      fact: "1天文单位（AU）就是地球到太阳的平均距离。我们看到的太阳光，其实是8分多钟前发出的！"
+    },
+    {
+      id: "mars",
+      name: "火星",
+      emoji: "🔴",
+      km: 225e6,
+      badge: null,
+      fact: "火星是人类下一个探索目标。距离随轨道变化很大（约5600万~4亿km），此处取平均值约2.25亿km。"
+    },
+    {
+      id: "jupiter",
+      name: "木星",
+      emoji: "🪐",
+      km: 778500000,
+      badge: null,
+      fact: "木星是太阳系最大行星，光到达它需43分钟。伽利略探测器飞了6年才抵达。"
+    },
+    {
+      id: "saturn",
+      name: "土星",
+      emoji: "💍",
+      km: 1432e6,
+      badge: null,
+      fact: "土星以其壮观的光环闻名，光到达它需1小时20分钟。旅行者1号用了3年多飞抵。"
+    },
+    {
+      id: "pluto",
+      name: "冥王星",
+      emoji: "🪨",
+      km: 5906e6,
+      badge: "矮行星",
+      fact: "冥王星虽已降级为矮行星，但光到达它需约5.5小时。新视野号探测器飞了整整9年半！"
+    },
+    {
+      id: "voyager",
+      name: "旅行者1号",
+      emoji: "🛸",
+      km: 23.4e9,
+      badge: "最远",
+      fact: "旅行者1号于1977年发射，是目前距地球最远的人造飞行器，已飞出太阳系，光到达它需约21.7小时。"
+    },
+    {
+      id: "proxima",
+      name: "比邻星",
+      emoji: "⭐",
+      km: 4.0175e13,
+      badge: "最近恒星",
+      fact: "比邻星是离太阳最近的恒星，距离约4.24光年。即使乘坐当前最快的飞船，也需要数万年才能到达！"
+    },
+    {
+      id: "sirius",
+      name: "天狼星",
+      emoji: "💫",
+      km: 8.14e13,
+      badge: null,
+      fact: "天狼星是夜空中最亮的恒星，距离约8.6光年。你现在看到的天狼星，其实是8.6年前的样子。"
+    },
+    {
+      id: "andromeda",
+      name: "仙女星系",
+      emoji: "🌌",
+      km: 2.365e19,
+      badge: "邻近星系",
+      fact: "仙女星系距地球约250万光年，是肉眼可见最远的天体之一。我们看到的是250万年前的光！"
+    },
+    {
+      id: "observable",
+      name: "可观测宇宙边界",
+      emoji: "🔭",
+      km: 4.4e23,
+      badge: "极限",
+      fact: "可观测宇宙半径约465亿光年（因宇宙膨胀），即使以光速出发，也永远无法到达宇宙边界——因为空间本身在膨胀！"
+    }
+  ];
+
+  // ── DOM 引用 ──────────────────────────────────────────────
+  var destGrid = document.getElementById("destinationsGrid");
+  var customDist = document.getElementById("customDist");
+  var customUnit = document.getElementById("customUnit");
+  var customCalcBtn = document.getElementById("customCalcBtn");
+  var resultPanel = document.getElementById("resultPanel");
+  var resEmoji = document.getElementById("resEmoji");
+  var resTitle = document.getElementById("resTitle");
+  var resSubtitle = document.getElementById("resSubtitle");
+  var resLightTime = document.getElementById("resLightTime");
+  var resLightSub = document.getElementById("resLightSub");
+  var resPlane = document.getElementById("resPlane");
+  var resPlaneSub = document.getElementById("resPlaneSub");
+  var resTrain = document.getElementById("resTrain");
+  var resTrainSub = document.getElementById("resTrainSub");
+  var resRocket = document.getElementById("resRocket");
+  var resRocketSub = document.getElementById("resRocketSub");
+  var resWalk = document.getElementById("resWalk");
+  var resWalkSub = document.getElementById("resWalkSub");
+  var resFunFact = document.getElementById("resFunFact");
+  var historyList = document.getElementById("historyList");
+  var clearHistoryBtn = document.getElementById("clearHistoryBtn");
+  var barLight = document.getElementById("barLight");
+  var barRocket = document.getElementById("barRocket");
+  var barPlane = document.getElementById("barPlane");
+  var barTrain = document.getElementById("barTrain");
+  var barRocketPct = document.getElementById("barRocketPct");
+  var barPlanePct = document.getElementById("barPlanePct");
+  var barTrainPct = document.getElementById("barTrainPct");
+  var starsContainer = document.getElementById("starsContainer");
+
+  // ── 工具函数 ──────────────────────────────────────────────
+  function formatDuration(seconds) {
+    if (seconds < 1) {
+      return (seconds * 1000).toFixed(2) + " 毫秒";
+    } else if (seconds < SECS_MIN) {
+      return seconds.toFixed(2) + " 秒";
+    } else if (seconds < SECS_HOUR) {
+      var m = Math.floor(seconds / SECS_MIN);
+      var s = Math.round(seconds % SECS_MIN);
+      return m + " 分 " + s + " 秒";
+    } else if (seconds < SECS_DAY) {
+      var h = Math.floor(seconds / SECS_HOUR);
+      var mm = Math.round((seconds % SECS_HOUR) / SECS_MIN);
+      return h + " 小时 " + mm + " 分";
+    } else if (seconds < SECS_YEAR) {
+      var d = Math.floor(seconds / SECS_DAY);
+      var hh = Math.round((seconds % SECS_DAY) / SECS_HOUR);
+      return d + " 天 " + hh + " 小时";
+    } else if (seconds < SECS_YEAR * 1000) {
+      var y = seconds / SECS_YEAR;
+      if (y < 10) return y.toFixed(2) + " 年";
+      if (y < 100) return y.toFixed(1) + " 年";
+      return Math.round(y).toLocaleString() + " 年";
+    } else if (seconds < SECS_YEAR * 1e9) {
+      var yy = seconds / SECS_YEAR;
+      if (yy < 1e6) return Math.round(yy).toLocaleString() + " 年";
+      return (yy / 1e4).toFixed(1) + " 万年";
+    } else {
+      var yyy = seconds / SECS_YEAR;
+      return (yyy / 1e8).toFixed(2) + " 亿年";
+    }
+  }
+
+  function formatKm(km) {
+    if (km < 1e6) return km.toLocaleString() + " km";
+    if (km < KM_PER_AU) return (km / 1e4).toFixed(1) + " 万 km";
+    if (km < KM_PER_LY) {
+      var au = km / KM_PER_AU;
+      if (au < 100) return au.toFixed(2) + " AU";
+      return Math.round(au).toLocaleString() + " AU";
+    }
+    var ly = km / KM_PER_LY;
+    if (ly < 1000) return ly.toFixed(2) + " 光年";
+    if (ly < 1e6) return (ly / 1e4).toFixed(1) + " 万光年";
+    return (ly / 1e6).toFixed(2) + " 百万光年";
+  }
+
+  function formatPct(ratio) {
+    if (ratio >= 0.01) return (ratio * 100).toFixed(4) + "%";
+    if (ratio >= 1e-6) return (ratio * 100).toFixed(8) + "%";
+    return ratio.toExponential(2) + " 倍";
+  }
+
+  function getLightSubtext(secs) {
+    if (secs < 1) return "光子瞬间抵达，连眨眼都来不及";
+    if (secs < 10) return "光子眨眼间完成旅程";
+    if (secs < 60) return "光子轻松抵达，人类望尘莫及";
+    if (secs < 3600) return "光子几分钟内完成，人类需要数年";
+    if (secs < SECS_DAY) return "光子当天即到，飞船需要数年";
+    if (secs < SECS_YEAR) return "光子不到一年，人类几乎无法企及";
+    var y = secs / SECS_YEAR;
+    if (y < 10) return "跨越 " + y.toFixed(2) + " 光年，人类文明无法抵达";
+    return "穿越 " + y.toFixed(0) + " 光年的宇宙深渊";
+  }
+
+  // ── 星空生成 ──────────────────────────────────────────────
+  function createStars() {
+    var fragment = document.createDocumentFragment();
+    for (var i = 0; i < 120; i++) {
+      var star = document.createElement("div");
+      star.className = "star";
+      var size = Math.random() * 2.5 + 0.5;
+      star.style.cssText = [
+        "width:" + size + "px",
+        "height:" + size + "px",
+        "left:" + (Math.random() * 100) + "%",
+        "top:" + (Math.random() * 100) + "%",
+        "--dur:" + (Math.random() * 4 + 2) + "s",
+        "--delay:" + (Math.random() * 5) + "s",
+        "--min-op:" + (Math.random() * 0.3 + 0.1),
+        "--max-op:" + (Math.random() * 0.5 + 0.5)
+      ].join(";");
+      fragment.appendChild(star);
+    }
+    starsContainer.appendChild(fragment);
+  }
+
+  // ── 渲染目的地卡片 ─────────────────────────────────────────
+  function renderDestinations() {
+    var fragment = document.createDocumentFragment();
+    DESTINATIONS.forEach(function(dest) {
+      var card = document.createElement("div");
+      card.className = "dest-card";
+      card.dataset.id = dest.id;
+      var badgeHtml = dest.badge
+        ? '<div class="dest-badge">' + dest.badge + '</div>'
+        : '';
+      card.innerHTML =
+        badgeHtml +
+        '<div class="dest-emoji">' + dest.emoji + '</div>' +
+        '<div class="dest-name">' + dest.name + '</div>' +
+        '<div class="dest-dist">' + formatKm(dest.km) + '</div>';
+      card.addEventListener("click", function() {
+        selectDestination(dest.id);
+      });
+      fragment.appendChild(card);
+    });
+    destGrid.appendChild(fragment);
+  }
+
+  // ── 选中目的地 ────────────────────────────────────────────
+  function selectDestination(id) {
+    var dest = null;
+    for (var i = 0; i < DESTINATIONS.length; i++) {
+      if (DESTINATIONS[i].id === id) { dest = DESTINATIONS[i]; break; }
+    }
+    if (!dest) return;
+
+    var cards = destGrid.querySelectorAll(".dest-card");
+    cards.forEach(function(c) {
+      c.classList.toggle("active", c.dataset.id === id);
+    });
+
+    showResult(dest.emoji, dest.name, dest.km, dest.fact);
+    saveHistory({ emoji: dest.emoji, name: dest.name, km: dest.km });
+  }
+
+  // ── 显示结果 ──────────────────────────────────────────────
+  function showResult(emoji, name, km, fact) {
+    var lightSecs = km / C_KM_S;
+    var planeSecs = (km / PLANE_KM_H) * 3600;
+    var trainSecs = (km / TRAIN_KM_H) * 3600;
+    var walkSecs = (km / WALK_KM_H) * 3600;
+    var rocketSecs = km / VOYAGER_KM_S;
+
+    resEmoji.textContent = emoji;
+    resTitle.textContent = name;
+    resSubtitle.textContent = "距离：" + formatKm(km);
+    resLightTime.textContent = formatDuration(lightSecs);
+    resLightSub.textContent = getLightSubtext(lightSecs);
+
+    resPlane.textContent = formatDuration(planeSecs);
+    resPlaneSub.textContent = "900 km/h · 光速的 " + (PLANE_KM_H / 3.6 / C_KM_S * 100).toFixed(7) + "%";
+    resTrain.textContent = formatDuration(trainSecs);
+    resTrainSub.textContent = "350 km/h · 光速的 " + (TRAIN_KM_H / 3.6 / C_KM_S * 100).toFixed(7) + "%";
+    resRocket.textContent = formatDuration(rocketSecs);
+    resRocketSub.textContent = "17 km/s · 光速的 " + (VOYAGER_KM_S / C_KM_S * 100).toFixed(5) + "%";
+    resWalk.textContent = formatDuration(walkSecs);
+    resWalkSub.textContent = "5 km/h · 极其漫长的旅程";
+
+    var factText = fact || ("光从地球飞向" + name + "，用了" + formatDuration(lightSecs) + "。");
+    resFunFact.innerHTML = "<strong>🌟 趣味事实：</strong>" + factText;
+
+    // 进度条
+    var rocketRatio = VOYAGER_KM_S / C_KM_S;
+    var planeRatio = (PLANE_KM_H / 3.6) / C_KM_S;
+    var trainRatio = (TRAIN_KM_H / 3.6) / C_KM_S;
+
+    var LOG_MIN = Math.log10(trainRatio);
+    var LOG_MAX = 0;
+
+    function logPct(ratio) {
+      if (ratio <= 0) return 0;
+      var logVal = Math.log10(ratio);
+      var p = (logVal - LOG_MIN) / (LOG_MAX - LOG_MIN) * 100;
+      return Math.max(1, Math.min(100, p));
+    }
+
+    barRocketPct.textContent = formatPct(rocketRatio);
+    barPlanePct.textContent = formatPct(planeRatio);
+    barTrainPct.textContent = formatPct(trainRatio);
+
+    setTimeout(function() {
+      barLight.style.width = "100%";
+      barRocket.style.width = logPct(rocketRatio) + "%";
+      barPlane.style.width = logPct(planeRatio) + "%";
+      barTrain.style.width = logPct(trainRatio) + "%";
+    }, 50);
+
+    resultPanel.classList.add("visible");
+    resultPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  // ── 历史记录 ──────────────────────────────────────────────
+  function loadHistory() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveHistory(item) {
+    var history = loadHistory();
+    var entry = {
+      emoji: item.emoji,
+      name: item.name,
+      km: item.km,
+      lightTime: formatDuration(item.km / C_KM_S),
+      ts: Date.now()
+    };
+    history.unshift(entry);
+    if (history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    } catch (e) {}
+    renderHistory();
+  }
+
+  function renderHistory() {
+    var history = loadHistory();
+    if (history.length === 0) {
+      historyList.innerHTML = '<div class="no-history">暂无查询记录，快选一个目的地吧 ✨</div>';
+      return;
+    }
+    var html = "";
+    history.forEach(function(item) {
+      var date = new Date(item.ts);
+      var dateStr = (date.getMonth() + 1) + "/" + date.getDate() + " " +
+        date.getHours() + ":" + String(date.getMinutes()).padStart(2, "0");
+      html +=
+        '<div class="history-item" data-km="' + item.km + '" data-name="' + item.name + '" data-emoji="' + item.emoji + '">' +
+        '<div class="history-emoji">' + item.emoji + '</div>' +
+        '<div class="history-info">' +
+        '<div class="history-name">' + item.name + '</div>' +
+        '<div class="history-time">' + dateStr + ' · ' + formatKm(item.km) + '</div>' +
+        '</div>' +
+        '<div class="history-light">⚡ ' + item.lightTime + '</div>' +
+        '</div>';
+    });
+    historyList.innerHTML = html;
+
+    historyList.querySelectorAll(".history-item").forEach(function(el) {
+      el.addEventListener("click", function() {
+        var km = parseFloat(el.dataset.km);
+        var name = el.dataset.name;
+        var emoji = el.dataset.emoji;
+        showResult(emoji, name, km, "");
+      });
+    });
+  }
+
+  // ── 自定义计算 ────────────────────────────────────────────
+  function handleCustomCalc() {
+    var val = parseFloat(customDist.value);
+    if (isNaN(val) || val <= 0) {
+      customDist.style.borderColor = "#f87171";
+      setTimeout(function() { customDist.style.borderColor = ""; }, 1000);
+      return;
+    }
+    var unit = customUnit.value;
+    var km;
+    if (unit === "km") km = val;
+    else if (unit === "au") km = val * KM_PER_AU;
+    else km = val * KM_PER_LY;
+
+    var unitLabel = unit === "km" ? "km" : unit === "au" ? " AU" : " 光年";
+    var name = val + unitLabel + " 外";
+
+    var cards = destGrid.querySelectorAll(".dest-card");
+    cards.forEach(function(c) { c.classList.remove("active"); });
+
+    showResult("📍", name, km, "");
+    saveHistory({ emoji: "📍", name: name, km: km });
+    customDist.value = "";
+  }
+
+  // ── 事件绑定 ──────────────────────────────────────────────
+  customCalcBtn.addEventListener("click", handleCustomCalc);
+  customDist.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") handleCustomCalc();
+  });
+  clearHistoryBtn.addEventListener("click", function() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    renderHistory();
+  });
+
+  // ── 初始化（最后执行）────────────────────────────────────
+  createStars();
+  renderDestinations();
+  renderHistory();
+
+  // 默认选中月球
+  selectDestination("moon");
+
+})();
+</script>
+</body>
+</html>
