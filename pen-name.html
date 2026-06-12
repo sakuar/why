@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>笔名生成器</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f4ef;
+    --surface: #ffffff;
+    --surface2: #f0ece5;
+    --primary: #7c6248;
+    --primary-light: #a08060;
+    --accent: #c9956c;
+    --accent2: #8fa68e;
+    --text: #3a2e24;
+    --text-muted: #8a7a6a;
+    --border: #e0d8ce;
+    --shadow: 0 4px 24px rgba(100,80,60,0.10);
+    --radius: 16px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  .back-link {
+    display: inline-block;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+    margin-bottom: 18px;
+    opacity: 0.75;
+    transition: opacity 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .back-link:hover { opacity: 1; }
+
+  .container {
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--primary);
+    margin-bottom: 6px;
+  }
+  .header p {
+    font-size: 14px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+  .brush-icon {
+    font-size: 36px;
+    margin-bottom: 8px;
+    display: block;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .style-section {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+  .style-section label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .style-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  @media (min-width: 400px) {
+    .style-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .style-btn {
+    padding: 10px 6px;
+    border-radius: var(--radius-sm);
+    border: 2px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    letter-spacing: 0.03em;
+    user-select: none;
+  }
+  .style-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: #fdf6f0;
+    transform: translateY(-1px);
+  }
+  .style-btn.active {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 12px rgba(124,98,72,0.25);
+  }
+  .style-btn .btn-emoji { display: block; font-size: 18px; margin-bottom: 2px; }
+
+  .generate-area {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .generate-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 40px;
+    border-radius: 50px;
+    border: none;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: #fff;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    box-shadow: 0 4px 20px rgba(124,98,72,0.30);
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+  .generate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(124,98,72,0.40);
+  }
+  .generate-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(124,98,72,0.25);
+  }
+  .generate-btn.spinning .btn-spin {
+    animation: spin 0.4s linear;
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .btn-spin { display: inline-block; }
+
+  .result-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 28px 24px 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    text-align: center;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .result-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--accent), var(--accent2));
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .result-name {
+    font-size: 42px;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: 0.15em;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+    line-height: 1.2;
+  }
+  .result-name.animate {
+    animation: nameIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes nameIn {
+    from { opacity: 0; transform: scale(0.8) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .result-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    margin-bottom: 16px;
+    min-height: 18px;
+  }
+  .result-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .copy-btn {
+    padding: 8px 22px;
+    border-radius: 50px;
+    border: 2px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.04em;
+  }
+  .copy-btn:hover {
+    background: var(--accent);
+    color: #fff;
+    transform: scale(1.04);
+  }
+  .copy-btn.copied {
+    background: var(--accent2);
+    border-color: var(--accent2);
+    color: #fff;
+  }
+  .style-tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 50px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+
+  .history-section {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+  .history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .history-header span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .clear-btn {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color 0.2s;
+  }
+  .clear-btn:hover { color: #c0392b; }
+  .history-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 32px;
+  }
+  .history-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 50px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    animation: chipIn 0.25s ease;
+    letter-spacing: 0.04em;
+  }
+  @keyframes chipIn {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .history-chip:hover {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+    transform: translateY(-1px);
+  }
+  .history-chip .chip-style {
+    font-size: 10px;
+    opacity: 0.6;
+  }
+  .empty-hint {
+    font-size: 13px;
+    color: var(--text-muted);
+    opacity: 0.6;
+    padding: 4px 0;
+    font-style: italic;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(60,45,30,0.88);
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 50px;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    pointer-events: none;
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="index.html" class="back-link">← 入口</a>
+
+  <div class="header">
+    <span class="brush-icon">✒️</span>
+    <h1>笔名生成器</h1>
+    <p>生成有意境的中文笔名 · 网名</p>
+  </div>
+
+  <div class="style-section">
+    <label>选择风格</label>
+    <div class="style-grid">
+      <button class="style-btn active" data-style="古风" id="btn-古风">
+        <span class="btn-emoji">🏯</span>古风
+      </button>
+      <button class="style-btn" data-style="中二" id="btn-中二">
+        <span class="btn-emoji">⚔️</span>中二
+      </button>
+      <button class="style-btn" data-style="小清新" id="btn-小清新">
+        <span class="btn-emoji">🌿</span>小清新
+      </button>
+      <button class="style-btn" data-style="文艺" id="btn-文艺">
+        <span class="btn-emoji">📖</span>文艺
+      </button>
+    </div>
+  </div>
+
+  <div class="generate-area">
+    <button class="generate-btn" id="generateBtn">
+      <span class="btn-spin" id="btnSpin">✨</span>
+      生成笔名
+    </button>
+  </div>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-name" id="resultName">——</div>
+    <div class="result-desc" id="resultDesc">点击生成按钮，获得专属笔名</div>
+    <div class="result-actions">
+      <span class="style-tag" id="resultStyle">-</span>
+      <button class="copy-btn" id="copyBtn">复制</button>
+    </div>
+  </div>
+
+  <div class="history-section">
+    <div class="history-header">
+      <span>最近生成</span>
+      <button class="clear-btn" id="clearBtn">清空</button>
+    </div>
+    <div class="history-list" id="historyList">
+      <span class="empty-hint">还没有生成记录</span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  "use strict";
+
+  // ===== 字库 =====
+  var DICT = {
+    "古风": {
+      prefix: ["云","月","霜","雪","风","墨","竹","兰","莲","梅","烟","霞","松","鹤","山","水","剑","琴","诗","棋","书","画","玉","清","幽","静","寒","晴","暮","晨","苍","素","淡","古","远","深","碧","青","白","黛","紫","朱"],
+      mid: ["若","如","凌","听","望","赏","忆","问","思","叹","寻","觅","怀","揽","醉","临","抚","叙","观","守","待","念","悟","逸","隐","游","归","行","落","飘","散","随","流","沉","浮","化","映","染","绕"],
+      suffix: ["轩","堂","斋","阁","居","庐","庵","别","舍","苑","园","台","亭","廊","楼","殿","宫","府","院","庄","谷","岭","峰","泉","溪","涧","渡","岸","洲","野","林","丛","坡","崖","涯","天","地","云","水","山"],
+      single: ["墨染","云舒","霜寒","玉清","竹隐","兰若","梅影","雪霁","松鹤","烟波","碧落","青冥","素心","幽兰","寒梅","晴岚","暮云","苍穹","淡然","远山","临风","听雨","望月","忆江南","醉卧","逸仙","归鸿","飞鸿","流光","沉香"],
+      desc: {
+        "墨染": "以墨为染，笔意绵长",
+        "云舒": "云卷云舒，超然物外",
+        "霜寒": "霜华满地，清冷出尘",
+        "玉清": "玉骨冰清，高洁如兰",
+        "竹隐": "竹林隐士，淡泊自守",
+        "兰若": "空谷幽兰，寂静芬芳",
+        "梅影": "暗香疏影，傲骨凌霜",
+        "雪霁": "雪后初晴，一片清明",
+        "松鹤": "松骨鹤姿，长寿延年",
+        "烟波": "烟波浩渺，飘然若仙"
+      }
+    },
+    "中二": {
+      prefix: ["黑暗","虚空","毁灭","永恒","神圣","血色","暗影","冰封","炎焰","雷鸣","死亡","不灭","至尊","无上","绝对","混沌","深渊","星辰","命运","禁忌","封印","逆天","破界","超越","无尽","极限","终焉","创世","审判","净化"],
+      mid: ["之","的","与","VS","X","·","零","α","Ω","∞"],
+      suffix: ["使者","法则","意志","领域","传说","神话","印记","烙印","徽章","契约","骑士","战神","魔王","天使","恶魔","君王","帝皇","主宰","裁决","审判","救世","灭世","创造","毁灭","守护","征服","超越","觉醒","进化","解放"],
+      single: ["黑翼堕天","永恒之光","虚空主宰","命运裁决","暗影战神","冰封深渊","炎焰王座","雷鸣征服","星辰骑士","混沌使者","禁忌契约","至尊传说","不灭意志","绝世神话","审判之刃","零式觉醒","封印解除","逆天改命","破界之力","超越极限"],
+      desc: {}
+    },
+    "小清新": {
+      prefix: ["初","早","晨","春","夏","秋","冬","雨","晴","风","花","草","叶","芽","苔","苗","米","豆","糖","奶","棉","云","泡","泡","粉","浅","淡","柔","轻","软","甜","暖","清","嫩","鲜","碧","绿","蓝","粉","白"],
+      mid: ["和","与","的","之","小","大","旧","新","小小","慢慢","轻轻","悄悄","静静","缓缓","淡淡","浅浅"],
+      suffix: ["时光","日记","物语","心情","碎碎念","生活","世界","小屋","庭院","角落","森林","田野","云朵","阳光","微风","细雨","落叶","花开","茶香","书页"],
+      single: ["初晴","晨雾","春芽","雨后","花间","草木间","糖果屋","棉花云","奶茶铺","米粒日记","豆芽菜","泡泡糖","淡淡香","轻风里","柔光下","嫩芽时","鲜花铺","碧野间","蓝天下","粉笔画"],
+      desc: {
+        "初晴": "雨后初晴，清新怡人",
+        "晨雾": "晨雾迷蒙，静谧温柔",
+        "春芽": "春日嫩芽，生机勃勃",
+        "雨后": "雨后空气，沁人心脾",
+        "花间": "花间漫步，芬芳四溢"
+      }
+    },
+    "文艺": {
+      prefix: ["渡","间","旧","远","深","浅","迟","暮","晨","旅","沿","途","半","微","轻","虚","真","假","多","少","几","某","此","彼","今","昔","无","有","非","似"],
+      mid: ["途","处","日","年","月","时","刻","里","中","外","上","下","间","边","后","前","端","侧","角","处"],
+      suffix: ["旅人","过客","行者","漫游者","记录者","观察者","倾听者","书写者","编织者","守候者","等待者","追光者","寻梦人","漫步者","思考者","独行者","流浪者","拾光者","筑梦人","问路者"],
+      single: ["渡口","间隙","旧时光","远方来信","深夜书单","浅浅地","迟暮色","晨间记","旅途中","沿途风景","半生缘","微光里","轻描淡写","虚掩的门","真实感","假装睡着","多余的话","少年游","几行字","某处风景"],
+      desc: {
+        "渡口": "渡口相遇，各自天涯",
+        "间隙": "生命间隙，安静呼吸",
+        "旧时光": "旧时光里，柔软温存",
+        "远方来信": "远方来信，字字思念",
+        "深夜书单": "深夜书单，灵魂栖所"
+      }
+    }
+  };
+
+  var STYLE_DESCS = {
+    "古风": [
+      "诗意如烟，清远出尘",
+      "古韵悠长，意境深远",
+      "墨香弥漫，风雅无双",
+      "如诗如画，淡然超脱",
+      "山水之间，自有清气"
+    ],
+    "中二": [
+      "命运选中的人，无需理由",
+      "觉醒之时，世界将为之震颤",
+      "黑暗中的光，注定耀眼",
+      "传说从此刻开始书写",
+      "超越极限，这才是真正的力量"
+    ],
+    "小清新": [
+      "阳光透过树叶，碎碎的",
+      "喝一杯奶茶，慢慢的好",
+      "生活要有小确幸",
+      "简单就好，快乐最重要",
+      "每天都是新的开始"
+    ],
+    "文艺": [
+      "文字是灵魂的另一种呼吸",
+      "每个故事都值得被看见",
+      "在喧嚣中保持安静",
+      "生命是一场缓慢的旅行",
+      "遇见即是缘分"
+    ]
+  };
+
+  // ===== 状态变量 =====
+  var currentStyle = "古风";
+  var currentName = "";
+  var history = [];
+  var MAX_HISTORY = 12;
+
+  // ===== DOM 引用 =====
+  var generateBtn = document.getElementById("generateBtn");
+  var btnSpin = document.getElementById("btnSpin");
+  var resultName = document.getElementById("resultName");
+  var resultDesc = document.getElementById("resultDesc");
+  var resultStyle = document.getElementById("resultStyle");
+  var copyBtn = document.getElementById("copyBtn");
+  var historyList = document.getElementById("historyList");
+  var clearBtn = document.getElementById("clearBtn");
+  var toast = document.getElementById("toast");
+  var styleBtns = document.querySelectorAll(".style-btn");
+
+  // ===== 工具函数 =====
+  function rand(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add("show");
+    setTimeout(function() {
+      toast.classList.remove("show");
+    }, 1800);
+  }
+
+  // ===== 生成笔名 =====
+  function generateName(style) {
+    var d = DICT[style];
+    var mode = Math.floor(Math.random() * 4);
+    var name = "";
+
+    if (mode === 0) {
+      // 直接用预设词
+      name = rand(d.single);
+    } else if (mode === 1) {
+      // prefix + suffix
+      name = rand(d.prefix) + rand(d.suffix);
+    } else if (mode === 2) {
+      // prefix + mid + suffix (短)
+      var p = rand(d.prefix);
+      var s = rand(d.suffix);
+      name = p + s;
+      // 有时加 mid
+      if (Math.random() > 0.5) {
+        var m = rand(d.mid);
+        if (style === "中二") {
+          name = rand(d.prefix) + m + rand(d.suffix);
+        }
+      }
+    } else {
+      // 三段式
+      if (style === "古风") {
+        name = rand(d.prefix) + rand(["若","如","临","听","忆","望"]) + rand(["霜","雪","月","云","风","竹","兰","梅"]);
+      } else if (style === "中二") {
+        name = rand(d.prefix) + rand(d.suffix);
+      } else if (style === "小清新") {
+        var pre = rand(d.prefix);
+        var suf = rand(d.suffix);
+        name = pre + (Math.random() > 0.5 ? rand(d.mid) : "") + suf;
+        if (name.length > 6) name = pre + suf;
+      } else {
+        name = rand(d.single);
+      }
+    }
+
+    // 过滤极端长度
+    if (name.length > 8) {
+      name = rand(d.single);
+    }
+    if (name.length < 2) {
+      name = rand(d.prefix) + rand(d.suffix);
+    }
+
+    return name;
+  }
+
+  function getDesc(style, name) {
+    var d = DICT[style];
+    if (d.desc && d.desc[name]) {
+      return d.desc[name];
+    }
+    var descs = STYLE_DESCS[style];
+    return rand(descs);
+  }
+
+  // ===== 渲染历史 =====
+  function renderHistory() {
+    if (history.length === 0) {
+      historyList.innerHTML = '<span class="empty-hint">还没有生成记录</span>';
+      return;
+    }
+    historyList.innerHTML = "";
+    for (var i = history.length - 1; i >= 0; i--) {
+      (function(item) {
+        var chip = document.createElement("button");
+        chip.className = "history-chip";
+        chip.innerHTML = item.name + '<span class="chip-style">' + item.style + '</span>';
+        chip.title = "点击复制：" + item.name;
+        chip.addEventListener("click", function() {
+          copyToClipboard(item.name);
+          showToast("已复制「" + item.name + "」");
+        });
+        historyList.appendChild(chip);
+      })(history[i]);
+    }
+  }
+
+  // ===== 持久化 =====
+  function saveHistory() {
+    try {
+      localStorage.setItem("penname_history", JSON.stringify(history));
+    } catch(e) {}
+  }
+
+  function loadHistory() {
+    try {
+      var data = localStorage.getItem("penname_history");
+      if (data) {
+        var parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) {
+          history = parsed;
+        }
+      }
+    } catch(e) {}
+  }
+
+  function saveStyle() {
+    try {
+      localStorage.setItem("penname_style", currentStyle);
+    } catch(e) {}
+  }
+
+  function loadStyle() {
+    try {
+      var s = localStorage.getItem("penname_style");
+      if (s && DICT[s]) {
+        currentStyle = s;
+      }
+    } catch(e) {}
+  }
+
+  // ===== 复制 =====
+  function copyToClipboard(text) {
+    if (!text || text === "——") return;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).catch(function() {
+          fallbackCopy(text);
+        });
+      } else {
+        fallbackCopy(text);
+      }
+    } catch(e) {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "-9999px";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try { document.execCommand("copy"); } catch(e) {}
+    document.body.removeChild(ta);
+  }
+
+  // ===== 更新 UI 风格选中状态 =====
+  function updateStyleUI() {
+    styleBtns.forEach(function(btn) {
+      if (btn.dataset.style === currentStyle) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    });
+    resultStyle.textContent = currentStyle;
+  }
+
+  // ===== 事件绑定 =====
+  styleBtns.forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      currentStyle = btn.dataset.style;
+      updateStyleUI();
+      saveStyle();
+    });
+  });
+
+  generateBtn.addEventListener("click", function() {
+    // 动画
+    generateBtn.classList.add("spinning");
+    setTimeout(function() {
+      generateBtn.classList.remove("spinning");
+    }, 400);
+
+    var name = generateName(currentStyle);
+    var desc = getDesc(currentStyle, name);
+
+    currentName = name;
+
+    // 更新显示
+    resultName.classList.remove("animate");
+    void resultName.offsetWidth; // reflow
+    resultName.classList.add("animate");
+    resultName.textContent = name;
+    resultDesc.textContent = desc;
+    resultStyle.textContent = currentStyle;
+    copyBtn.classList.remove("copied");
+    copyBtn.textContent = "复制";
+
+    // 存历史
+    history.push({ name: name, style: currentStyle });
+    if (history.length > MAX_HISTORY) {
+      history.shift();
+    }
+    saveHistory();
+    renderHistory();
+  });
+
+  copyBtn.addEventListener("click", function() {
+    if (!currentName || currentName === "——") {
+      showToast("请先生成笔名");
+      return;
+    }
+    copyToClipboard(currentName);
+    copyBtn.classList.add("copied");
+    copyBtn.textContent = "已复制 ✓";
+    showToast("已复制「" + currentName + "」");
+    setTimeout(function() {
+      copyBtn.classList.remove("copied");
+      copyBtn.textContent = "复制";
+    }, 2000);
+  });
+
+  clearBtn.addEventListener("click", function() {
+    history = [];
+    saveHistory();
+    renderHistory();
+    showToast("记录已清空");
+  });
+
+  // ===== 初始化 =====
+  loadStyle();
+  loadHistory();
+  updateStyleUI();
+  renderHistory();
+
+})();
+</script>
+</body>
+</html>
