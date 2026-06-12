@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>名字艺术</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a22;
+    --surface2: #22222e;
+    --border: #2e2e3e;
+    --text: #e8e8f0;
+    --text-muted: #888899;
+    --accent: #7c6aff;
+    --accent2: #ff6ab0;
+    --radius: 14px;
+    --radius-sm: 8px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    padding-top: 48px;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    z-index: 100;
+  }
+  .back-link:hover { opacity: 1; color: var(--text); }
+
+  .container {
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  header {
+    text-align: center;
+    padding: 8px 0 4px;
+  }
+  header h1 {
+    font-size: clamp(22px, 5vw, 32px);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-top: 6px;
+  }
+
+  .input-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: var(--shadow);
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  #nameInput {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 16px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+  }
+  #nameInput::placeholder { color: var(--text-muted); }
+  #nameInput:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,106,255,0.15);
+  }
+
+  .btn {
+    background: linear-gradient(135deg, var(--accent), #5a4fe0);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 10px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+  .btn:hover { opacity: 0.9; }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    font-family: inherit;
+  }
+  .btn-outline:hover {
+    background: var(--surface2);
+    border-color: var(--accent);
+  }
+
+  .options-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .style-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-right: 2px;
+  }
+
+  .style-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .style-btn.active, .style-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .canvas-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+
+  #artCanvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius);
+    transition: opacity 0.3s;
+  }
+
+  .canvas-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(15,15,19,0.6);
+    border-radius: var(--radius);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .canvas-overlay.visible { opacity: 1; }
+  .canvas-overlay-text {
+    color: var(--text-muted);
+    font-size: 14px;
+    text-align: center;
+  }
+
+  .art-label {
+    position: absolute;
+    bottom: 14px;
+    left: 14px;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(8px);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.75);
+    pointer-events: none;
+    max-width: calc(100% - 28px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .actions-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .history-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .history-title {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .history-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .history-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text);
+  }
+  .history-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(124,106,255,0.08);
+  }
+
+  .empty-history {
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .container > * {
+    animation: fadeIn 0.4s ease both;
+  }
+  .container > *:nth-child(1) { animation-delay: 0s; }
+  .container > *:nth-child(2) { animation-delay: 0.06s; }
+  .container > *:nth-child(3) { animation-delay: 0.12s; }
+  .container > *:nth-child(4) { animation-delay: 0.18s; }
+  .container > *:nth-child(5) { animation-delay: 0.24s; }
+
+  @media (max-width: 400px) {
+    .input-row { flex-direction: column; }
+    .btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<a class="back-link" href="index.html">← 入口</a>
+
+<div class="container">
+  <header>
+    <h1>名字艺术</h1>
+    <p>输入名字，生成专属几何抽象画</p>
+  </header>
+
+  <div class="input-card">
+    <div class="input-row">
+      <input type="text" id="nameInput" placeholder="输入名字或任意文字…" maxlength="80" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="btn" id="generateBtn">生成</button>
+    </div>
+    <div class="options-row">
+      <span class="style-label">风格：</span>
+      <button class="style-btn active" data-style="geo" id="styleGeo">几何</button>
+      <button class="style-btn" data-style="flow" id="styleFlow">流体</button>
+      <button class="style-btn" data-style="crystal" id="styleCrystal">晶体</button>
+      <button class="style-btn" data-style="mandala" id="styleMandala">曼陀罗</button>
+    </div>
+  </div>
+
+  <div class="canvas-card">
+    <canvas id="artCanvas" width="600" height="600"></canvas>
+    <div class="canvas-overlay" id="canvasOverlay">
+      <div class="canvas-overlay-text">输入名字后点击生成</div>
+    </div>
+    <div class="art-label" id="artLabel"></div>
+  </div>
+
+  <div class="actions-row">
+    <button class="btn-outline" id="saveBtn">保存 PNG</button>
+    <button class="btn-outline" id="randomBtn">随机名字</button>
+    <button class="btn-outline" id="animateBtn">动态预览</button>
+  </div>
+
+  <div class="history-card" id="historyCard">
+    <div class="history-title">
+      <span>历史记录</span>
+      <button class="btn-outline" id="clearHistoryBtn" style="padding:3px 10px;font-size:12px;">清空</button>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ===== State ===== */
+  var currentName = "";
+  var currentStyle = "geo";
+  var animating = false;
+  var animFrame = null;
+  var animPhase = 0;
+  var HISTORY_KEY = "nameArtHistory";
+
+  /* ===== DOM refs ===== */
+  var nameInput = document.getElementById("nameInput");
+  var generateBtn = document.getElementById("generateBtn");
+  var artCanvas = document.getElementById("artCanvas");
+  var canvasOverlay = document.getElementById("canvasOverlay");
+  var artLabel = document.getElementById("artLabel");
+  var saveBtn = document.getElementById("saveBtn");
+  var randomBtn = document.getElementById("randomBtn");
+  var animateBtn = document.getElementById("animateBtn");
+  var historyList = document.getElementById("historyList");
+  var clearHistoryBtn = document.getElementById("clearHistoryBtn");
+  var ctx = artCanvas.getContext("2d");
+
+  var styleButtons = [
+    document.getElementById("styleGeo"),
+    document.getElementById("styleFlow"),
+    document.getElementById("styleCrystal"),
+    document.getElementById("styleMandala")
+  ];
+
+  /* ===== Hash / RNG ===== */
+  function hashString(str) {
+    var h = 5381;
+    for (var i = 0; i < str.length; i++) {
+      h = ((h << 5) + h + str.charCodeAt(i)) >>> 0;
+    }
+    return h;
+  }
+
+  function makePRNG(seed) {
+    var s = seed >>> 0;
+    return function () {
+      s = (s ^ (s << 13)) >>> 0;
+      s = (s ^ (s >> 17)) >>> 0;
+      s = (s ^ (s << 5)) >>> 0;
+      return (s >>> 0) / 4294967296;
+    };
+  }
+
+  /* ===== Palette generation ===== */
+  function generatePalette(rng) {
+    var palettes = [
+      { bg: [12, 10, 28], hues: [260, 300, 200, 340] },
+      { bg: [8, 20, 18], hues: [160, 200, 120, 80] },
+      { bg: [28, 10, 10], hues: [0, 30, 340, 60] },
+      { bg: [20, 12, 28], hues: [280, 200, 320, 160] },
+      { bg: [10, 18, 28], hues: [210, 250, 180, 280] },
+      { bg: [28, 20, 8], hues: [40, 20, 60, 300] }
+    ];
+    var idx = Math.floor(rng() * palettes.length);
+    var pal = palettes[idx];
+    var colors = [];
+    for (var i = 0; i < pal.hues.length; i++) {
+      var h = pal.hues[i] + Math.floor(rng() * 30 - 15);
+      var s = 55 + Math.floor(rng() * 35);
+      var l = 45 + Math.floor(rng() * 30);
+      colors.push("hsl(" + h + "," + s + "%," + l + "%)");
+    }
+    var bgR = pal.bg[0] + Math.floor(rng() * 10);
+    var bgG = pal.bg[1] + Math.floor(rng() * 10);
+    var bgB = pal.bg[2] + Math.floor(rng() * 10);
+    return {
+      bg: "rgb(" + bgR + "," + bgG + "," + bgB + ")",
+      colors: colors
+    };
+  }
+
+  /* ===== Drawing helpers ===== */
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+
+  function hexagonPath(ctx2, cx, cy, r, angle) {
+    ctx2.beginPath();
+    for (var i = 0; i < 6; i++) {
+      var a = angle + (i * Math.PI) / 3;
+      var x = cx + r * Math.cos(a);
+      var y = cy + r * Math.sin(a);
+      if (i === 0) ctx2.moveTo(x, y);
+      else ctx2.lineTo(x, y);
+    }
+    ctx2.closePath();
+  }
+
+  function starPath(ctx2, cx, cy, r, points, innerRatio, angle) {
+    ctx2.beginPath();
+    for (var i = 0; i < points * 2; i++) {
+      var a = angle + (i * Math.PI) / points;
+      var rad = i % 2 === 0 ? r : r * innerRatio;
+      var x = cx + rad * Math.cos(a);
+      var y = cy + rad * Math.sin(a);
+      if (i === 0) ctx2.moveTo(x, y);
+      else ctx2.lineTo(x, y);
+    }
+    ctx2.closePath();
+  }
+
+  function withAlpha(color, alpha) {
+    var tmp = document.createElement("canvas");
+    tmp.width = 1; tmp.height = 1;
+    var t = tmp.getContext("2d");
+    t.fillStyle = color;
+    t.fillRect(0, 0, 1, 1);
+    var d = t.getImageData(0, 0, 1, 1).data;
+    return "rgba(" + d[0] + "," + d[1] + "," + d[2] + "," + alpha + ")";
+  }
+
+  /* ===== Style: Geometric ===== */
+  function drawGeo(ctx2, W, H, rng, palette, phase) {
+    ctx2.fillStyle = palette.bg;
+    ctx2.fillRect(0, 0, W, H);
+
+    var colors = palette.colors;
+    var cx = W / 2, cy = H / 2;
+    var phaseShift = phase || 0;
+
+    /* Background grid */
+    var gridSize = 40 + Math.floor(rng() * 30);
+    ctx2.strokeStyle = withAlpha(colors[0], 0.07);
+    ctx2.lineWidth = 1;
+    for (var x = 0; x < W; x += gridSize) {
+      ctx2.beginPath(); ctx2.moveTo(x, 0); ctx2.lineTo(x, H); ctx2.stroke();
+    }
+    for (var y = 0; y < H; y += gridSize) {
+      ctx2.beginPath(); ctx2.moveTo(0, y); ctx2.lineTo(W, y); ctx2.stroke();
+    }
+
+    /* Circles */
+    var numCircles = 5 + Math.floor(rng() * 5);
+    for (var ci = 0; ci < numCircles; ci++) {
+      var cr = 30 + rng() * 200;
+      var ccx = rng() * W;
+      var ccy = rng() * H;
+      var col = colors[Math.floor(rng() * colors.length)];
+      ctx2.beginPath();
+      ctx2.arc(ccx, ccy, cr, 0, Math.PI * 2);
+      ctx2.strokeStyle = withAlpha(col, 0.15 + rng() * 0.15);
+      ctx2.lineWidth = 1 + rng() * 3;
+      ctx2.stroke();
+    }
+
+    /* Rotating hexagons from center */
+    var numHex = 4 + Math.floor(rng() * 4);
+    for (var hi = 0; hi < numHex; hi++) {
+      var hr = 40 + hi * (Math.min(W, H) * 0.08);
+      var hangle = rng() * Math.PI + phaseShift * (hi % 2 === 0 ? 1 : -1);
+      var hcol = colors[hi % colors.length];
+      hexagonPath(ctx2, cx, cy, hr, hangle);
+      ctx2.strokeStyle = withAlpha(hcol, 0.55 - hi * 0.05);
+      ctx2.lineWidth = 2 - hi * 0.1;
+      ctx2.stroke();
+
+      if (hi < 3) {
+        hexagonPath(ctx2, cx, cy, hr * 0.75, hangle + Math.PI / 6 + phaseShift * 0.5);
+        ctx2.strokeStyle = withAlpha(hcol, 0.25);
+        ctx2.lineWidth = 1;
+        ctx2.stroke();
+      }
+    }
+
+    /* Triangles */
+    var numTri = 3 + Math.floor(rng() * 4);
+    for (var ti = 0; ti < numTri; ti++) {
+      var tr = 30 + rng() * 120;
+      var ta = rng() * Math.PI * 2 + phaseShift;
+      var tcx = cx + (rng() - 0.5) * W * 0.4;
+      var tcy = cy + (rng() - 0.5) * H * 0.4;
+      var tcol = colors[Math.floor(rng() * colors.length)];
+      ctx2.beginPath();
+      for (var tp = 0; tp < 3; tp++) {
+        var ang = ta + (tp * 2 * Math.PI) / 3;
+        var px = tcx + tr * Math.cos(ang);
+        var py = tcy + tr * Math.sin(ang);
+        if (tp === 0) ctx2.moveTo(px, py); else ctx2.lineTo(px, py);
+      }
+      ctx2.closePath();
+      ctx2.fillStyle = withAlpha(tcol, 0.08 + rng() * 0.1);
+      ctx2.fill();
+      ctx2.strokeStyle = withAlpha(tcol, 0.5);
+      ctx2.lineWidth = 1 + rng() * 2;
+      ctx2.stroke();
+    }
+
+    /* Center star */
+    var starR = 40 + rng() * 50;
+    var starPts = 5 + Math.floor(rng() * 3);
+    starPath(ctx2, cx, cy, starR, starPts, 0.4, phaseShift);
+    var grad = ctx2.createRadialGradient(cx, cy, 0, cx, cy, starR);
+    grad.addColorStop(0, withAlpha(colors[0], 0.9));
+    grad.addColorStop(1, withAlpha(colors[1], 0.2));
+    ctx2.fillStyle = grad;
+    ctx2.fill();
+    ctx2.strokeStyle = withAlpha(colors[2], 0.8);
+    ctx2.lineWidth = 2;
+    ctx2.stroke();
+
+    /* Diagonal lines */
+    var numLines = 6 + Math.floor(rng() * 6);
+    for (var li = 0; li < numLines; li++) {
+      var lx1 = rng() * W, ly1 = rng() * H;
+      var lx2 = rng() * W, ly2 = rng() * H;
+      var lcol = colors[Math.floor(rng() * colors.length)];
+      ctx2.beginPath();
+      ctx2.moveTo(lx1, ly1);
+      ctx2.lineTo(lx2, ly2);
+      ctx2.strokeStyle = withAlpha(lcol, 0.12 + rng() * 0.18);
+      ctx2.lineWidth = 0.5 + rng() * 1.5;
+      ctx2.stroke();
+    }
+
+    /* Glow at center */
+    var glow = ctx2.createRadialGradient(cx, cy, 0, cx, cy, W * 0.35);
+    glow.addColorStop(0, withAlpha(colors[0], 0.18));
+    glow.addColorStop(1, withAlpha(colors[0], 0));
+    ctx2.fillStyle = glow;
+    ctx2.fillRect(0, 0, W, H);
+  }
+
+  /* ===== Style: Flow ===== */
+  function drawFlow(ctx2, W, H, rng, palette, phase) {
+    ctx2.fillStyle = palette.bg;
+    ctx2.fillRect(0, 0, W, H);
+
+    var colors = palette.colors;
+    var phaseShift = phase || 0;
+    var cx = W / 2, cy = H / 2;
+
+    /* Noise-like wavy lines */
+    var numWaves = 12 + Math.floor(rng() * 10);
+    for (var wi = 0; wi < numWaves; wi++) {
+      var wCol = colors[wi % colors.length];
+      var amplitude = 20 + rng() * 80;
+      var frequency = 0.005 + rng() * 0.015;
+      var yBase = (wi / numWaves) * H;
+      var phase2 = rng() * Math.PI * 2 + phaseShift;
+      ctx2.beginPath();
+      ctx2.moveTo(0, yBase);
+      for (var wx = 0; wx <= W; wx += 4) {
+        var wy = yBase + amplitude * Math.sin(wx * frequency + phase2) + amplitude * 0.5 * Math.cos(wx * frequency * 2.3 + phase2 * 1.7);
+        ctx2.lineTo(wx, wy);
+      }
+      ctx2.strokeStyle = withAlpha(wCol, 0.18 + rng() * 0.22);
+      ctx2.lineWidth = 1 + rng() * 3;
+      ctx2.stroke();
+    }
+
+    /* Blobs */
+    var numBlobs = 4 + Math.floor(rng() * 3);
+    for (var bi = 0; bi < numBlobs; bi++) {
+      var bcx = rng() * W;
+      var bcy = rng() * H;
+      var bR = 40 + rng() * 100;
+      var bCol = colors[bi % colors.length];
+      var bg = ctx2.createRadialGradient(bcx, bcy, 0, bcx, bcy, bR);
+      bg.addColorStop(0, withAlpha(bCol, 0.35));
+      bg.addColorStop(0.6, withAlpha(bCol, 0.12));
+      bg.addColorStop(1, withAlpha(bCol, 0));
+      ctx2.fillStyle = bg;
+      ctx2.beginPath();
+      ctx2.arc(bcx, bcy, bR, 0, Math.PI * 2);
+      ctx2.fill();
+    }
+
+    /* Flowing spirals */
+    var numSpirals = 2 + Math.floor(rng() * 2);
+    for (var si = 0; si < numSpirals; si++) {
+      var scx = W * (0.25 + rng() * 0.5);
+      var scy = H * (0.25 + rng() * 0.5);
+      var sCol = colors[si % colors.length];
+      ctx2.beginPath();
+      var sR = 0;
+      var sAngle = phaseShift;
+      ctx2.moveTo(scx, scy);
+      for (var sStep = 0; sStep < 400; sStep++) {
+        sAngle += 0.07;
+        sR += 0.5;
+        var sx = scx + sR * Math.cos(sAngle);
+        var sy = scy + sR * Math.sin(sAngle);
+        if (sR > Math.min(W, H) * 0.4) break;
+        ctx2.lineTo(sx, sy);
+      }
+      ctx2.strokeStyle = withAlpha(sCol, 0.3);
+      ctx2.lineWidth = 1.5;
+      ctx2.stroke();
+    }
+
+    /* Vignette */
+    var vig = ctx2.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.7);
+    vig.addColorStop(0, "rgba(0,0,0,0)");
+    vig.addColorStop(1, "rgba(0,0,0,0.5)");
+    ctx2.fillStyle = vig;
+    ctx2.fillRect(0, 0, W, H);
+  }
+
+  /* ===== Style: Crystal ===== */
+  function drawCrystal(ctx2, W, H, rng, palette, phase) {
+    ctx2.fillStyle = palette.bg;
+    ctx2.fillRect(0, 0, W, H);
+
+    var colors = palette.colors;
+    var cx = W / 2, cy = H / 2;
+    var phaseShift = phase || 0;
+
+    /* Voronoi-ish crystal cells using seed points */
+    var numPts = 8 + Math.floor(rng() * 8);
+    var pts = [];
+    for (var pi = 0; pi < numPts; pi++) {
+      pts.push({ x: rng() * W, y: rng() * H });
+    }
+
+    /* Draw crystal facets as triangles from point to nearest points */
+    for (var i = 0; i < pts.length; i++) {
+      for (var j = i + 1; j < pts.length; j++) {
+        var dist = Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y);
+        if (dist < W * 0.45) {
+          var midX = (pts[i].x + pts[j].x) / 2;
+          var midY = (pts[i].y + pts[j].y) / 2;
+          ctx2.beginPath();
+          ctx2.moveTo(pts[i].x, pts[i].y);
+          ctx2.lineTo(pts[j].x, pts[j].y);
+          ctx2.lineTo(midX + (rng() - 0.5) * 60, midY + (rng() - 0.5) * 60);
+          ctx2.closePath();
+          var col = colors[Math.floor(rng() * colors.length)];
+          ctx2.fillStyle = withAlpha(col, 0.06 + rng() * 0.1);
+          ctx2.fill();
+          ctx2.strokeStyle = withAlpha(col, 0.35);
+          ctx2.lineWidth = 0.8;
+          ctx2.stroke();
+        }
+      }
+    }
+
+    /* Large crystal shards from center */
+    var numShards = 6 + Math.floor(rng() * 6);
+    for (var shi = 0; shi < numShards; shi++) {
+      var shAngle = phaseShift + (shi / numShards) * Math.PI * 2;
+      var shLen = 80 + rng() * 160;
+      var shWidth = 10 + rng() * 40;
+      var shCol = colors[shi % colors.length];
+
+      var tipX = cx + Math.cos(shAngle) * shLen;
+      var tipY = cy + Math.sin(shAngle) * shLen;
+      var leftX = cx + Math.cos(shAngle + Math.PI / 2) * shWidth;
+      var leftY = cy + Math.sin(shAngle + Math.PI / 2) * shWidth;
+      var rightX = cx + Math.cos(shAngle - Math.PI / 2) * shWidth;
+      var rightY = cy + Math.sin(shAngle - Math.PI / 2) * shWidth;
+
+      ctx2.beginPath();
+      ctx2.moveTo(leftX, leftY);
+      ctx2.lineTo(tipX, tipY);
+      ctx2.lineTo(rightX, rightY);
+      ctx2.closePath();
+
+      var shGrad = ctx2.createLinearGradient(cx, cy, tipX, tipY);
+      shGrad.addColorStop(0, withAlpha(shCol, 0.55));
+      shGrad.addColorStop(1, withAlpha(shCol, 0.05));
+      ctx2.fillStyle = shGrad;
+      ctx2.fill();
+      ctx2.strokeStyle = withAlpha(shCol, 0.7);
+      ctx2.lineWidth = 1;
+      ctx2.stroke();
+    }
+
+    /* Inner glow */
+    var innerGlow = ctx2.createRadialGradient(cx, cy, 0, cx, cy, 100);
+    innerGlow.addColorStop(0, withAlpha(colors[0], 0.5));
+    innerGlow.addColorStop(0.5, withAlpha(colors[1], 0.2));
+    innerGlow.addColorStop(1, withAlpha(colors[0], 0));
+    ctx2.fillStyle = innerGlow;
+    ctx2.beginPath();
+    ctx2.arc(cx, cy, 100, 0, Math.PI * 2);
+    ctx2.fill();
+
+    /* Edge highlight lines */
+    var numEdge = 8 + Math.floor(rng() * 8);
+    for (var ei = 0; ei < numEdge; ei++) {
+      var eAngle = (ei / numEdge) * Math.PI * 2 + phaseShift;
+      var eCol = colors[ei % colors.length];
+      ctx2.beginPath();
+      ctx2.moveTo(cx, cy);
+      ctx2.lineTo(cx + Math.cos(eAngle) * W * 0.7, cy + Math.sin(eAngle) * H * 0.7);
+      ctx2.strokeStyle = withAlpha(eCol, 0.06);
+      ctx2.lineWidth = 0.5;
+      ctx2.stroke();
+    }
+  }
+
+  /* ===== Style: Mandala ===== */
+  function drawMandala(ctx2, W, H, rng, palette, phase) {
+    ctx2.fillStyle = palette.bg;
+    ctx2.fillRect(0, 0, W, H);
+
+    var colors = palette.colors;
+    var cx = W / 2, cy = H / 2;
+    var phaseShift = phase || 0;
+    var symmetry = 6 + Math.floor(rng() * 3) * 2; /* 6, 8, 10, 12 */
+    var numRings = 5 + Math.floor(rng() * 4);
+
+    function drawSymmetric(drawFn) {
+      for (var s = 0; s < symmetry; s++) {
+        ctx2.save();
+        ctx2.translate(cx, cy);
+        ctx2.rotate((s / symmetry) * Math.PI * 2 + phaseShift);
+        drawFn(s);
+        ctx2.restore();
+      }
+    }
+
+    /* Rings */
+    for (var ri = 0; ri < numRings; ri++) {
+      var ringR = 25 + ri * (Math.min(W, H) * 0.075);
+      var rCol = colors[ri % colors.length];
+      ctx2.beginPath();
+      ctx2.arc(cx, cy, ringR, 0, Math.PI * 2);
+      ctx2.strokeStyle = withAlpha(rCol, 0.2 + (numRings - ri) * 0.04);
+      ctx2.lineWidth = 1;
+      ctx2.stroke();
+    }
+
+    /* Petal layers */
+    var numPetalLayers = 3 + Math.floor(rng() * 3);
+    for (var pl = 0; pl < numPetalLayers; pl++) {
+      (function(layer) {
+        var pR = 20 + layer * (Math.min(W, H) * 0.065);
+        var pLen = 15 + layer * (Math.min(W, H) * 0.05);
+        var pCol = colors[layer % colors.length];
+
+        drawSymmetric(function() {
+          ctx2.beginPath();
+          ctx2.moveTo(0, 0);
+          ctx2.bezierCurveTo(
+            pLen * 0.3, -pR * 0.5,
+            pLen, -pR * 0.3,
+            pLen, 0
+          );
+          ctx2.bezierCurveTo(
+            pLen, pR * 0.3,
+            pLen * 0.3, pR * 0.5,
+            0, 0
+          );
+          ctx2.fillStyle = withAlpha(pCol, 0.12 + layer * 0.02);
+          ctx2.fill();
+          ctx2.strokeStyle = withAlpha(pCol, 0.5);
+          ctx2.lineWidth = 0.8;
+          ctx2.stroke();
+        });
+      })(pl);
+    }
+
+    /* Dot pattern */
+    drawSymmetric(function(s) {
+      var dotCount = 3 + Math.floor(rng() * 3);
+      for (var di = 1; di <= dotCount; di++) {
+        var dDist = di * (Math.min(W, H) * 0.07);
+        var dR = 2 + rng() * 5;
+        var dCol = colors[(s + di) % colors.length];
+        ctx2.beginPath();
+        ctx2.arc(dDist, 0, dR, 0, Math.PI * 2);
+        ctx2.fillStyle = withAlpha(dCol, 0.7);
+        ctx2.fill();
+      }
+    });
+
+    /* Center circle */
+    var centerR = 15 + rng() * 20;
+    var cGrad = ctx2.createRadialGradient(cx, cy, 0, cx, cy, centerR);
+    cGrad.addColorStop(0, withAlpha(colors[0], 1));
+    cGrad.addColorStop(0.6, withAlpha(colors[1], 0.7));
+    cGrad.addColorStop(1, withAlpha(colors[2], 0.2));
+    ctx2.fillStyle = cGrad;
+    ctx2.beginPath();
+    ctx2.arc(cx, cy, centerR, 0, Math.PI * 2);
+    ctx2.fill();
+    ctx2.strokeStyle = withAlpha(colors[3], 0.8);
+    ctx2.lineWidth = 1.5;
+    ctx2.stroke();
+
+    /* Outer vignette */
+    var outerVig = ctx2.createRadialGradient(cx, cy, Math.min(W,H)*0.3, cx, cy, Math.min(W,H)*0.52);
+    outerVig.addColorStop(0, "rgba(0,0,0,0)");
+    outerVig.addColorStop(1, "rgba(0,0,0,0.5)");
+    ctx2.fillStyle = outerVig;
+    ctx2.fillRect(0, 0, W, H);
+  }
+
+  /* ===== Master draw ===== */
+  function drawArt(name, style, phase) {
+    var seed = hashString(name + "|" + style);
+    var rng = makePRNG(seed);
+    var palette = generatePalette(rng);
+    var W = artCanvas.width;
+    var H = artCanvas.height;
+
+    /* Reset rng for consistent base even with phase */
+    rng = makePRNG(seed);
+    palette = generatePalette(rng);
+    rng = makePRNG(seed + 1);
+
+    switch (style) {
+      case "geo":     drawGeo(ctx, W, H, rng, palette, phase || 0); break;
+      case "flow":    drawFlow(ctx, W, H, rng, palette, phase || 0); break;
+      case "crystal": drawCrystal(ctx, W, H, rng, palette, phase || 0); break;
+      case "mandala": drawMandala(ctx, W, H, rng, palette, phase || 0); break;
+      default:        drawGeo(ctx, W, H, rng, palette, phase || 0);
+    }
+  }
+
+  /* ===== History ===== */
+  function loadHistory() {
+    try {
+      var raw = localStorage.getItem(HISTORY_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch(e) {}
+    return [];
+  }
+
+  function saveHistory(history) {
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch(e) {}
+  }
+
+  function addToHistory(name) {
+    if (!name) return;
+    var history = loadHistory();
+    var idx = history.indexOf(name);
+    if (idx !== -1) history.splice(idx, 1);
+    history.unshift(name);
+    if (history.length > 20) history.pop();
+    saveHistory(history);
+    renderHistory();
+  }
+
+  function renderHistory() {
+    var history = loadHistory();
+    historyList.innerHTML = "";
+    if (history.length === 0) {
+      historyList.innerHTML = '<span class="empty-history">暂无记录</span>';
+      return;
+    }
+    history.forEach(function(name) {
+      var chip = document.createElement("button");
+      chip.className = "history-chip";
+      chip.textContent = name;
+      chip.addEventListener("click", function() {
+        nameInput.value = name;
+        generate();
+      });
+      historyList.appendChild(chip);
+    });
+  }
+
+  /* ===== Generate ===== */
+  function generate() {
+    var name = nameInput.value.trim();
+    if (!name) {
+      nameInput.focus();
+      nameInput.style.borderColor = "var(--accent2)";
+      setTimeout(function() { nameInput.style.borderColor = ""; }, 800);
+      return;
+    }
+
+    stopAnimate();
+    currentName = name;
+    canvasOverlay.classList.remove("visible");
+    artLabel.textContent = name + " · " + { geo: "几何", flow: "流体", crystal: "晶体", mandala: "曼陀罗" }[currentStyle];
+
+    drawArt(currentName, currentStyle, 0);
+    addToHistory(currentName);
+  }
+
+  /* ===== Animation ===== */
+  function stopAnimate() {
+    if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+    animating = false;
+    animPhase = 0;
+    animateBtn.textContent = "动态预览";
+  }
+
+  function startAnimate() {
+    if (!currentName) return;
+    animating = true;
+    animateBtn.textContent = "停止动画";
+    var startTime = performance.now();
+    function loop(ts) {
+      if (!animating) return;
+      animPhase = ((ts - startTime) / 1000) * 0.4;
+      drawArt(currentName, currentStyle, animPhase);
+      animFrame = requestAnimationFrame(loop);
+    }
+    animFrame = requestAnimationFrame(loop);
+  }
+
+  /* ===== Random names ===== */
+  var randomNames = [
+    "张伟", "李娜", "王芳", "刘洋", "陈晨", "杨光", "赵磊", "周婷",
+    "吴浩", "徐静", "月光", "星辰", "云烟", "流年", "山河", "霓虹",
+    "Aurora", "Phoenix", "Nova", "Echo", "Zen", "Luna", "Iris",
+    "Cosmo", "Orion", "Zephyr", "Soleil", "Nimbus", "Lyra"
+  ];
+
+  /* ===== Events ===== */
+  generateBtn.addEventListener("click", generate);
+
+  nameInput.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") generate();
+  });
+
+  saveBtn.addEventListener("click", function() {
+    if (!currentName) return;
+    var link = document.createElement("a");
+    link.download = (currentName || "art") + "-" + currentStyle + ".png";
+    link.href = artCanvas.toDataURL("image/png");
+    link.click();
+  });
+
+  randomBtn.addEventListener("click", function() {
+    var name = randomNames[Math.floor(Math.random() * randomNames.length)];
+    nameInput.value = name;
+    generate();
+  });
+
+  animateBtn.addEventListener("click", function() {
+    if (!currentName) return;
+    if (animating) { stopAnimate(); drawArt(currentName, currentStyle, 0); }
+    else { startAnimate(); }
+  });
+
+  styleButtons.forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      styleButtons.forEach(function(b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      currentStyle = btn.getAttribute("data-style");
+      if (currentName) {
+        stopAnimate();
+        drawArt(currentName, currentStyle, 0);
+        artLabel.textContent = currentName + " · " + { geo: "几何", flow: "流体", crystal: "晶体", mandala: "曼陀罗" }[currentStyle];
+      }
+    });
+  });
+
+  clearHistoryBtn.addEventListener("click", function() {
+    saveHistory([]);
+    renderHistory();
+  });
+
+  /* ===== Init ===== */
+  (function init() {
+    canvasOverlay.classList.add("visible");
+    renderHistory();
+    /* Restore last name from history */
+    var history = loadHistory();
+    if (history.length > 0) {
+      nameInput.value = history[0];
+    }
+  })();
+
+})();
+</script>
+</body>
+</html>
