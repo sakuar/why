@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>井字棋</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --text: #e8eaf6;
+    --text-muted: #7986cb;
+    --border: #2a2f4a;
+    --win-glow: #6c63ff;
+    --radius: 16px;
+    --cell-size: min(28vw, 120px);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    overflow-x: hidden;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 12px;
+    left: 14px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    z-index: 100;
+  }
+  .back-link:hover { opacity: 1; }
+
+  .container {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding-top: 52px;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Scoreboard */
+  .scoreboard {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    justify-content: center;
+  }
+  .score-card {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 10px;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .score-card.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 18px rgba(108,99,255,0.3);
+    transform: translateY(-2px);
+  }
+  .score-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .score-symbol {
+    font-size: 22px;
+    font-weight: 900;
+    margin-bottom: 2px;
+  }
+  .score-symbol.x { color: var(--accent); }
+  .score-symbol.o { color: var(--accent2); }
+  .score-symbol.tie { color: var(--text-muted); }
+  .score-num {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 8px 18px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.18s;
+    outline: none;
+    font-family: inherit;
+  }
+  .btn:hover { background: var(--accent); border-color: var(--accent); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn.primary {
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    border-color: transparent;
+    font-weight: 700;
+  }
+  .btn.primary:hover { filter: brightness(1.15); }
+
+  .first-select {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .first-select select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+  }
+  .first-select select:focus { border-color: var(--accent); }
+
+  /* Status */
+  .status {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    min-height: 24px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  .status.win { color: var(--accent); }
+  .status.lose { color: var(--accent2); }
+  .status.tie { color: var(--text-muted); }
+
+  /* Board */
+  .board-wrap {
+    position: relative;
+  }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, var(--cell-size));
+    grid-template-rows: repeat(3, var(--cell-size));
+    gap: 10px;
+    padding: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+  }
+
+  .cell {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: calc(var(--cell-size) * 0.45);
+    font-weight: 900;
+    transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .cell:hover:not(.taken) {
+    background: #2d3250;
+    transform: scale(1.04);
+    border-color: var(--accent);
+  }
+  .cell.taken { cursor: default; }
+  .cell .mark {
+    display: inline-block;
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s;
+    transform: scale(0);
+    opacity: 0;
+  }
+  .cell .mark.show {
+    transform: scale(1);
+    opacity: 1;
+  }
+  .cell[data-v="X"] .mark { color: var(--accent); }
+  .cell[data-v="O"] .mark { color: var(--accent2); }
+
+  .cell.win-cell {
+    background: rgba(108,99,255,0.18);
+    border-color: var(--accent);
+    box-shadow: 0 0 16px rgba(108,99,255,0.35);
+    animation: pulse-win 0.6s ease;
+  }
+  .cell.win-cell[data-v="O"] {
+    background: rgba(255,101,132,0.15);
+    border-color: var(--accent2);
+    box-shadow: 0 0 16px rgba(255,101,132,0.3);
+  }
+
+  @keyframes pulse-win {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+
+  /* AI thinking indicator */
+  .thinking {
+    position: absolute;
+    top: -32px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+  }
+  .thinking.show { opacity: 1; }
+  .dot-loader {
+    display: flex;
+    gap: 3px;
+  }
+  .dot-loader span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: dot-bounce 0.8s ease infinite;
+  }
+  .dot-loader span:nth-child(2) { animation-delay: 0.15s; }
+  .dot-loader span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes dot-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+
+  /* Footer */
+  .footer {
+    font-size: 12px;
+    color: #3d4466;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 入口</a>
+
+<div class="container">
+  <h1>井字棋</h1>
+
+  <div class="scoreboard">
+    <div class="score-card" id="card-player">
+      <div class="score-label">玩家</div>
+      <div class="score-symbol x" id="player-symbol">X</div>
+      <div class="score-num" id="score-player">0</div>
+    </div>
+    <div class="score-card" id="card-tie">
+      <div class="score-label">平局</div>
+      <div class="score-symbol tie">—</div>
+      <div class="score-num" id="score-tie">0</div>
+    </div>
+    <div class="score-card" id="card-ai">
+      <div class="score-label">AI</div>
+      <div class="score-symbol o" id="ai-symbol">O</div>
+      <div class="score-num" id="score-ai">0</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="first-select">
+      <label for="who-first">先手</label>
+      <select id="who-first">
+        <option value="player">玩家先手</option>
+        <option value="ai">AI先手</option>
+        <option value="random">随机</option>
+      </select>
+    </div>
+    <button class="btn primary" id="btn-new">新游戏</button>
+    <button class="btn" id="btn-reset">清除记分</button>
+  </div>
+
+  <div class="status" id="status">点击新游戏开始</div>
+
+  <div class="board-wrap">
+    <div class="thinking" id="thinking">
+      AI思考中
+      <div class="dot-loader">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+    <div class="board" id="board">
+      <div class="cell" data-i="0"><span class="mark"></span></div>
+      <div class="cell" data-i="1"><span class="mark"></span></div>
+      <div class="cell" data-i="2"><span class="mark"></span></div>
+      <div class="cell" data-i="3"><span class="mark"></span></div>
+      <div class="cell" data-i="4"><span class="mark"></span></div>
+      <div class="cell" data-i="5"><span class="mark"></span></div>
+      <div class="cell" data-i="6"><span class="mark"></span></div>
+      <div class="cell" data-i="7"><span class="mark"></span></div>
+      <div class="cell" data-i="8"><span class="mark"></span></div>
+    </div>
+  </div>
+
+  <div class="footer">落子后 AI 会自动应对</div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ─── Constants ─── */
+  var WIN_LINES = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  /* ─── State ─── */
+  var board;          // string[9], "" | "X" | "O"
+  var playerSymbol;   // "X" or "O"
+  var aiSymbol;
+  var currentTurn;    // "player" or "ai"
+  var gameOver;
+  var aiThinkTimer;
+
+  var scorePlayer;
+  var scoreTie;
+  var scoreAI;
+
+  /* ─── DOM refs ─── */
+  var elStatus       = document.getElementById("status");
+  var elBoard        = document.getElementById("board");
+  var elCells        = elBoard.querySelectorAll(".cell");
+  var elScorePlayer  = document.getElementById("score-player");
+  var elScoreTie     = document.getElementById("score-tie");
+  var elScoreAI      = document.getElementById("score-ai");
+  var elCardPlayer   = document.getElementById("card-player");
+  var elCardTie      = document.getElementById("card-tie");
+  var elCardAI       = document.getElementById("card-ai");
+  var elPlayerSym    = document.getElementById("player-symbol");
+  var elAISym        = document.getElementById("ai-symbol");
+  var elBtnNew       = document.getElementById("btn-new");
+  var elBtnReset     = document.getElementById("btn-reset");
+  var elWhoFirst     = document.getElementById("who-first");
+  var elThinking     = document.getElementById("thinking");
+
+  /* ─── Persistence ─── */
+  function loadScores() {
+    try {
+      var raw = localStorage.getItem("ttt_scores");
+      if (raw) {
+        var obj = JSON.parse(raw);
+        scorePlayer = (typeof obj.player === "number") ? obj.player : 0;
+        scoreTie    = (typeof obj.tie    === "number") ? obj.tie    : 0;
+        scoreAI     = (typeof obj.ai     === "number") ? obj.ai     : 0;
+      } else {
+        scorePlayer = 0; scoreTie = 0; scoreAI = 0;
+      }
+    } catch(e) {
+      scorePlayer = 0; scoreTie = 0; scoreAI = 0;
+    }
+  }
+
+  function saveScores() {
+    try {
+      localStorage.setItem("ttt_scores", JSON.stringify({
+        player: scorePlayer, tie: scoreTie, ai: scoreAI
+      }));
+    } catch(e) {}
+  }
+
+  /* ─── UI helpers ─── */
+  function renderScores() {
+    elScorePlayer.textContent = scorePlayer;
+    elScoreTie.textContent    = scoreTie;
+    elScoreAI.textContent     = scoreAI;
+  }
+
+  function renderSymbols() {
+    elPlayerSym.textContent = playerSymbol;
+    elPlayerSym.className = "score-symbol " + (playerSymbol === "X" ? "x" : "o");
+    elAISym.textContent   = aiSymbol;
+    elAISym.className     = "score-symbol " + (aiSymbol === "X" ? "x" : "o");
+  }
+
+  function setActiveCard(who) {
+    elCardPlayer.classList.toggle("active", who === "player");
+    elCardTie.classList.remove("active");
+    elCardAI.classList.toggle("active", who === "ai");
+  }
+
+  function setStatus(msg, cls) {
+    elStatus.textContent = msg;
+    elStatus.className = "status" + (cls ? " " + cls : "");
+  }
+
+  function showThinking(show) {
+    elThinking.classList.toggle("show", show);
+  }
+
+  function renderBoard(winLine) {
+    elCells.forEach(function(cell, i) {
+      var val = board[i];
+      cell.setAttribute("data-v", val);
+      var mark = cell.querySelector(".mark");
+      if (val) {
+        mark.textContent = val;
+        cell.classList.add("taken");
+        requestAnimationFrame(function() {
+          mark.classList.add("show");
+        });
+      } else {
+        mark.textContent = "";
+        mark.classList.remove("show");
+        cell.classList.remove("taken");
+      }
+      cell.classList.remove("win-cell");
+    });
+    if (winLine) {
+      winLine.forEach(function(i) {
+        elCells[i].classList.add("win-cell");
+      });
+    }
+  }
+
+  /* ─── Game logic ─── */
+  function checkWinner(b) {
+    for (var l = 0; l < WIN_LINES.length; l++) {
+      var line = WIN_LINES[l];
+      var a0 = b[line[0]], a1 = b[line[1]], a2 = b[line[2]];
+      if (a0 && a0 === a1 && a1 === a2) {
+        return { symbol: a0, line: line };
+      }
+    }
+    return null;
+  }
+
+  function isBoardFull(b) {
+    for (var i = 0; i < 9; i++) {
+      if (!b[i]) return false;
+    }
+    return true;
+  }
+
+  /* Minimax AI */
+  function minimax(b, isMaximizing, alpha, beta) {
+    var result = checkWinner(b);
+    if (result) return result.symbol === aiSymbol ? 10 : -10;
+    if (isBoardFull(b)) return 0;
+
+    if (isMaximizing) {
+      var best = -Infinity;
+      for (var i = 0; i < 9; i++) {
+        if (!b[i]) {
+          b[i] = aiSymbol;
+          var score = minimax(b, false, alpha, beta);
+          b[i] = "";
+          if (score > best) best = score;
+          if (best > alpha) alpha = best;
+          if (beta <= alpha) break;
+        }
+      }
+      return best;
+    } else {
+      var best2 = Infinity;
+      for (var j = 0; j < 9; j++) {
+        if (!b[j]) {
+          b[j] = playerSymbol;
+          var score2 = minimax(b, true, alpha, beta);
+          b[j] = "";
+          if (score2 < best2) best2 = score2;
+          if (best2 < beta) beta = best2;
+          if (beta <= alpha) break;
+        }
+      }
+      return best2;
+    }
+  }
+
+  function getBestMove(b) {
+    var bestScore = -Infinity;
+    var bestMove = -1;
+    for (var i = 0; i < 9; i++) {
+      if (!b[i]) {
+        b[i] = aiSymbol;
+        var score = minimax(b, false, -Infinity, Infinity);
+        b[i] = "";
+        if (score > bestScore) {
+          bestScore = score;
+          bestMove = i;
+        }
+      }
+    }
+    return bestMove;
+  }
+
+  function aiMove() {
+    if (gameOver) return;
+    showThinking(true);
+    aiThinkTimer = setTimeout(function() {
+      showThinking(false);
+      var move = getBestMove(board.slice());
+      if (move === -1) return;
+      board[move] = aiSymbol;
+      renderBoard(null);
+      var result = checkWinner(board);
+      if (result) {
+        renderBoard(result.line);
+        setStatus("AI 获胜！", "lose");
+        scoreAI++;
+        saveScores();
+        renderScores();
+        setActiveCard(null);
+        gameOver = true;
+      } else if (isBoardFull(board)) {
+        setStatus("平局！势均力敌", "tie");
+        scoreTie++;
+        saveScores();
+        renderScores();
+        setActiveCard(null);
+        gameOver = true;
+      } else {
+        currentTurn = "player";
+        setActiveCard("player");
+        setStatus("轮到你了");
+      }
+    }, 400 + Math.random() * 200);
+  }
+
+  function playerMove(i) {
+    if (gameOver || currentTurn !== "player" || board[i]) return;
+    board[i] = playerSymbol;
+    renderBoard(null);
+    var result = checkWinner(board);
+    if (result) {
+      renderBoard(result.line);
+      setStatus("你赢了！太厉害了", "win");
+      scorePlayer++;
+      saveScores();
+      renderScores();
+      setActiveCard(null);
+      gameOver = true;
+    } else if (isBoardFull(board)) {
+      setStatus("平局！势均力敌", "tie");
+      scoreTie++;
+      saveScores();
+      renderScores();
+      setActiveCard(null);
+      gameOver = true;
+    } else {
+      currentTurn = "ai";
+      setActiveCard("ai");
+      setStatus("AI 思考中…");
+      aiMove();
+    }
+  }
+
+  function startGame() {
+    if (aiThinkTimer) { clearTimeout(aiThinkTimer); aiThinkTimer = null; }
+    showThinking(false);
+
+    board = ["","","","","","","","",""];
+    gameOver = false;
+
+    // Decide symbols
+    var whoFirst = elWhoFirst.value;
+    var playerGoesFirst;
+    if (whoFirst === "player") {
+      playerGoesFirst = true;
+    } else if (whoFirst === "ai") {
+      playerGoesFirst = false;
+    } else {
+      playerGoesFirst = Math.random() < 0.5;
+    }
+
+    playerSymbol = playerGoesFirst ? "X" : "O";
+    aiSymbol     = playerGoesFirst ? "O" : "X";
+
+    renderSymbols();
+
+    // Reset board UI
+    elCells.forEach(function(cell) {
+      cell.setAttribute("data-v", "");
+      cell.classList.remove("taken", "win-cell");
+      var mark = cell.querySelector(".mark");
+      mark.textContent = "";
+      mark.classList.remove("show");
+    });
+
+    if (playerGoesFirst) {
+      currentTurn = "player";
+      setActiveCard("player");
+      setStatus("轮到你了（" + playerSymbol + "）");
+    } else {
+      currentTurn = "ai";
+      setActiveCard("ai");
+      setStatus("AI 先手（" + aiSymbol + "）");
+      aiMove();
+    }
+  }
+
+  /* ─── Event bindings ─── */
+  elCells.forEach(function(cell) {
+    cell.addEventListener("click", function() {
+      var i = parseInt(cell.getAttribute("data-i"), 10);
+      playerMove(i);
+    });
+  });
+
+  elBtnNew.addEventListener("click", function() {
+    startGame();
+  });
+
+  elBtnReset.addEventListener("click", function() {
+    if (!confirm("确定清除所有记分吗？")) return;
+    scorePlayer = 0; scoreTie = 0; scoreAI = 0;
+    saveScores();
+    renderScores();
+  });
+
+  /* ─── Init ─── */
+  loadScores();
+  renderScores();
+  setStatus("点击「新游戏」开始");
+
+})();
+</script>
+</body>
+</html>
