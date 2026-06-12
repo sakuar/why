@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>曼陀罗生成器</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d1a;
+    --panel-bg: #161628;
+    --panel-border: #2a2a4a;
+    --accent: #7c6af7;
+    --accent2: #f7a26a;
+    --text: #e0e0f0;
+    --text-muted: #7070a0;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    z-index: 100;
+    transition: color 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .back-link:hover { color: var(--text); }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding-top: 44px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--panel-border);
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+
+  .toolbar-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+    margin-right: 4px;
+    white-space: nowrap;
+  }
+
+  .sep {
+    width: 1px;
+    height: 28px;
+    background: var(--panel-border);
+    flex-shrink: 0;
+  }
+
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  label {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .axis-display {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent2);
+    min-width: 22px;
+    text-align: center;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--panel-border);
+    outline: none;
+    cursor: pointer;
+    width: 90px;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: transform 0.15s;
+    box-shadow: 0 0 6px rgba(124,106,247,0.6);
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  .color-swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 3px solid var(--panel-border);
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .color-swatch:hover { border-color: var(--accent); transform: scale(1.1); }
+  .color-swatch input[type=color] {
+    position: absolute;
+    inset: -4px;
+    width: calc(100% + 8px);
+    height: calc(100% + 8px);
+    opacity: 0;
+    cursor: pointer;
+    border: none;
+  }
+  .color-preview {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .size-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .size-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--panel-border);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s, transform 0.15s;
+    padding: 0;
+  }
+  .size-btn:hover { border-color: var(--accent); transform: scale(1.1); }
+  .size-btn.active { border-color: var(--accent); background: rgba(124,106,247,0.15); }
+  .size-dot { border-radius: 50%; background: var(--text); pointer-events: none; }
+
+  .btn {
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--panel-border);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--text); background: rgba(124,106,247,0.1); }
+  .btn.danger:hover { border-color: #f76a6a; color: #f76a6a; background: rgba(247,106,106,0.1); }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn.primary:hover { background: #6a58e0; border-color: #6a58e0; }
+
+  .canvas-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    padding: 12px;
+  }
+
+  canvas {
+    border-radius: var(--radius);
+    box-shadow: var(--shadow), 0 0 60px rgba(124,106,247,0.1);
+    cursor: crosshair;
+    touch-action: none;
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .hint {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(22,22,40,0.85);
+    border: 1px solid var(--panel-border);
+    color: var(--text-muted);
+    font-size: 11px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    pointer-events: none;
+    backdrop-filter: blur(6px);
+    white-space: nowrap;
+    transition: opacity 0.5s;
+  }
+  .hint.hide { opacity: 0; }
+
+  /* Fade in animation */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .toolbar { animation: fadeIn 0.4s ease; }
+
+  @media (max-width: 600px) {
+    .toolbar { gap: 8px; padding: 8px 12px; }
+    .sep { display: none; }
+    input[type=range] { width: 70px; }
+    .toolbar-title { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">← 入口</a>
+
+<div class="app">
+  <div class="toolbar">
+    <span class="toolbar-title">曼陀罗</span>
+
+    <div class="sep"></div>
+
+    <div class="control-group">
+      <label>对称轴</label>
+      <input type="range" id="axisRange" min="6" max="16" step="1" value="8">
+      <span class="axis-display" id="axisVal">8</span>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="control-group">
+      <label>颜色</label>
+      <div class="color-swatch" id="colorSwatch">
+        <div class="color-preview" id="colorPreview"></div>
+        <input type="color" id="colorPicker" value="#7c6af7">
+      </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="control-group size-group">
+      <label>笔刷</label>
+      <button class="size-btn active" data-size="3" title="细">
+        <div class="size-dot" style="width:4px;height:4px;"></div>
+      </button>
+      <button class="size-btn" data-size="6" title="中">
+        <div class="size-dot" style="width:7px;height:7px;"></div>
+      </button>
+      <button class="size-btn" data-size="12" title="粗">
+        <div class="size-dot" style="width:12px;height:12px;"></div>
+      </button>
+    </div>
+
+    <div class="sep"></div>
+
+    <button class="btn danger" id="clearBtn">清空</button>
+    <button class="btn primary" id="saveBtn">保存 PNG</button>
+  </div>
+
+  <div class="canvas-wrap" id="canvasWrap">
+    <canvas id="mandalaCanvas"></canvas>
+    <div class="hint" id="hint">在画布上拖动鼠标开始绘制</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const canvas = document.getElementById('mandalaCanvas');
+  const ctx = canvas.getContext('2d');
+  const wrap = document.getElementById('canvasWrap');
+  const axisRange = document.getElementById('axisRange');
+  const axisVal = document.getElementById('axisVal');
+  const colorPicker = document.getElementById('colorPicker');
+  const colorPreview = document.getElementById('colorPreview');
+  const clearBtn = document.getElementById('clearBtn');
+  const saveBtn = document.getElementById('saveBtn');
+  const hint = document.getElementById('hint');
+  const sizeBtns = document.querySelectorAll('.size-btn');
+
+  // State
+  let axes = 8;
+  let color = '#7c6af7';
+  let brushSize = 3;
+  let isDrawing = false;
+  let lastX = 0, lastY = 0;
+  let hintTimer = null;
+  let hasDrawn = false;
+
+  // Canvas size
+  function resizeCanvas() {
+    const wrapRect = wrap.getBoundingClientRect();
+    const size = Math.min(wrapRect.width - 24, wrapRect.height - 24, 700);
+    const dpr = window.devicePixelRatio || 1;
+
+    // Save existing content
+    const offscreen = document.createElement('canvas');
+    offscreen.width = canvas.width;
+    offscreen.height = canvas.height;
+    const offCtx = offscreen.getContext('2d');
+    offCtx.drawImage(canvas, 0, 0);
+
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+
+    ctx.scale(dpr, dpr);
+    ctx.fillStyle = '#0a0a16';
+    ctx.fillRect(0, 0, size, size);
+
+    // Restore content if size didn't change drastically
+    if (offscreen.width > 0 && hasDrawn) {
+      ctx.drawImage(offscreen, 0, 0, size, size);
+    }
+
+    drawGuideRings(size);
+    saveToStorage();
+  }
+
+  function getCanvasSize() {
+    const dpr = window.devicePixelRatio || 1;
+    return {
+      w: canvas.width / dpr,
+      h: canvas.height / dpr
+    };
+  }
+
+  // Draw subtle guide rings
+  function drawGuideRings(size) {
+    if (hasDrawn) return;
+    const cx = size / 2, cy = size / 2;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(124,106,247,0.06)';
+    ctx.lineWidth = 1;
+    for (let r = 40; r < size / 2; r += 40) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // Axis lines
+    ctx.strokeStyle = 'rgba(124,106,247,0.04)';
+    for (let i = 0; i < axes * 2; i++) {
+      const angle = (Math.PI * 2 / (axes * 2)) * i;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(angle) * size / 2, cy + Math.sin(angle) * size / 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Symmetric draw
+  function drawSymmetric(x1, y1, x2, y2) {
+    const { w, h } = getCanvasSize();
+    const cx = w / 2, cy = h / 2;
+
+    // Translate to center
+    const rx1 = x1 - cx, ry1 = y1 - cy;
+    const rx2 = x2 - cx, ry2 = y2 - cy;
+
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = brushSize;
+    ctx.strokeStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = brushSize * 1.5;
+
+    const step = (Math.PI * 2) / axes;
+
+    for (let i = 0; i < axes; i++) {
+      const angle = step * i;
+
+      // Normal rotation
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(rx1, ry1);
+      ctx.lineTo(rx2, ry2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Mirror (flip x)
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+      ctx.scale(-1, 1);
+      ctx.beginPath();
+      ctx.moveTo(rx1, ry1);
+      ctx.lineTo(rx2, ry2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  // Event helpers
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const scaleX = (canvas.width / dpr) / rect.width;
+    const scaleY = (canvas.height / dpr) / rect.height;
+
+    if (e.touches) {
+      return {
+        x: (e.touches[0].clientX - rect.left) * scaleX,
+        y: (e.touches[0].clientY - rect.top) * scaleY
+      };
+    }
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    isDrawing = true;
+    const pos = getPos(e);
+    lastX = pos.x;
+    lastY = pos.y;
+
+    if (!hasDrawn) {
+      hasDrawn = true;
+      hideHint();
+      // Clear guide rings
+      const { w, h } = getCanvasSize();
+      ctx.fillStyle = '#0a0a16';
+      ctx.fillRect(0, 0, w, h);
+    }
+  }
+
+  function draw(e) {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const pos = getPos(e);
+    drawSymmetric(lastX, lastY, pos.x, pos.y);
+    lastX = pos.x;
+    lastY = pos.y;
+    throttledSave();
+  }
+
+  function endDraw(e) {
+    if (isDrawing) {
+      isDrawing = false;
+      saveToStorage();
+    }
+  }
+
+  // Touch events
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('mouseleave', endDraw);
+  canvas.addEventListener('touchstart', startDraw, { passive: false });
+  canvas.addEventListener('touchmove', draw, { passive: false });
+  canvas.addEventListener('touchend', endDraw);
+
+  // Controls
+  axisRange.addEventListener('input', function() {
+    axes = parseInt(this.value);
+    axisVal.textContent = axes;
+    savePrefs();
+  });
+
+  colorPicker.addEventListener('input', function() {
+    color = this.value;
+    colorPreview.style.background = color;
+    savePrefs();
+  });
+  colorPreview.style.background = color;
+
+  sizeBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      sizeBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      brushSize = parseInt(this.dataset.size);
+      savePrefs();
+    });
+  });
+
+  clearBtn.addEventListener('click', function() {
+    hasDrawn = false;
+    const { w, h } = getCanvasSize();
+    ctx.fillStyle = '#0a0a16';
+    ctx.fillRect(0, 0, w, h);
+    drawGuideRings(w);
+    showHint();
+    localStorage.removeItem('mandala_canvas');
+    savePrefs();
+  });
+
+  saveBtn.addEventListener('click', function() {
+    const link = document.createElement('a');
+    link.download = 'mandala_' + Date.now() + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+
+  // Hint
+  function hideHint() {
+    clearTimeout(hintTimer);
+    hint.classList.add('hide');
+  }
+  function showHint() {
+    hint.classList.remove('hide');
+  }
+
+  // Storage
+  let saveTimeout = null;
+  function throttledSave() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveToStorage, 1000);
+  }
+
+  function saveToStorage() {
+    try {
+      if (hasDrawn) {
+        const data = canvas.toDataURL('image/webp', 0.8);
+        localStorage.setItem('mandala_canvas', data);
+      }
+    } catch(e) {}
+  }
+
+  function savePrefs() {
+    try {
+      localStorage.setItem('mandala_prefs', JSON.stringify({
+        axes, color, brushSize
+      }));
+    } catch(e) {}
+  }
+
+  function loadPrefs() {
+    try {
+      const prefs = JSON.parse(localStorage.getItem('mandala_prefs') || '{}');
+      if (prefs.axes && prefs.axes >= 6 && prefs.axes <= 16) {
+        axes = prefs.axes;
+        axisRange.value = axes;
+        axisVal.textContent = axes;
+      }
+      if (prefs.color) {
+        color = prefs.color;
+        colorPicker.value = color;
+        colorPreview.style.background = color;
+      }
+      if (prefs.brushSize) {
+        brushSize = prefs.brushSize;
+        sizeBtns.forEach(b => {
+          b.classList.toggle('active', parseInt(b.dataset.size) === brushSize);
+        });
+      }
+    } catch(e) {}
+  }
+
+  function loadCanvas() {
+    const data = localStorage.getItem('mandala_canvas');
+    if (data) {
+      const img = new Image();
+      img.onload = function() {
+        const { w, h } = getCanvasSize();
+        ctx.drawImage(img, 0, 0, w, h);
+        hasDrawn = true;
+        hideHint();
+      };
+      img.src = data;
+    }
+  }
+
+  // Keyboard shortcut: Delete/Backspace to clear
+  document.addEventListener('keydown', function(e) {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && !e.target.matches('input')) {
+      clearBtn.click();
+    }
+  });
+
+  // Resize
+  let resizeTimer = null;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resizeCanvas, 200);
+  });
+
+  // Init
+  loadPrefs();
+  resizeCanvas();
+  setTimeout(loadCanvas, 50);
+
+  // Auto-hide hint after 4s
+  hintTimer = setTimeout(hideHint, 4000);
+
+  // Subtle breathing animation on guide rings
+  let breathPhase = 0;
+  function animateGuides() {
+    if (!hasDrawn) {
+      const { w, h } = getCanvasSize();
+      const cx = w / 2, cy = h / 2;
+      breathPhase += 0.015;
+      const pulse = 0.04 + Math.sin(breathPhase) * 0.02;
+
+      ctx.save();
+      ctx.fillStyle = '#0a0a16';
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = `rgba(124,106,247,${pulse})`;
+      ctx.lineWidth = 1;
+      for (let r = 40; r < w / 2; r += 40) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = `rgba(124,106,247,${pulse * 0.6})`;
+      for (let i = 0; i < axes * 2; i++) {
+        const angle = (Math.PI * 2 / (axes * 2)) * i;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(angle) * w / 2, cy + Math.sin(angle) * w / 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    requestAnimationFrame(animateGuides);
+  }
+  animateGuides();
+
+})();
+</script>
+</body>
+</html>

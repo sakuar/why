@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>呼吸引导 · 4-7-8呼吸法</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-start: #0f2027;
+    --bg-mid: #203a43;
+    --bg-end: #2c5364;
+    --circle-inhale: rgba(100, 210, 255, 0.18);
+    --circle-hold: rgba(180, 140, 255, 0.18);
+    --circle-exhale: rgba(80, 200, 180, 0.18);
+    --glow-inhale: rgba(100, 210, 255, 0.5);
+    --glow-hold: rgba(180, 140, 255, 0.5);
+    --glow-exhale: rgba(80, 200, 180, 0.5);
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.55);
+    --accent-inhale: #64d2ff;
+    --accent-hold: #b48cff;
+    --accent-exhale: #50c8b4;
+  }
+
+  html, body {
+    height: 100%;
+    width: 100%;
+  }
+
+  body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--bg-start), var(--bg-mid), var(--bg-end));
+    background-attachment: fixed;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    color: var(--text-primary);
+    overflow-x: hidden;
+  }
+
+  .back-link {
+    position: fixed;
+    top: 16px;
+    left: 20px;
+    color: rgba(255,255,255,0.4);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    transition: color 0.2s;
+    z-index: 100;
+  }
+  .back-link:hover { color: rgba(255,255,255,0.75); }
+
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 20px;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .title-block {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .title-block h1 {
+    font-size: clamp(22px, 5vw, 28px);
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    color: var(--text-primary);
+  }
+  .title-block p {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    letter-spacing: 0.06em;
+  }
+
+  /* Circle arena */
+  .arena {
+    position: relative;
+    width: clamp(240px, 60vw, 300px);
+    height: clamp(240px, 60vw, 300px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 40px;
+  }
+
+  /* Outer ring decorative */
+  .ring-outer {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  /* Animated circle */
+  .breath-circle {
+    position: absolute;
+    width: 55%;
+    height: 55%;
+    border-radius: 50%;
+    background: var(--circle-inhale);
+    box-shadow: 0 0 40px 10px var(--glow-inhale), inset 0 0 30px rgba(255,255,255,0.08);
+    transition:
+      width 0s,
+      height 0s,
+      background 1s ease,
+      box-shadow 1s ease;
+    will-change: transform, width, height;
+  }
+
+  /* Progress ring */
+  .progress-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+  }
+  .progress-ring svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+  .progress-ring circle.track {
+    fill: none;
+    stroke: rgba(255,255,255,0.06);
+    stroke-width: 2;
+  }
+  .progress-ring circle.progress {
+    fill: none;
+    stroke: var(--accent-inhale);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s linear, stroke 0.8s ease;
+  }
+
+  /* Center text */
+  .center-info {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    user-select: none;
+  }
+  .phase-label {
+    font-size: clamp(16px, 4vw, 20px);
+    font-weight: 300;
+    letter-spacing: 0.12em;
+    color: var(--text-primary);
+    transition: color 0.8s ease, opacity 0.4s ease;
+    min-width: 64px;
+    display: block;
+  }
+  .seconds-display {
+    font-size: clamp(28px, 8vw, 40px);
+    font-weight: 200;
+    line-height: 1;
+    margin-top: 4px;
+    letter-spacing: -0.02em;
+    transition: color 0.8s ease;
+    display: block;
+  }
+  .phase-sub {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    letter-spacing: 0.08em;
+    display: block;
+  }
+
+  /* Idle state */
+  .idle-hint {
+    font-size: 15px;
+    font-weight: 300;
+    color: var(--text-secondary);
+    letter-spacing: 0.08em;
+  }
+
+  /* Cycle counter */
+  .cycle-info {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 32px;
+    text-align: center;
+  }
+  .cycle-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .cycle-num {
+    font-size: 24px;
+    font-weight: 200;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+  .cycle-lbl {
+    font-size: 11px;
+    color: var(--text-secondary);
+    letter-spacing: 0.06em;
+  }
+  .divider {
+    width: 1px;
+    height: 28px;
+    background: rgba(255,255,255,0.12);
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn {
+    padding: 12px 32px;
+    border: none;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: scale(0.96); }
+
+  .btn-start {
+    background: linear-gradient(135deg, #64d2ff, #a78bfa);
+    color: #0f1923;
+    box-shadow: 0 4px 24px rgba(100,210,255,0.35);
+  }
+  .btn-start:hover {
+    box-shadow: 0 6px 32px rgba(100,210,255,0.5);
+    transform: translateY(-1px);
+  }
+
+  .btn-stop {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-primary);
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .btn-stop:hover {
+    background: rgba(255,255,255,0.13);
+  }
+
+  .btn-reset {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid rgba(255,255,255,0.1);
+    font-size: 13px;
+    padding: 10px 22px;
+  }
+  .btn-reset:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.25); }
+
+  /* Pattern info */
+  .pattern-info {
+    margin-top: 32px;
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+  }
+  .pip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .pip-bar {
+    width: 36px;
+    border-radius: 4px;
+    opacity: 0.5;
+    transition: opacity 0.4s, box-shadow 0.4s;
+  }
+  .pip-bar.inhale { height: 28px; background: var(--accent-inhale); }
+  .pip-bar.hold   { height: 49px; background: var(--accent-hold); }
+  .pip-bar.exhale { height: 56px; background: var(--accent-exhale); }
+  .pip-bar.active { opacity: 1; box-shadow: 0 0 12px 2px currentColor; }
+  .pip-lbl {
+    font-size: 10px;
+    color: var(--text-secondary);
+    letter-spacing: 0.04em;
+  }
+  .pip-num {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .pip-sep {
+    width: 1px;
+    height: 28px;
+    background: rgba(255,255,255,0.1);
+    align-self: center;
+    margin: 0 2px;
+  }
+
+  /* Smooth scale animation helper */
+  @keyframes pulse-idle {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.06); opacity: 1; }
+  }
+  .idle-pulse {
+    animation: pulse-idle 3s ease-in-out infinite;
+  }
+
+  @media (max-width: 360px) {
+    .arena {
+      width: 220px;
+      height: 220px;
+    }
+    .pattern-info { gap: 4px; }
+    .pip-bar { width: 30px; }
+  }
+</style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">← 入口</a>
+
+<div class="container">
+  <div class="title-block">
+    <h1>呼吸引导</h1>
+    <p>4 · 7 · 8 &nbsp;放松呼吸法</p>
+  </div>
+
+  <div class="arena" id="arena">
+    <div class="ring-outer"></div>
+    <div class="progress-ring" id="progressRing">
+      <svg viewBox="0 0 100 100">
+        <circle class="track" cx="50" cy="50" r="47"/>
+        <circle class="progress" id="progressCircle" cx="50" cy="50" r="47"
+          stroke-dasharray="295.31"
+          stroke-dashoffset="295.31"/>
+      </svg>
+    </div>
+    <div class="breath-circle idle-pulse" id="breathCircle"></div>
+    <div class="center-info" id="centerInfo">
+      <span class="idle-hint">轻触开始</span>
+    </div>
+  </div>
+
+  <div class="cycle-info">
+    <div class="cycle-item">
+      <span class="cycle-num" id="cycleCount">0</span>
+      <span class="cycle-lbl">本次循环</span>
+    </div>
+    <div class="divider"></div>
+    <div class="cycle-item">
+      <span class="cycle-num" id="totalCount">0</span>
+      <span class="cycle-lbl">历史累计</span>
+    </div>
+    <div class="divider"></div>
+    <div class="cycle-item">
+      <span class="cycle-num" id="streakCount">0</span>
+      <span class="cycle-lbl">连续天数</span>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-start" id="btnStart">开始</button>
+    <button class="btn btn-stop" id="btnStop" style="display:none">暂停</button>
+    <button class="btn btn-reset" id="btnReset">重置</button>
+  </div>
+
+  <div class="pattern-info">
+    <div class="pip">
+      <div class="pip-num">4s</div>
+      <div class="pip-bar inhale" id="pip0"></div>
+      <div class="pip-lbl">吸气</div>
+    </div>
+    <div class="pip-sep"></div>
+    <div class="pip">
+      <div class="pip-num">7s</div>
+      <div class="pip-bar hold" id="pip1"></div>
+      <div class="pip-lbl">屏息</div>
+    </div>
+    <div class="pip-sep"></div>
+    <div class="pip">
+      <div class="pip-num">8s</div>
+      <div class="pip-bar exhale" id="pip2"></div>
+      <div class="pip-lbl">呼气</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ── Config ──────────────────────────────────────────────
+  const PHASES = [
+    { key: 'inhale', label: '吸  气', sub: 'INHALE',  duration: 4, colorVar: '--accent-inhale',  glowVar: '--glow-inhale',  bgVar: '--circle-inhale' },
+    { key: 'hold',   label: '屏  息', sub: 'HOLD',    duration: 7, colorVar: '--accent-hold',    glowVar: '--glow-hold',    bgVar: '--circle-hold' },
+    { key: 'exhale', label: '呼  气', sub: 'EXHALE',  duration: 8, colorVar: '--accent-exhale',  glowVar: '--glow-exhale',  bgVar: '--circle-exhale' },
+  ];
+  const CIRCUMFERENCE = 295.31;
+  const CIRCLE_MIN = 45;  // % of arena
+  const CIRCLE_MAX = 85;  // % of arena
+
+  // ── State ────────────────────────────────────────────────
+  let running = false;
+  let phaseIdx = 0;
+  let phaseSecRemain = PHASES[0].duration;
+  let cycleCount = 0;
+  let rafId = null;
+  let lastTs = null;
+  let accumulated = 0; // ms accumulated in this second
+
+  // localStorage
+  const LS_KEY = 'breathing_478_data';
+  function loadData() {
+    try {
+      const d = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+      return {
+        total: d.total || 0,
+        lastDate: d.lastDate || '',
+        streak: d.streak || 0,
+      };
+    } catch(e) { return { total: 0, lastDate: '', streak: 0 }; }
+  }
+  function saveData(d) {
+    localStorage.setItem(LS_KEY, JSON.stringify(d));
+  }
+
+  let userData = loadData();
+
+  // ── DOM refs ─────────────────────────────────────────────
+  const breathCircle   = document.getElementById('breathCircle');
+  const centerInfo     = document.getElementById('centerInfo');
+  const progressCircle = document.getElementById('progressCircle');
+  const btnStart       = document.getElementById('btnStart');
+  const btnStop        = document.getElementById('btnStop');
+  const btnReset       = document.getElementById('btnReset');
+  const cycleCountEl   = document.getElementById('cycleCount');
+  const totalCountEl   = document.getElementById('totalCount');
+  const streakCountEl  = document.getElementById('streakCount');
+  const pips           = [
+    document.getElementById('pip0'),
+    document.getElementById('pip1'),
+    document.getElementById('pip2'),
+  ];
+
+  // ── Helpers ──────────────────────────────────────────────
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function setCircleSize(pct) {
+    breathCircle.style.width  = pct + '%';
+    breathCircle.style.height = pct + '%';
+  }
+
+  function animateCircle(phase) {
+    const cs = breathCircle.style;
+    if (phase.key === 'inhale') {
+      cs.transition = `width ${phase.duration}s cubic-bezier(0.4,0,0.2,1), height ${phase.duration}s cubic-bezier(0.4,0,0.2,1), background 1s ease, box-shadow 1s ease`;
+      setCircleSize(CIRCLE_MAX);
+    } else if (phase.key === 'hold') {
+      cs.transition = `width 0.5s ease, height 0.5s ease, background 1s ease, box-shadow 1s ease`;
+      // hold at current size (max)
+      setCircleSize(CIRCLE_MAX);
+    } else {
+      cs.transition = `width ${phase.duration}s cubic-bezier(0.4,0,0.2,1), height ${phase.duration}s cubic-bezier(0.4,0,0.2,1), background 1s ease, box-shadow 1s ease`;
+      setCircleSize(CIRCLE_MIN);
+    }
+
+    const bg    = cssVar(phase.bgVar);
+    const glow  = cssVar(phase.glowVar);
+    const color = cssVar(phase.colorVar);
+    cs.background  = bg;
+    cs.boxShadow   = `0 0 40px 10px ${glow}, inset 0 0 30px rgba(255,255,255,0.08)`;
+
+    progressCircle.style.stroke = color;
+  }
+
+  function updateCenterText(phase, sec) {
+    const color = cssVar(phase.colorVar);
+    centerInfo.innerHTML = `
+      <span class="phase-label" style="color:${color}">${phase.label}</span>
+      <span class="seconds-display" style="color:${color}">${sec}</span>
+      <span class="phase-sub">${phase.sub}</span>
+    `;
+  }
+
+  function updateProgress(phase, secRemain) {
+    const total   = phase.duration;
+    const elapsed = total - secRemain;
+    const frac    = elapsed / total;
+    const offset  = CIRCUMFERENCE * (1 - frac);
+    progressCircle.style.strokeDashoffset = offset;
+  }
+
+  function updatePips(activeIdx) {
+    pips.forEach((p, i) => {
+      p.classList.toggle('active', i === activeIdx);
+    });
+  }
+
+  function updateStats() {
+    cycleCountEl.textContent = cycleCount;
+    totalCountEl.textContent = userData.total;
+    streakCountEl.textContent = userData.streak;
+  }
+
+  function recordCycle() {
+    const today = new Date().toISOString().slice(0, 10);
+    if (userData.lastDate === today) {
+      userData.total += 1;
+    } else {
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      if (userData.lastDate === yesterday) {
+        userData.streak += 1;
+      } else {
+        userData.streak = 1;
+      }
+      userData.lastDate = today;
+      userData.total += 1;
+    }
+    saveData(userData);
+    updateStats();
+  }
+
+  // ── Core loop ────────────────────────────────────────────
+  function startPhase(idx) {
+    phaseIdx = idx;
+    const phase = PHASES[idx];
+    phaseSecRemain = phase.duration;
+    accumulated = 0;
+
+    animateCircle(phase);
+    updateCenterText(phase, phaseSecRemain);
+    updateProgress(phase, phaseSecRemain);
+    updatePips(idx);
+  }
+
+  function tick(ts) {
+    if (!running) return;
+    if (lastTs === null) lastTs = ts;
+    const delta = ts - lastTs;
+    lastTs = ts;
+    accumulated += delta;
+
+    while (accumulated >= 1000) {
+      accumulated -= 1000;
+      phaseSecRemain -= 1;
+
+      if (phaseSecRemain <= 0) {
+        // advance phase
+        const nextIdx = (phaseIdx + 1) % PHASES.length;
+        if (nextIdx === 0) {
+          // completed one full cycle
+          cycleCount += 1;
+          recordCycle();
+        }
+        startPhase(nextIdx);
+        // lastTs reset on next frame
+        lastTs = null;
+        accumulated = 0;
+        break;
+      } else {
+        const phase = PHASES[phaseIdx];
+        updateCenterText(phase, phaseSecRemain);
+        updateProgress(phase, phaseSecRemain);
+      }
+    }
+
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function start() {
+    if (running) return;
+    running = true;
+    lastTs = null;
+
+    breathCircle.classList.remove('idle-pulse');
+
+    // If fresh start (not resumed)
+    if (phaseSecRemain === PHASES[phaseIdx].duration) {
+      startPhase(phaseIdx);
+    } else {
+      // resume: re-apply visuals for current state
+      const phase = PHASES[phaseIdx];
+      animateCircle(phase);
+      updateCenterText(phase, phaseSecRemain);
+      updateProgress(phase, phaseSecRemain);
+      updatePips(phaseIdx);
+    }
+
+    btnStart.style.display = 'none';
+    btnStop.style.display  = '';
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function stop() {
+    running = false;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    lastTs = null;
+
+    btnStart.style.display = '';
+    btnStart.textContent   = '继续';
+    btnStop.style.display  = 'none';
+
+    // freeze circle
+    const cs = breathCircle.style;
+    cs.transition = 'background 1s ease, box-shadow 1s ease';
+  }
+
+  function reset() {
+    stop();
+    phaseIdx = 0;
+    phaseSecRemain = PHASES[0].duration;
+    accumulated = 0;
+    cycleCount = 0;
+
+    // restore idle
+    const cs = breathCircle.style;
+    cs.transition = 'width 0.6s ease, height 0.6s ease, background 0.8s ease, box-shadow 0.8s ease';
+    cs.background  = cssVar('--circle-inhale');
+    cs.boxShadow   = `0 0 40px 10px ${cssVar('--glow-inhale')}, inset 0 0 30px rgba(255,255,255,0.08)`;
+    setCircleSize(55);
+    setTimeout(() => breathCircle.classList.add('idle-pulse'), 100);
+
+    centerInfo.innerHTML = '<span class="idle-hint">轻触开始</span>';
+    progressCircle.style.strokeDashoffset = CIRCUMFERENCE;
+    progressCircle.style.stroke = cssVar('--accent-inhale');
+
+    updatePips(-1);
+    btnStart.textContent = '开始';
+    cycleCountEl.textContent = '0';
+    updateStats();
+  }
+
+  // ── Events ───────────────────────────────────────────────
+  btnStart.addEventListener('click', start);
+  btnStop.addEventListener('click', stop);
+  btnReset.addEventListener('click', reset);
+
+  // tap arena to start/stop
+  document.getElementById('arena').addEventListener('click', function(e) {
+    if (e.target.closest('button')) return;
+    if (running) stop(); else start();
+  });
+
+  // ── Init ─────────────────────────────────────────────────
+  updateStats();
+  // check streak freshness
+  (function checkStreak() {
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (userData.lastDate && userData.lastDate !== today && userData.lastDate !== yesterday) {
+      userData.streak = 0;
+      saveData(userData);
+    }
+    updateStats();
+  })();
+
+})();
+</script>
+</body>
+</html>
