@@ -6,22 +6,30 @@
 <title>小站合集 · 100 个小玩具</title>
 <style>
   * { box-sizing:border-box; margin:0; padding:0; }
-  body { min-height:100vh; background:#0c0f1a; color:#e8eef7; font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; padding:48px 16px 70px; }
-  .hero{ text-align:center; margin-bottom:14px; }
+  body { min-height:100vh; background:#0c0f1a; color:#e8eef7; font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; padding:40px 16px 70px; }
+  .hero{ text-align:center; margin-bottom:16px; }
   h1{ font-size:clamp(26px,5vw,40px); font-weight:800; letter-spacing:1px; background:linear-gradient(90deg,#ffd166,#ff8aa0,#b98cff,#56b6ff); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .hero p{ color:#8090a8; margin-top:10px; font-size:14px; }
-  .progress{ max-width:980px; margin:18px auto 36px; }
-  .progress .bar{ height:8px; background:rgba(255,255,255,.08); border-radius:6px; overflow:hidden; }
-  .progress .bar i{ display:block; height:100%; width:100%; background:linear-gradient(90deg,#ffd166,#ff8aa0,#b98cff,#56b6ff); border-radius:6px; }
-  .progress .lbl{ text-align:center; color:#ffd166; font-size:13px; margin-top:8px; letter-spacing:1px; font-weight:600; }
+  /* tab 栏 */
+  .tabs{ position:sticky; top:0; z-index:20; max-width:980px; margin:6px auto 22px; display:flex; gap:8px; overflow-x:auto; padding:10px 2px; background:#0c0f1a; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .tabs::-webkit-scrollbar{ height:0; display:none; }
+  .tab{ flex:0 0 auto; padding:8px 15px; border-radius:20px; font-size:13px; color:#aab6cc; background:#161c2b; border:1px solid #222840; cursor:pointer; white-space:nowrap; transition:.15s; }
+  .tab:hover{ border-color:#39415c; color:#e8eef7; }
+  .tab.on{ background:#6c63ff; color:#fff; border-color:#6c63ff; }
+  .tab .n{ opacity:.7; font-size:12px; margin-left:2px; }
   .cat{ max-width:980px; margin:0 auto 26px; }
   .cat h2{ font-size:14px; color:#aab6cc; font-weight:600; letter-spacing:2px; margin:0 4px 12px; display:flex; align-items:center; gap:8px; }
+  .cat h2 .c{ color:#5a6680; font-weight:400; }
   .cat h2::after{ content:""; flex:1; height:1px; background:rgba(255,255,255,.08); }
   .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(195px,1fr)); gap:12px; }
   a.card{ text-decoration:none; color:inherit; position:relative; overflow:hidden; border-radius:13px; padding:15px; min-height:98px; display:flex; flex-direction:column; justify-content:flex-end; border:1px solid rgba(255,255,255,.08); transition:.22s; }
   a.card:hover{ transform:translateY(-4px); border-color:rgba(255,255,255,.28); box-shadow:0 16px 36px rgba(0,0,0,.5); }
   .card .emoji{ font-size:22px; position:absolute; top:13px; left:15px; }
-  .card h3{ font-size:14px; font-weight:700; }
+  .card h3{ font-size:14px; font-weight:700; padding-right:24px; }
+  /* 收藏星标 */
+  .fav{ position:absolute; top:7px; right:8px; font-size:18px; line-height:1; color:#454c63; cursor:pointer; padding:4px 6px; border-radius:9px; z-index:3; transition:.15s; }
+  .fav:hover{ color:#ffd166; background:rgba(255,255,255,.08); transform:scale(1.15); }
+  .fav.on{ color:#ffd166; text-shadow:0 0 10px rgba(255,209,102,.5); }
   .c-time{ background:radial-gradient(ellipse at top right,#1b3a6b,#0a1428); }
   .c-decide{ background:radial-gradient(ellipse at top right,#3a2a5e,#160f28); }
   .c-word{ background:radial-gradient(ellipse at top right,#5e4a1f,#281f0f); }
@@ -30,15 +38,16 @@
   .c-game{ background:radial-gradient(ellipse at top right,#2a4a2f,#101f14); }
   .c-heal{ background:radial-gradient(ellipse at top right,#3a5a35,#13301a); }
   .c-know{ background:radial-gradient(ellipse at top right,#1f4a5e,#0f2128); }
+  .empty{ text-align:center; color:#5a6680; font-size:14px; padding:70px 16px; line-height:2; }
   footer{ max-width:980px; margin:34px auto 0; color:#5a6680; font-size:12px; text-align:center; line-height:1.8; }
   footer a{ color:#8090a8; }
 </style>
 </head>
 <body>
-<div class="hero"><h1>小站合集</h1><p>100 个纯前端单文件小玩具 · 双击即开 · 无需联网</p></div>
-<div class="progress"><div class="bar"><i></i></div><div class="lbl">🎉 已集齐 100 个 · 目标达成</div></div>
+<div class="hero"><h1>小站合集</h1><p>100 个纯前端单文件小玩具 · 点 ☆ 收藏常玩的</p></div>
+<div class="tabs" id="tabs"></div>
 <div id="app"></div>
-<footer>全部代码在本地，数据只存在你自己的浏览器里。<br>100 个小玩具，慢慢玩 · <a href="https://github.com/sakuar/why">源码</a></footer>
+<footer>全部代码在本地，收藏与数据只存在你自己的浏览器里。<br>100 个小玩具，慢慢玩 · <a href="https://github.com/sakuar/why">源码</a></footer>
 <script>
 "use strict";
 var C=[
@@ -51,9 +60,90 @@ var C=[
 ["🌱 情绪·治愈","c-heal",[["pixel-garden","🌱","像素花园"],["praise","🌈","夸夸机"],["bubble-wrap","🫧","捏泡泡纸"],["bonfire","🏕️","虚拟篝火"],["cactus","🌵","电子仙人掌"],["mood-diary","📔","情绪日记"],["future-letter","💌","给未来的信"],["count-sheep","🐑","数羊助眠"],["gratitude","🙏","感恩日记"],["worry-burn","🔥","烦恼焚烧炉"],["zen-garden","🪨","禅意沙盘"],["rain-window","🌧️","雨窗"],["fish-tank","🐟","养鱼缸"],["jellyfish","🎐","发光水母"]]],
 ["🧠 知识·好奇","c-know",[["typing-test","⌨️","打字速度测试"],["planet-weight","🪐","各星球体重"],["cold-fact","💡","随机冷知识"],["today-history","📅","历史上的今天"],["light-speed","🌌","光速旅行"],["population","👥","世界人口"],["dream-dict","💤","周公解梦"],["constellation","⭐","星座物语"],["zodiac","🐲","生肖物语"]]]
 ];
-var r=document.getElementById("app"),h="",i,j,c,it;
-for(i=0;i<C.length;i++){c=C[i];h+='<section class="cat"><h2>'+c[0]+' <span style="color:#5a6680;font-weight:400">('+c[2].length+')</span></h2><div class="grid">';for(j=0;j<c[2].length;j++){it=c[2][j];h+='<a class="card '+c[1]+'" href="'+it[0]+'.html"><span class="emoji">'+it[1]+'</span><h3>'+it[2]+'</h3></a>';}h+='</div></section>';}
-r.innerHTML=h;
+
+var FAVKEY="why_favs", TABKEY="why_tab", SCRKEY="why_scroll";
+var favset;
+try{ favset=new Set(JSON.parse(localStorage.getItem(FAVKEY)||"[]")); }catch(e){ favset=new Set(); }
+function saveFav(){ try{ localStorage.setItem(FAVKEY,JSON.stringify(Array.from(favset))); }catch(e){} }
+
+// 扁平索引：收藏 tab 用
+var FLAT=[];
+for(var fi=0;fi<C.length;fi++){ for(var fj=0;fj<C[fi][2].length;fj++){ var t=C[fi][2][fj]; FLAT.push({slug:t[0],emoji:t[1],title:t[2],cls:C[fi][1]}); } }
+
+function cardHTML(it){
+  var on=favset.has(it.slug);
+  return '<a class="card '+it.cls+'" href="'+it.slug+'.html">'+
+    '<span class="fav'+(on?' on':'')+'" data-slug="'+it.slug+'" role="button" aria-label="收藏" title="收藏">'+(on?'★':'☆')+'</span>'+
+    '<span class="emoji">'+it.emoji+'</span><h3>'+it.title+'</h3></a>';
+}
+function renderSections(idxList){
+  var h="";
+  for(var x=0;x<idxList.length;x++){ var c=C[idxList[x]];
+    h+='<section class="cat"><h2>'+c[0]+' <span class="c">('+c[2].length+')</span></h2><div class="grid">';
+    for(var y=0;y<c[2].length;y++){ var it=c[2][y]; h+=cardHTML({slug:it[0],emoji:it[1],title:it[2],cls:c[1]}); }
+    h+='</div></section>';
+  }
+  return h;
+}
+function renderFav(){
+  var favs=FLAT.filter(function(f){ return favset.has(f.slug); });
+  if(!favs.length) return '<div class="empty">还没有收藏 ☆<br>点任意卡片右上角的星星，把常玩的小站收藏到这里</div>';
+  var h='<section class="cat"><div class="grid">';
+  for(var x=0;x<favs.length;x++) h+=cardHTML(favs[x]);
+  return h+'</div></section>';
+}
+
+var curTab, app=document.getElementById("app"), tabsEl=document.getElementById("tabs");
+function render(tab){
+  curTab=tab;
+  if(tab==="fav") app.innerHTML=renderFav();
+  else if(tab==="all"){ var all=[]; for(var i=0;i<C.length;i++) all.push(i); app.innerHTML=renderSections(all); }
+  else { app.innerHTML=renderSections([parseInt(tab.slice(1),10)]); }
+  var ts=tabsEl.children;
+  for(var k=0;k<ts.length;k++) ts[k].className="tab"+(ts[k].getAttribute("data-tab")===tab?" on":"");
+  try{ sessionStorage.setItem(TABKEY,tab); }catch(e){}
+}
+
+// 构建 tab
+var defs=[["fav",'⭐ 收藏'],["all","全部"]];
+for(var di=0;di<C.length;di++) defs.push(["c"+di, C[di][0]]);
+var th="";
+for(var dj=0;dj<defs.length;dj++){
+  var extra = defs[dj][0]==="fav" ? ' <span class="n" id="favn"></span>' : '';
+  th+='<div class="tab" data-tab="'+defs[dj][0]+'">'+defs[dj][1]+extra+'</div>';
+}
+tabsEl.innerHTML=th;
+function updFavN(){ var el=document.getElementById("favn"); if(el) el.textContent=favset.size? "("+favset.size+")":""; }
+
+tabsEl.addEventListener("click",function(e){
+  var t=e.target.closest? e.target.closest(".tab") : null;
+  if(t){ window.scrollTo(0,0); render(t.getAttribute("data-tab")); }
+});
+
+// 收藏切换 + 跳转前记录位置
+app.addEventListener("click",function(e){
+  var f=e.target.closest? e.target.closest(".fav") : null;
+  if(f){
+    e.preventDefault(); e.stopPropagation();
+    var slug=f.getAttribute("data-slug");
+    if(favset.has(slug)) favset.delete(slug); else favset.add(slug);
+    saveFav(); updFavN();
+    if(curTab==="fav"){ render("fav"); }
+    else { var on=favset.has(slug); f.className="fav"+(on?" on":""); f.textContent=on?"★":"☆"; }
+    return;
+  }
+  var a=e.target.closest? e.target.closest("a.card") : null;
+  if(a){ try{ sessionStorage.setItem(SCRKEY,String(window.scrollY)); sessionStorage.setItem(TABKEY,curTab); }catch(e2){} }
+});
+
+// 初始化：恢复上次 tab + 滚动位置（从子站返回时体感连续）
+var valid={fav:1,all:1};
+for(var vi=0;vi<C.length;vi++) valid["c"+vi]=1;
+var start="all";
+try{ var s=sessionStorage.getItem(TABKEY); if(s&&valid[s]) start=s; }catch(e){}
+updFavN();
+render(start);
+try{ var sy=parseInt(sessionStorage.getItem(SCRKEY)||"0",10); if(sy) window.scrollTo(0,sy); }catch(e){}
 </script>
 </body>
 </html>
