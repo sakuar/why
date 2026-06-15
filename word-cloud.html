@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>词云生成</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#0c0f1a;color:#e8eef7;min-height:100vh;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;padding:46px 16px 60px;}
+  .back{position:fixed;top:14px;left:16px;color:#6b6f8a;text-decoration:none;font-size:13px;}
+  .back:hover{color:#6c63ff;}
+  h1{font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .sub{color:#8090a8;font-size:13px;margin:6px 0 18px;}
+  textarea{width:100%;max-width:640px;height:120px;background:#161a28;border:1px solid #2a2f44;border-radius:12px;color:#e8eef7;padding:12px 14px;font-size:14px;resize:vertical;font-family:inherit;}
+  .row{display:flex;gap:10px;margin:14px 0;}
+  button{background:#6c63ff;color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s;}
+  button:hover{background:#8a82ff;}
+  button.ghost{background:#1a1f30;color:#aab6cc;border:1px solid #2a2f44;}
+  .cloud{width:100%;max-width:760px;min-height:300px;background:#11151f;border:1px solid #222840;border-radius:16px;margin-top:8px;padding:24px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:center;line-height:1.1;}
+  .cloud span{display:inline-block;transition:.2s;cursor:default;}
+  .cloud span:hover{transform:scale(1.18);}
+  .empty{color:#5a6680;font-size:14px;}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">← 入口</a>
+<h1>词云生成</h1>
+<p class="sub">粘贴一段文字，按词频生成彩色词云</p>
+<textarea id="inp" placeholder="在这里粘贴中文或英文文本，词出现得越多字号越大……">星辰 大海 星辰 代码 咖啡 代码 代码 深夜 灵感 灵感 灵感 灵感 键盘 屏幕 梦想 自由 自由 旅行 风 海 山 月亮 月亮 故事 故事 故事 时间 时间</textarea>
+<div class="row">
+  <button id="gen">生成词云</button>
+  <button id="clr" class="ghost">清空</button>
+</div>
+<div class="cloud" id="cloud"><span class="empty">词云会显示在这里</span></div>
+<script>
+"use strict";
+(function(){
+  var inp=document.getElementById("inp"),cloud=document.getElementById("cloud");
+  var COLORS=["#56b6ff","#b98cff","#ff8aa0","#ffd166","#56cfaf","#ff9f6e","#7ed6ff","#c3a6ff"];
+  var STOP={"的":1,"了":1,"是":1,"在":1,"和":1,"我":1,"你":1,"他":1,"也":1,"就":1,"都":1,"the":1,"a":1,"an":1,"to":1,"of":1,"and":1,"is":1,"in":1};
+  function tokenize(t){
+    // 英文按空白/标点切；中文按空白切（用户用空格分词）
+    var parts=t.toLowerCase().split(/[\s,，。、!！?？;；:："'""''()（）\[\]【】\n\r\t.]+/);
+    var out=[];
+    for(var i=0;i<parts.length;i++){var w=parts[i].trim();if(w&&!STOP[w])out.push(w);}
+    return out;
+  }
+  function gen(){
+    var words=tokenize(inp.value);
+    if(!words.length){cloud.innerHTML='<span class="empty">没有可用的词，试试多输入一些</span>';return;}
+    var freq={};for(var i=0;i<words.length;i++)freq[words[i]]=(freq[words[i]]||0)+1;
+    var arr=[];for(var k in freq)arr.push([k,freq[k]]);
+    arr.sort(function(a,b){return b[1]-a[1];});
+    arr=arr.slice(0,60);
+    var max=arr[0][1],min=arr[arr.length-1][1];
+    // 打乱排列，视觉更像云
+    for(var s=arr.length-1;s>0;s--){var j=Math.floor(Math.random()*(s+1));var tmp=arr[s];arr[s]=arr[j];arr[j]=tmp;}
+    var html="";
+    for(var n=0;n<arr.length;n++){
+      var w=arr[n][0],f=arr[n][1];
+      var ratio=max===min?0.5:(f-min)/(max-min);
+      var size=(14+ratio*42).toFixed(0);
+      var col=COLORS[n%COLORS.length];
+      var op=(0.55+ratio*0.45).toFixed(2);
+      html+='<span style="font-size:'+size+'px;color:'+col+';opacity:'+op+';font-weight:'+(ratio>0.5?700:500)+'" title="出现 '+f+' 次">'+esc(w)+'</span>';
+    }
+    cloud.innerHTML=html;
+  }
+  function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+  document.getElementById("gen").addEventListener("click",gen);
+  document.getElementById("clr").addEventListener("click",function(){inp.value="";cloud.innerHTML='<span class="empty">词云会显示在这里</span>';});
+  gen();
+})();
+</script>
+</body>
+</html>

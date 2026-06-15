@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>编解码玩具</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#0a1414;color:#e8eef7;min-height:100vh;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;padding:46px 16px 60px;}
+  .back{position:fixed;top:14px;left:16px;color:#6b6f8a;text-decoration:none;font-size:13px;}
+  .back:hover{color:#56cfaf;}
+  h1{font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,#56cfaf,#7ed6ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .sub{color:#8090a8;font-size:13px;margin:6px 0 18px;}
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;max-width:640px;justify-content:center;margin-bottom:14px;}
+  .tab{background:#10201d;border:1px solid #214039;border-radius:20px;padding:7px 16px;font-size:13px;color:#9fc;cursor:pointer;transition:.15s;}
+  .tab.on{background:#1d8f73;color:#fff;border-color:#1d8f73;}
+  textarea{width:100%;max-width:640px;height:96px;background:#10201d;border:1px solid #214039;border-radius:12px;color:#e8eef7;padding:12px 14px;font-size:14px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;}
+  .row{display:flex;gap:10px;margin:12px 0;}
+  button{background:#1d8f73;color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:14px;font-weight:600;cursor:pointer;}
+  button:hover{background:#23a786;}
+  button.ghost{background:#10201d;color:#9fc;border:1px solid #214039;}
+  .out{width:100%;max-width:640px;min-height:60px;background:#0d1a18;border:1px dashed #214039;border-radius:12px;padding:12px 14px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;word-break:break-all;color:#9fe;white-space:pre-wrap;}
+  .err{color:#ff8aa0;}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">← 入口</a>
+<h1>编解码玩具</h1>
+<p class="sub">Base64 · URL · Unicode · 十六进制 · 反转</p>
+<div class="tabs" id="tabs"></div>
+<textarea id="inp" placeholder="输入文本……">你好，Hello 世界！🌍</textarea>
+<div class="row">
+  <button id="enc">编码 ↓</button>
+  <button id="dec">解码 ↑</button>
+  <button id="copy" class="ghost">复制结果</button>
+</div>
+<div class="out" id="out"></div>
+<script>
+"use strict";
+(function(){
+  var MODES=[
+    ["base64","Base64"],["url","URL"],["unicode","Unicode"],["hex","十六进制"],["reverse","反转"]
+  ];
+  var mode="base64";
+  var tabs=document.getElementById("tabs"),inp=document.getElementById("inp"),out=document.getElementById("out");
+  for(var i=0;i<MODES.length;i++){(function(m,name){
+    var t=document.createElement("div");t.className="tab"+(m===mode?" on":"");t.textContent=name;t.setAttribute("data-m",m);
+    t.addEventListener("click",function(){mode=m;var all=tabs.children;for(var k=0;k<all.length;k++)all[k].className="tab";t.className="tab on";});
+    tabs.appendChild(t);
+  })(MODES[i][0],MODES[i][1]);}
+
+  function b64enc(s){return btoa(unescape(encodeURIComponent(s)));}
+  function b64dec(s){return decodeURIComponent(escape(atob(s)));}
+  function encode(s){
+    switch(mode){
+      case "base64":return b64enc(s);
+      case "url":return encodeURIComponent(s);
+      case "unicode":return s.replace(/[\s\S]/g,function(c){var h=c.charCodeAt(0).toString(16);return "\\u"+("0000"+h).slice(-4);});
+      case "hex":{var r=[];for(var i=0;i<s.length;i++)r.push(("0000"+s.charCodeAt(i).toString(16)).slice(-4));return r.join(" ");}
+      case "reverse":return s.split("").reverse().join("");
+    }
+  }
+  function decode(s){
+    switch(mode){
+      case "base64":return b64dec(s.trim());
+      case "url":return decodeURIComponent(s);
+      case "unicode":return s.replace(/\\u([0-9a-fA-F]{4})/g,function(_,h){return String.fromCharCode(parseInt(h,16));});
+      case "hex":{var parts=s.trim().split(/\s+/),r="";for(var i=0;i<parts.length;i++)if(parts[i])r+=String.fromCharCode(parseInt(parts[i],16));return r;}
+      case "reverse":return s.split("").reverse().join("");
+    }
+  }
+  function run(fn){
+    try{out.className="out";out.textContent=fn(inp.value);}
+    catch(e){out.className="out err";out.textContent="出错了：输入格式不正确，无法解码。";}
+  }
+  document.getElementById("enc").addEventListener("click",function(){run(encode);});
+  document.getElementById("dec").addEventListener("click",function(){run(decode);});
+  document.getElementById("copy").addEventListener("click",function(){
+    if(!out.textContent)return;
+    var ta=document.createElement("textarea");ta.value=out.textContent;document.body.appendChild(ta);ta.select();
+    try{document.execCommand("copy");}catch(e){}
+    document.body.removeChild(ta);
+    var b=document.getElementById("copy");b.textContent="已复制 ✓";setTimeout(function(){b.textContent="复制结果";},1200);
+  });
+  run(encode);
+})();
+</script>
+</body>
+</html>
