@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>元素反应塔防</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{background:#0a0c16;color:#e8eef7;min-height:100vh;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;padding:40px 10px 30px;user-select:none;}
+  .back{position:fixed;top:14px;left:16px;color:#6b6f8a;text-decoration:none;font-size:13px;z-index:30;}
+  .back:hover{color:#ff8c42;}
+  h1{font-size:1.5rem;font-weight:800;background:linear-gradient(135deg,#ff6b3d,#ffe14d,#5ad2ff,#c3a6ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;}
+  .hud{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%;max-width:576px;margin-bottom:8px;}
+  .stat{background:#15192a;border:1px solid #232840;border-radius:10px;padding:7px 12px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:5px;}
+  .stat small{color:#8090a8;font-weight:400;font-size:11px;}
+  .spd{margin-left:auto;display:flex;gap:6px;}
+  .spd button{background:#15192a;border:1px solid #232840;color:#aab6cc;border-radius:9px;padding:7px 11px;font-size:13px;cursor:pointer;font-weight:600;}
+  .spd button.on{background:#ff6b3d;color:#fff;border-color:#ff6b3d;}
+  .spd button:disabled{opacity:.5;}
+  .wrap{position:relative;border-radius:14px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.5);width:100%;max-width:576px;}
+  canvas{display:block;width:100%;height:auto;background:#101626;touch-action:none;cursor:crosshair;}
+  .ovl{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,10,18,.92);backdrop-filter:blur(4px);text-align:center;padding:18px;transition:.2s;}
+  .ovl.hidden{opacity:0;pointer-events:none;}
+  .ovl h2{font-size:1.6rem;margin-bottom:8px;}
+  .ovl h2.win{color:#56cfaf;} .ovl h2.lose{color:#ff6584;}
+  .ovl p{color:#aab6cc;font-size:12.5px;line-height:1.85;margin-bottom:16px;max-width:420px;}
+  .ovl b{color:#ffd166;}
+  .btn{background:#ff6b3d;color:#2a0f06;border:none;border-radius:11px;padding:12px 34px;font-size:16px;font-weight:700;cursor:pointer;}
+  .btn:hover{background:#ff8456;}
+  .reactgrid{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:11.5px;color:#9aa6c0;margin-bottom:16px;text-align:left;}
+  .reactgrid b{color:#ffd166;font-weight:700;}
+  .bar{width:100%;max-width:576px;margin-top:10px;}
+  .shop{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .tw{background:#15192a;border:1px solid #232840;border-radius:12px;padding:9px 4px;text-align:center;cursor:pointer;transition:.12s;}
+  .tw:hover{border-color:#39415c;}
+  .tw.on{border-color:#ff8c42;background:#2a1c14;}
+  .tw.poor{opacity:.45;cursor:not-allowed;}
+  .tw .ic{font-size:22px;}
+  .tw .nm{font-size:12px;font-weight:700;margin-top:2px;}
+  .tw .pr{font-size:12px;color:#ffd166;margin-top:1px;}
+  .tw .de{font-size:10px;color:#7a8299;margin-top:1px;}
+  .ctrl{background:#15192a;border:1px solid #2a3450;border-radius:12px;padding:12px;display:none;}
+  .ctrl.show{display:block;}
+  .ctrl .top{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .ctrl .ic{font-size:26px;}
+  .ctrl .ti{font-weight:700;font-size:15px;}
+  .ctrl .lv{font-size:11px;color:#ffd166;}
+  .ctrl .props{font-size:12px;color:#aab6cc;line-height:1.7;margin-bottom:10px;}
+  .ctrl .acts{display:flex;gap:8px;}
+  .ctrl button{flex:1;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;}
+  .ctrl .up{background:#ff6b3d;color:#2a0f06;}
+  .ctrl .up:disabled{background:#332420;color:#5a6680;cursor:not-allowed;}
+  .ctrl .sell{background:#2a2030;color:#ff9aa8;border:1px solid #4a2a38;}
+  .ctrl .close{background:#1e2435;color:#aab6cc;flex:0 0 46px;}
+  .hint{color:#5a6680;font-size:12px;text-align:center;margin-top:10px;line-height:1.7;}
+  /* 肉鸽卡牌层 */
+  .cards{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,10,18,.94);backdrop-filter:blur(5px);padding:14px;z-index:20;}
+  .cards.show{display:flex;}
+  .cards h3{font-size:1.15rem;margin-bottom:4px;color:#ffe14d;}
+  .cards .csub{color:#8090a8;font-size:12px;margin-bottom:16px;}
+  .crow{display:flex;gap:10px;width:100%;max-width:540px;}
+  .card{flex:1;background:#161b2d;border:1.5px solid #2a3450;border-radius:14px;padding:16px 10px;text-align:center;cursor:pointer;transition:.14s;}
+  .card:hover{border-color:#ffe14d;transform:translateY(-4px);background:#1c2238;}
+  .card .ci{font-size:30px;}
+  .card .ct{font-size:13.5px;font-weight:700;margin-top:8px;}
+  .card .cd{font-size:11px;color:#9aa6c0;margin-top:6px;line-height:1.5;}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">← 入口</a>
+<h1>⚗️ 元素反应塔防</h1>
+<div class="hud">
+  <div class="stat">❤️ <span id="lives">18</span></div>
+  <div class="stat">🪙 <span id="gold">200</span></div>
+  <div class="stat">🌊 <span id="wave">0</span><small>/20</small></div>
+  <div class="spd">
+    <button id="next">出战 ▶</button>
+    <button id="s1" class="on">1×</button>
+    <button id="s2">2×</button>
+  </div>
+</div>
+<div class="wrap">
+  <canvas id="cv" width="576" height="432"></canvas>
+  <div class="ovl" id="ovl">
+    <h2 id="ot">⚗️ 元素反应塔防</h2>
+    <p id="op">每个塔给怪物挂上<b>元素</b>，再用<b>另一种元素</b>命中即可触发<b>反应</b>连锁：</p>
+    <div class="reactgrid" id="rg">
+      <div>💧+⚡ <b>感电</b>：电弧跳跃连锁</div>
+      <div>🔥+💧 <b>蒸发</b>：爆发高伤</div>
+      <div>🔥+❄️ <b>融化</b>：爆发高伤</div>
+      <div>🔥+⚡ <b>超载</b>：范围爆炸</div>
+      <div>❄️+💧 <b>冻结</b>：原地定身</div>
+      <div>❄️+⚡ <b>超导</b>：减速+破甲</div>
+    </div>
+    <p id="op2" style="margin-bottom:14px">每过一波可三选一<b>强化</b>，越打越强。撑过 20 波获胜！</p>
+    <button class="btn" id="startBtn">开始</button>
+  </div>
+  <div class="cards" id="cards">
+    <h3 id="cardsTitle">选择强化</h3>
+    <div class="csub">第 <span id="cardWave">1</span> 波清空 · 三选一</div>
+    <div class="crow" id="crow"></div>
+  </div>
+</div>
+<div class="bar">
+  <div class="shop" id="shop"></div>
+  <div class="ctrl" id="ctrl"></div>
+  <div class="hint">点塔种 → 点空地建造 · 不同元素叠在同一怪身上触发反应连锁</div>
+</div>
+<script>
+"use strict";
+(function(){
+  var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+  var COLS=12,ROWS=9,CELL=48,W=cv.width,H=cv.height;
+  var TOTAL_WAVES=20, ATTACH=3500;
+
+  var EL={
+    fire:{name:"火",icon:"🔥",color:"#ff6b3d"},
+    ice:{name:"冰",icon:"❄️",color:"#7ed6ff"},
+    bolt:{name:"雷",icon:"⚡",color:"#ffe14d"},
+    water:{name:"水",icon:"💧",color:"#5ad2ff"}
+  };
+  var TOWERS={
+    fire:{el:"fire",name:"火塔",icon:"🔥",color:"#ff6b3d",cost:60,up:[55,90],desc:"灼烧附火",
+      L:[{dmg:11,range:110,rate:560,bs:7},{dmg:18,range:124,rate:500,bs:7.5},{dmg:30,range:140,rate:440,bs:8}]},
+    ice:{el:"ice",name:"冰塔",icon:"❄️",color:"#7ed6ff",cost:70,up:[60,100],desc:"附冰减速",
+      L:[{dmg:8,range:104,rate:640,bs:6,slow:0.4,slowT:1000},{dmg:13,range:118,rate:580,bs:6,slow:0.5,slowT:1300},{dmg:21,range:132,rate:520,bs:6,slow:0.6,slowT:1600}]},
+    bolt:{el:"bolt",name:"雷塔",icon:"⚡",color:"#ffe14d",cost:80,up:[70,115],desc:"附雷高伤",
+      L:[{dmg:16,range:118,rate:720,bs:9},{dmg:27,range:132,rate:660,bs:9.5},{dmg:46,range:148,rate:600,bs:10}]},
+    water:{el:"water",name:"水塔",icon:"💧",color:"#5ad2ff",cost:55,up:[50,85],desc:"附水易反应",
+      L:[{dmg:7,range:114,rate:600,bs:7},{dmg:12,range:128,rate:540,bs:7.5},{dmg:20,range:144,rate:480,bs:8}]}
+  };
+  var ENEMIES={
+    swarm:{hp:18,speed:116,reward:4,color:"#ffe08a",r:9,name:"虫群"},
+    normal:{hp:48,speed:56,reward:8,color:"#ff6b6b",r:13,name:"普通"},
+    fast:{hp:32,speed:106,reward:11,color:"#ffd166",r:11,name:"疾行"},
+    tank:{hp:200,speed:32,reward:24,color:"#a07dff",r:18,name:"坦克"},
+    boss:{hp:1500,speed:28,reward:170,color:"#ff3860",r:25,name:"BOSS"}
+  };
+
+  // 蛇形路径
+  var PATH=[[-1,1],[10,1],[10,4],[1,4],[1,7],[12,7]];
+  var way=[],occ={};
+  function mark(c,r){ if(c>=0&&c<COLS&&r>=0&&r<ROWS) occ[c+","+r]=1; }
+  (function(){
+    for(var i=0;i<PATH.length;i++) way.push({x:PATH[i][0]*CELL+CELL/2,y:PATH[i][1]*CELL+CELL/2});
+    for(var s=0;s<PATH.length-1;s++){
+      var a=PATH[s],b=PATH[s+1],cx=a[0],cy=a[1];
+      var sx=Math.sign(b[0]-a[0]),sy=Math.sign(b[1]-a[1]);
+      while(cx!==b[0]||cy!==b[1]){ mark(cx,cy); cx+=sx; cy+=sy; }
+      mark(b[0],b[1]);
+    }
+  })();
+
+  // 全局肉鸽加成
+  var buffs;
+  function freshBuffs(){ return {dmg:{fire:1,ice:1,bolt:1,water:1,all:1},range:1,rate:1,reactDmg:1,chainAdd:0,crit:0,freezeBonus:0}; }
+
+  var lives,gold,wave,state,timeScale,towers,enemies,bullets,fx;
+  var spawnQ,spawnIdx,spawnTimer,buildType,selected,hoverCell,muted=false;
+
+  function reset(){
+    lives=18;gold=200;wave=0;state="ready";timeScale=1;
+    towers=[];enemies=[];bullets=[];fx=[];buffs=freshBuffs();
+    spawnQ=[];spawnIdx=0;spawnTimer=0;buildType=null;selected=null;hoverCell=null;
+    cardsEl.classList.remove("show");
+    syncHUD();renderShop();hideCtrl();
+  }
+  function syncHUD(){
+    document.getElementById("lives").textContent=lives;
+    document.getElementById("gold").textContent=gold;
+    document.getElementById("wave").textContent=wave;
+    var nb=document.getElementById("next");
+    if(state==="ready"){ nb.textContent= wave===0? "出战 ▶":"下一波 ▶"; nb.disabled=false; nb.style.opacity=1; }
+    else { nb.textContent="进行中…"; nb.disabled=true; nb.style.opacity=.5; }
+  }
+
+  function makeWave(n){
+    var arr=[],count=7+Math.floor(n*1.8);
+    for(var i=0;i<count;i++){
+      var type="normal";
+      if(n>=2 && i%4===3) type="fast";
+      if(n>=3 && i%5===0) type="swarm";
+      if(n>=4 && i%7===6) type="tank";
+      if(n>=8 && Math.random()<0.14) type="tank";
+      arr.push(type);
+    }
+    if(n%5===0) arr.push("boss");
+    return arr;
+  }
+  function startWave(){
+    if(state!=="ready") return;
+    wave++;
+    spawnQ=makeWave(wave);spawnIdx=0;spawnTimer=0;state="wave";
+    deselect();syncHUD();
+  }
+  function spawnEnemy(type){
+    var d=ENEMIES[type];
+    var hpScale=1+(wave-1)*0.28, spScale=1+(wave-1)*0.012;
+    enemies.push({type:type,x:way[0].x,y:way[0].y,wp:1,
+      hp:d.hp*hpScale,max:d.hp*hpScale,speed:d.speed*spScale,
+      r:d.r,color:d.color,reward:d.reward,slow:0,slowT:0,
+      el:null,elT:0,freezeT:0,brittleT:0,dead:false});
+  }
+
+  var lastT=0;
+  function loop(now){
+    var dt=(now-lastT)/1000; lastT=now;
+    if(dt>0.05) dt=0.05;
+    if(state==="wave") step(dt*timeScale);
+    draw();
+    requestAnimationFrame(loop);
+  }
+  function step(dt){
+    if(spawnIdx<spawnQ.length){
+      spawnTimer-=dt*1000;
+      if(spawnTimer<=0){ spawnEnemy(spawnQ[spawnIdx]); spawnIdx++; spawnTimer=Math.max(250,620-wave*11); }
+    }
+    for(var i=enemies.length-1;i>=0;i--){
+      var e=enemies[i];
+      if(e.dead){ enemies.splice(i,1); continue; }
+      if(e.elT>0) e.elT-=dt*1000; if(e.elT<=0) e.el=null;
+      if(e.freezeT>0){ e.freezeT-=dt*1000; }
+      if(e.brittleT>0){ e.brittleT-=dt*1000; }
+      var spd=e.speed;
+      if(e.slowT>0){ e.slowT-=dt*1000; spd*=(1-e.slow); }
+      if(e.freezeT>0) spd=0;
+      var tg=way[e.wp];
+      if(!tg){ leak(e); enemies.splice(i,1); continue; }
+      var dx=tg.x-e.x,dy=tg.y-e.y,d=Math.sqrt(dx*dx+dy*dy),move=spd*dt;
+      if(d<=move){ e.x=tg.x;e.y=tg.y;e.wp++; if(e.wp>=way.length){ leak(e); enemies.splice(i,1); } }
+      else if(move>0){ e.x+=dx/d*move; e.y+=dy/d*move; }
+    }
+    for(var t=0;t<towers.length;t++){
+      var tw=towers[t],st=stat(tw),range=st.range*buffs.range;
+      tw.cd-=dt*1000;
+      if(tw.cd<=0){
+        var target=null,best=-1;
+        for(var k=0;k<enemies.length;k++){
+          var en=enemies[k]; if(en.dead) continue;
+          var ddx=en.x-tw.x,ddy=en.y-tw.y;
+          if(ddx*ddx+ddy*ddy<=range*range){
+            var prog=en.wp*10000-(Math.abs(way[en.wp]?way[en.wp].x-en.x:0));
+            if(prog>best){ best=prog; target=en; }
+          }
+        }
+        if(target){
+          tw.cd=st.rate/buffs.rate; tw.ang=Math.atan2(target.y-tw.y,target.x-tw.x);
+          var dmg=st.dmg*buffs.dmg[tw.el]*buffs.dmg.all;
+          var crit=Math.random()<buffs.crit; if(crit) dmg*=2;
+          bullets.push({x:tw.x,y:tw.y,tg:target,ex:target.x,ey:target.y,bs:st.bs,
+            dmg:dmg,el:tw.el,crit:crit,slow:st.slow||0,slowT:st.slowT||0,color:TOWERS[tw.type].color});
+          beep(tw.el==="bolt"?300:tw.el==="fire"?200:520,0.03);
+        }
+      }
+    }
+    for(var b=bullets.length-1;b>=0;b--){
+      var bu=bullets[b];
+      if(bu.tg && !bu.tg.dead){ bu.ex=bu.tg.x; bu.ey=bu.tg.y; }
+      var bx=bu.ex-bu.x,by=bu.ey-bu.y,bd=Math.sqrt(bx*bx+by*by),bm=bu.bs*dt*60;
+      if(bd<=bm||bd<2){
+        if(bu.tg && !bu.tg.dead){ onHit(bu.tg,bu); }
+        addFx(bu.ex,bu.ey,bu.color,false); bullets.splice(b,1);
+      } else { bu.x+=bx/bd*bm; bu.y+=by/bd*bm; }
+    }
+    for(var f=fx.length-1;f>=0;f--){ fx[f].life-=dt; if(fx[f].life<=0) fx.splice(f,1); else if(fx[f].vy!=null){ fx[f].y+=fx[f].vy*dt; } }
+    if(state==="wave" && spawnIdx>=spawnQ.length && enemies.length===0){
+      if(wave>=TOTAL_WAVES){ win(); }
+      else { state="reward"; gold+=18+wave*3; syncHUD(); offerCards(); }
+    }
+  }
+
+  // ---- 元素命中 / 反应 ----
+  var REACT={"fire+water":"vaporize","fire+ice":"melt","bolt+water":"electro","bolt+fire":"overload","bolt+ice":"superconduct","ice+water":"freeze"};
+  function reactionKey(a,b){ return REACT[[a,b].sort().join("+")]||null; }
+  function onHit(e,bu){
+    var d=bu.dmg;
+    if(e.brittleT>0) d*=1.3;
+    var rk = e.el? reactionKey(e.el,bu.el): null;
+    if(rk){ fireReaction(rk,e,bu.dmg); e.el=null; e.elT=0; }
+    else { e.el=bu.el; e.elT=ATTACH; }
+    if(bu.slow>0){ e.slow=bu.slow; e.slowT=bu.slowT; }
+    hurt(e,d);
+    if(bu.crit) popText(e.x,e.y-16,"暴击","#fff",0.6);
+  }
+  function fireReaction(rk,e,base){
+    var rd=buffs.reactDmg;
+    if(rk==="vaporize"||rk==="melt"){
+      hurt(e,base*(rk==="vaporize"?2.2:2.5)*rd);
+      reactRing(e.x,e.y,"#ff8c42"); popText(e.x,e.y-15,rk==="vaporize"?"蒸发!":"融化!","#ff8c42",1);
+    } else if(rk==="overload"){
+      reactRing(e.x,e.y,"#ff5e3a");
+      for(var k=0;k<enemies.length;k++){ var en=enemies[k]; if(en.dead||en===e) continue;
+        var dx=en.x-e.x,dy=en.y-e.y; if(dx*dx+dy*dy<=74*74) hurt(en,base*1.4*rd); }
+      hurt(e,base*1.4*rd); popText(e.x,e.y-15,"超载!","#ff5e3a",1);
+    } else if(rk==="electro"){
+      var n=2+buffs.chainAdd, from=e, used=[e], dc=base*1.4*rd;
+      popText(e.x,e.y-15,"感电!","#ffe14d",1);
+      for(var c=0;c<n;c++){
+        var tgt=null,md=170*170;
+        for(var j=0;j<enemies.length;j++){ var t2=enemies[j]; if(t2.dead||used.indexOf(t2)>=0) continue;
+          var ex=t2.x-from.x,ey=t2.y-from.y,dd=ex*ex+ey*ey; if(dd<md){ md=dd; tgt=t2; } }
+        if(!tgt) break;
+        arcFx(from.x,from.y,tgt.x,tgt.y); hurt(tgt,dc); used.push(tgt); from=tgt;
+      }
+    } else if(rk==="freeze"){
+      e.freezeT=1500+buffs.freezeBonus; reactRing(e.x,e.y,"#9be7ff"); popText(e.x,e.y-15,"冻结!","#9be7ff",1);
+    } else if(rk==="superconduct"){
+      reactRing(e.x,e.y,"#c3a6ff");
+      for(var m=0;m<enemies.length;m++){ var e3=enemies[m]; if(e3.dead) continue;
+        var ax=e3.x-e.x,ay=e3.y-e.y; if(ax*ax+ay*ay<=70*70){ e3.slow=0.5; e3.slowT=2600; e3.brittleT=4000; hurt(e3,base*0.6*rd); } }
+      popText(e.x,e.y-15,"超导!","#c3a6ff",1);
+    }
+  }
+  function hurt(e,d){
+    if(e.dead) return;
+    e.hp-=d;
+    if(e.hp<=0){ e.dead=true; gold+=e.reward; popText(e.x,e.y,"+"+e.reward,"#ffd166",0.9); syncHUD(); beep(700,0.04); }
+  }
+  function leak(e){
+    var dmg=e.type==="boss"?5:1;
+    lives-=dmg; if(lives<0) lives=0;
+    popText(way[way.length-1].x,way[way.length-1].y,"-"+dmg+" ❤️","#ff6584",1);
+    syncHUD();
+    if(lives<=0) lose();
+  }
+  function stat(tw){ return TOWERS[tw.type].L[tw.lvl]; }
+
+  // ---- 绘制 ----
+  function draw(){
+    for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){
+      ctx.fillStyle=((r+c)%2)?"#141b2c":"#111727";
+      ctx.fillRect(c*CELL,r*CELL,CELL,CELL);
+    }
+    ctx.strokeStyle="#23304a";ctx.lineWidth=CELL*0.72;ctx.lineJoin="round";ctx.lineCap="round";
+    ctx.beginPath();ctx.moveTo(way[0].x,way[0].y);for(var i=1;i<way.length;i++)ctx.lineTo(way[i].x,way[i].y);ctx.stroke();
+    ctx.strokeStyle="#2e3d5c";ctx.lineWidth=CELL*0.54;ctx.stroke();
+    var ep=way[way.length-1];
+    ctx.font="20px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText("🏁",ep.x-4,ep.y);
+    if(buildType && hoverCell){
+      var ok=canBuild(hoverCell.c,hoverCell.r) && gold>=TOWERS[buildType].cost;
+      var px=hoverCell.c*CELL+CELL/2,py=hoverCell.r*CELL+CELL/2;
+      ctx.fillStyle=ok?"rgba(255,140,66,.25)":"rgba(255,101,132,.25)";
+      ctx.fillRect(hoverCell.c*CELL+2,hoverCell.r*CELL+2,CELL-4,CELL-4);
+      ctx.beginPath();ctx.arc(px,py,TOWERS[buildType].L[0].range*buffs.range,0,6.2832);
+      ctx.fillStyle=ok?"rgba(255,140,66,.07)":"rgba(255,101,132,.05)";ctx.fill();
+      ctx.strokeStyle=ok?"rgba(255,140,66,.4)":"rgba(255,101,132,.4)";ctx.lineWidth=1;ctx.stroke();
+    }
+    if(selected){
+      ctx.beginPath();ctx.arc(selected.x,selected.y,stat(selected).range*buffs.range,0,6.2832);
+      ctx.fillStyle="rgba(255,225,77,.07)";ctx.fill();
+      ctx.strokeStyle="rgba(255,225,77,.5)";ctx.lineWidth=1.5;ctx.stroke();
+    }
+    for(var t=0;t<towers.length;t++) drawTower(towers[t]);
+    for(var e=0;e<enemies.length;e++) drawEnemy(enemies[e]);
+    for(var b=0;b<bullets.length;b++){
+      var bu=bullets[b];
+      ctx.beginPath();ctx.arc(bu.x,bu.y,3.6,0,6.2832);
+      ctx.fillStyle=bu.color;ctx.shadowColor=bu.color;ctx.shadowBlur=8;ctx.fill();ctx.shadowBlur=0;
+    }
+    for(var f=0;f<fx.length;f++) drawFx(fx[f]);
+  }
+  function drawTower(tw){
+    var c=TOWERS[tw.type].color,x=tw.x,y=tw.y;
+    ctx.fillStyle="rgba(0,0,0,.35)";ctx.beginPath();ctx.arc(x,y+3,CELL*0.34,0,6.2832);ctx.fill();
+    ctx.fillStyle="#10141f";ctx.beginPath();ctx.arc(x,y,CELL*0.34,0,6.2832);ctx.fill();
+    ctx.lineWidth=2.5;ctx.strokeStyle=c;ctx.stroke();
+    ctx.font="19px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#fff";
+    ctx.fillText(TOWERS[tw.type].icon,x,y+1);
+    for(var i=0;i<=tw.lvl;i++){
+      ctx.beginPath();ctx.arc(x-7+i*7,y+CELL*0.34-2,2.4,0,6.2832);ctx.fillStyle="#ffd166";ctx.fill();
+    }
+  }
+  function drawEnemy(e){
+    if(e.freezeT>0){ ctx.fillStyle="rgba(155,231,255,.55)";ctx.beginPath();ctx.arc(e.x,e.y,e.r+4,0,6.2832);ctx.fill(); }
+    else if(e.slowT>0){ ctx.fillStyle="rgba(120,200,255,.35)";ctx.beginPath();ctx.arc(e.x,e.y,e.r+3,0,6.2832);ctx.fill(); }
+    ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,6.2832);ctx.fill();
+    ctx.fillStyle="rgba(255,255,255,.85)";ctx.beginPath();ctx.arc(e.x-e.r*0.3,e.y-e.r*0.3,e.r*0.3,0,6.2832);ctx.fill();
+    // 元素附着标记
+    if(e.el){ ctx.font="11px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(EL[e.el].icon,e.x+e.r*0.7,e.y-e.r*0.7); }
+    if(e.brittleT>0){ ctx.strokeStyle="rgba(195,166,255,.8)";ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(e.x,e.y,e.r+2,0,6.2832);ctx.stroke(); }
+    var w=e.r*2,hp=Math.max(0,e.hp/e.max);
+    ctx.fillStyle="rgba(0,0,0,.5)";ctx.fillRect(e.x-w/2,e.y-e.r-8,w,4);
+    ctx.fillStyle=hp>0.5?"#56cfaf":hp>0.25?"#ffd166":"#ff6584";
+    ctx.fillRect(e.x-w/2,e.y-e.r-8,w*hp,4);
+  }
+  function addFx(x,y,color,big){ fx.push({x:x,y:y,color:color,life:0.26,max:0.26,r:big?22:9,vy:null,kind:"ring"}); }
+  function reactRing(x,y,color){ fx.push({x:x,y:y,color:color,life:0.4,max:0.4,r:34,vy:null,kind:"ring"}); }
+  function arcFx(x1,y1,x2,y2){ fx.push({x:x1,y:y1,x2:x2,y2:y2,color:"#ffe14d",life:0.22,max:0.22,vy:null,kind:"arc"}); }
+  function popText(x,y,txt,color,life){ fx.push({x:x,y:y,txt:txt,color:color,life:life,max:life,vy:-26,kind:"text"}); }
+  function drawFx(f){
+    var a=f.life/f.max;
+    if(f.kind==="text"){
+      ctx.globalAlpha=Math.min(1,a*1.4);ctx.fillStyle=f.color;ctx.font="bold 13px system-ui";ctx.textAlign="center";
+      ctx.fillText(f.txt,f.x,f.y);ctx.globalAlpha=1;
+    } else if(f.kind==="arc"){
+      ctx.globalAlpha=a;ctx.strokeStyle=f.color;ctx.shadowColor=f.color;ctx.shadowBlur=10;ctx.lineWidth=2.5;
+      ctx.beginPath();
+      var mx=(f.x+f.x2)/2+(Math.sin(a*40))*6,my=(f.y+f.y2)/2+(Math.cos(a*40))*6;
+      ctx.moveTo(f.x,f.y);ctx.quadraticCurveTo(mx,my,f.x2,f.y2);ctx.stroke();
+      ctx.shadowBlur=0;ctx.globalAlpha=1;
+    } else {
+      ctx.globalAlpha=a;ctx.strokeStyle=f.color;ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(f.x,f.y,f.r*(1-a+0.3),0,6.2832);ctx.stroke();ctx.globalAlpha=1;
+    }
+  }
+
+  // ---- 交互 ----
+  function cellAt(x,y){ return {c:Math.floor(x/CELL),r:Math.floor(y/CELL)}; }
+  function canBuild(c,r){
+    if(c<0||c>=COLS||r<0||r>=ROWS) return false;
+    if(occ[c+","+r]) return false;
+    for(var i=0;i<towers.length;i++) if(towers[i].cc===c&&towers[i].rr===r) return false;
+    return true;
+  }
+  function towerAt(x,y){
+    for(var i=0;i<towers.length;i++){ var dx=towers[i].x-x,dy=towers[i].y-y; if(dx*dx+dy*dy<(CELL*0.4)*(CELL*0.4)) return towers[i]; }
+    return null;
+  }
+  function toLocal(ev){
+    var rect=cv.getBoundingClientRect();
+    var cx=(ev.touches?ev.touches[0].clientX:ev.clientX);
+    var cy=(ev.touches?ev.touches[0].clientY:ev.clientY);
+    return {x:(cx-rect.left)*(cv.width/rect.width),y:(cy-rect.top)*(cv.height/rect.height)};
+  }
+  cv.addEventListener("mousemove",function(ev){ if(!buildType){hoverCell=null;return;} var p=toLocal(ev); hoverCell=cellAt(p.x,p.y); });
+  cv.addEventListener("mouseleave",function(){ hoverCell=null; });
+  cv.addEventListener("click",function(ev){
+    if(state==="over"||state==="win"||state==="reward") return;
+    var p=toLocal(ev),cell=cellAt(p.x,p.y);
+    if(buildType){
+      if(gold<TOWERS[buildType].cost){ popText(p.x,p.y,"金币不足","#ff6584",0.8); return; }
+      if(canBuild(cell.c,cell.r)){
+        gold-=TOWERS[buildType].cost;
+        towers.push({type:buildType,el:TOWERS[buildType].el,cc:cell.c,rr:cell.r,x:cell.c*CELL+CELL/2,y:cell.r*CELL+CELL/2,lvl:0,cd:0,ang:0,invested:TOWERS[buildType].cost});
+        beep(440,0.05);syncHUD();renderShop();
+      } else { popText(p.x,p.y,"这里不能建","#ff6584",0.8); }
+      return;
+    }
+    var tw=towerAt(p.x,p.y);
+    if(tw){ selectTower(tw); } else { deselect(); }
+  });
+
+  // ---- 商店 / 升级 ----
+  var shop=document.getElementById("shop"),ctrl=document.getElementById("ctrl");
+  function renderShop(){
+    var html="";
+    for(var key in TOWERS){
+      var T=TOWERS[key],poor=gold<T.cost?" poor":"",on=buildType===key?" on":"";
+      html+='<div class="tw'+poor+on+'" data-t="'+key+'"><div class="ic">'+T.icon+'</div><div class="nm">'+T.name+'</div><div class="pr">🪙'+T.cost+'</div><div class="de">'+T.desc+'</div></div>';
+    }
+    shop.innerHTML=html;
+  }
+  shop.addEventListener("click",function(ev){
+    var el=ev.target.closest?ev.target.closest(".tw"):null; if(!el) return;
+    var key=el.getAttribute("data-t");
+    if(gold<TOWERS[key].cost){ return; }
+    buildType=(buildType===key)?null:key;
+    deselect(true);renderShop();
+  });
+  function selectTower(tw){ selected=tw;buildType=null;renderShop();shop.style.display="none";ctrl.classList.add("show");renderCtrl(); }
+  function renderCtrl(){
+    if(!selected) return;
+    var tw=selected,T=TOWERS[tw.type],L=T.L[tw.lvl],max=tw.lvl>=T.L.length-1;
+    var upCost=max?0:T.up[tw.lvl];
+    var ed=Math.round(L.dmg*buffs.dmg[tw.el]*buffs.dmg.all);
+    var props=EL[tw.el].icon+EL[tw.el].name+'属性 · 伤害 '+ed+' · 射程 '+Math.round(L.range*buffs.range);
+    if(L.slow) props+=' · 减速'+Math.round(L.slow*100)+'%';
+    var sell=Math.floor(tw.invested*0.6);
+    var upBtn=max?'<button class="up" disabled>已满级</button>'
+      :'<button class="up" id="upBtn"'+(gold<upCost?' disabled':'')+'>升级 🪙'+upCost+'</button>';
+    ctrl.innerHTML='<div class="top"><span class="ic">'+T.icon+'</span><div><div class="ti">'+T.name+
+      ' <span class="lv">Lv.'+(tw.lvl+1)+'/'+T.L.length+'</span></div></div></div>'+
+      '<div class="props">'+props+'</div><div class="acts">'+upBtn+
+      '<button class="sell" id="sellBtn">出售 🪙'+sell+'</button>'+
+      '<button class="close" id="closeBtn">✕</button></div>';
+    var ub=document.getElementById("upBtn");
+    if(ub) ub.addEventListener("click",function(){
+      if(tw.lvl>=T.L.length-1||gold<upCost) return;
+      gold-=upCost;tw.invested+=upCost;tw.lvl++;beep(660,0.05);syncHUD();renderShop();renderCtrl();
+    });
+    document.getElementById("sellBtn").addEventListener("click",function(){
+      gold+=sell;var ix=towers.indexOf(tw);if(ix>=0)towers.splice(ix,1);beep(300,0.05);syncHUD();renderShop();deselect();
+    });
+    document.getElementById("closeBtn").addEventListener("click",function(){ deselect(); });
+  }
+  function hideCtrl(){ ctrl.classList.remove("show");ctrl.innerHTML="";shop.style.display="grid"; }
+  function deselect(keepShop){ selected=null; hideCtrl(); if(!keepShop) renderShop(); }
+
+  // ---- 肉鸽卡牌 ----
+  var cardsEl=document.getElementById("cards"),crow=document.getElementById("crow");
+  var CARDS=[
+    {ic:"🔥",t:"烈焰精通",d:"火塔伤害 +35%",f:function(){buffs.dmg.fire*=1.35;}},
+    {ic:"❄️",t:"严寒精通",d:"冰塔伤害 +35%",f:function(){buffs.dmg.ice*=1.35;}},
+    {ic:"⚡",t:"雷霆精通",d:"雷塔伤害 +35%",f:function(){buffs.dmg.bolt*=1.35;}},
+    {ic:"💧",t:"潮汐精通",d:"水塔伤害 +35%",f:function(){buffs.dmg.water*=1.35;}},
+    {ic:"⚔️",t:"全员强化",d:"所有塔伤害 +18%",f:function(){buffs.dmg.all*=1.18;}},
+    {ic:"🎯",t:"精准镜",d:"所有塔射程 +15%",f:function(){buffs.range*=1.15;}},
+    {ic:"⏩",t:"急速",d:"所有塔攻速 +15%",f:function(){buffs.rate*=1.15;}},
+    {ic:"💥",t:"反应催化",d:"元素反应伤害 +40%",f:function(){buffs.reactDmg*=1.4;}},
+    {ic:"🔗",t:"连锁电路",d:"感电连锁目标 +2",f:function(){buffs.chainAdd+=2;}},
+    {ic:"🌟",t:"会心",d:"暴击率 +8%（暴击双倍伤害）",f:function(){buffs.crit+=0.08;}},
+    {ic:"🧊",t:"深度冷冻",d:"冻结时间 +800ms",f:function(){buffs.freezeBonus+=800;}},
+    {ic:"🪙",t:"财源",d:"立即获得 130 金币",f:function(){gold+=130;}},
+    {ic:"❤️",t:"补给",d:"恢复 3 点生命",f:function(){lives+=3;}}
+  ];
+  function offerCards(){
+    var pool=CARDS.slice(),pick=[];
+    for(var i=0;i<3 && pool.length;i++){ var ix=Math.floor(Math.random()*pool.length); pick.push(pool.splice(ix,1)[0]); }
+    document.getElementById("cardWave").textContent=wave;
+    var html="";
+    for(var j=0;j<pick.length;j++){
+      html+='<div class="card" data-i="'+j+'"><div class="ci">'+pick[j].ic+'</div><div class="ct">'+pick[j].t+'</div><div class="cd">'+pick[j].d+'</div></div>';
+    }
+    crow.innerHTML=html;
+    crow._pick=pick;
+    cardsEl.classList.add("show");
+  }
+  crow.addEventListener("click",function(ev){
+    var el=ev.target.closest?ev.target.closest(".card"):null; if(!el) return;
+    var i=parseInt(el.getAttribute("data-i"),10),pick=crow._pick;
+    if(!pick||!pick[i]) return;
+    pick[i].f(); beep(880,0.06);
+    cardsEl.classList.remove("show");
+    state="ready"; syncHUD(); renderShop();
+    if(selected) renderCtrl();
+  });
+
+  // ---- 结束 ----
+  var ovl=document.getElementById("ovl"),ot=document.getElementById("ot"),op=document.getElementById("op"),sb=document.getElementById("startBtn");
+  function win(){ state="win"; ot.textContent="🎉 通关！"; ot.className="win"; op.innerHTML="你用元素反应撑过了全部 <b>20</b> 波！<br>剩余 ❤️ <b>"+lives+"</b>"; document.getElementById("rg").style.display="none"; document.getElementById("op2").style.display="none"; sb.textContent="再玩一次"; ovl.classList.remove("hidden"); }
+  function lose(){ state="over"; ot.textContent="💀 防线告破"; ot.className="lose"; op.innerHTML="基地失守在第 <b>"+wave+"</b> 波。<br>试试多搭配元素触发反应连锁？"; document.getElementById("rg").style.display="none"; document.getElementById("op2").style.display="none"; sb.textContent="重新开始"; ovl.classList.remove("hidden"); }
+
+  var AC=null;
+  function beep(freq,dur){
+    if(muted) return;
+    try{
+      if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)();
+      var o=AC.createOscillator(),g=AC.createGain();
+      o.frequency.value=freq;o.type="triangle";
+      g.gain.value=0.04;o.connect(g);g.connect(AC.destination);
+      o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+dur);
+      o.stop(AC.currentTime+dur+0.02);
+    }catch(e){}
+  }
+
+  document.getElementById("next").addEventListener("click",startWave);
+  document.getElementById("s1").addEventListener("click",function(){ timeScale=1;this.classList.add("on");document.getElementById("s2").classList.remove("on"); });
+  document.getElementById("s2").addEventListener("click",function(){ timeScale=2;this.classList.add("on");document.getElementById("s1").classList.remove("on"); });
+  sb.addEventListener("click",function(){ reset(); document.getElementById("rg").style.display="grid"; document.getElementById("op2").style.display="block"; op.innerHTML="每个塔给怪物挂上<b>元素</b>，再用<b>另一种元素</b>命中即可触发<b>反应</b>连锁："; ovl.classList.add("hidden"); });
+
+  reset();
+  requestAnimationFrame(function(t){ lastT=t; requestAnimationFrame(loop); });
+})();
+</script>
+</body>
+</html>
