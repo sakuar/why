@@ -493,7 +493,8 @@
     return true;
   }
   function towerAt(x,y){
-    for(var i=0;i<towers.length;i++){ var dx=towers[i].x-x,dy=towers[i].y-y; if(dx*dx+dy*dy<(CELL*0.42)*(CELL*0.42)) return towers[i]; }
+    var cell=cellAt(x,y);
+    for(var i=0;i<towers.length;i++){ if(towers[i].cc===cell.c&&towers[i].rr===cell.r) return towers[i]; }
     return null;
   }
   function toLocal(ev){
@@ -533,8 +534,10 @@
       return;
     }
     if(state==="over"||state==="win") return;
+    var hit=towerAt(p.x,p.y);
+    if(hit){ buildType=null; selectTower(hit); return; }   // 点中已建的塔 → 优先选中(查看/升级)
     if(buildType){ drawing=true; lastBuildKey=cell.c+","+cell.r; tryBuildAt(cell); }
-    else { var tw=towerAt(p.x,p.y); if(tw){ selectTower(tw); } else { deselect(); } }
+    else { deselect(); }
   });
   cv.addEventListener("pointermove",function(ev){
     var p=toLocal(ev),cell=cellAt(p.x,p.y);
