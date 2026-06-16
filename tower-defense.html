@@ -72,6 +72,7 @@
   <div class="stat">🌊 <span id="wave">0</span><small>/30</small></div>
   <div class="spd">
     <button id="next">先画路线</button>
+    <button id="auto" class="on">⚡自动</button>
     <button id="s1" class="on">1×</button>
     <button id="s2">2×</button>
   </div>
@@ -144,7 +145,7 @@
 
   // 游戏状态
   var lives,gold,wave,state,phase,timeScale,towers,enemies,bullets,fx;
-  var pathCells,way,occ,drawing,spawnQ,spawnIdx,spawnTimer,buildType,selected,hoverCell,muted=false;
+  var pathCells,way,occ,drawing,spawnQ,spawnIdx,spawnTimer,buildType,selected,hoverCell,muted=false,autoSkill=true;
 
   function reset(){
     lives=20;gold=160;wave=0;state="ready";phase="draw";timeScale=1;
@@ -256,6 +257,7 @@
       if(tw.skCd>0) tw.skCd-=dt*1000;
       if(tw.berserkT>0) tw.berserkT-=dt*1000;
       if(tw.chargeT>0) tw.chargeT-=dt*1000;
+      if(autoSkill && T.skill && tw.skCd<=0 && shouldAutoCast(tw)) castSkill(tw);
       if(T.noatk){
         if(tw.type==="mine"){ tw.mineT-=dt*1000;
           if(tw.mineT<=0){ gold+=st.gold; popText(tw.x,tw.y-6,"+"+st.gold+" 🪙","#ffd166",1); tw.mineT=st.interval; syncHUD(); } }
@@ -345,6 +347,14 @@
   function stat(tw){ return TOWERS[tw.type].L[tw.lvl]; }
 
   // ---- 主动技能 ----
+  function shouldAutoCast(tw){
+    if(tw.type==="mine") return true;                 // 暴富纯收益，随时放
+    var i;
+    if(tw.type==="sniper"){ for(i=0;i<enemies.length;i++) if(!enemies[i].dead) return true; return false; }
+    var st=stat(tw),sk=TOWERS[tw.type].skill,R=st.range*(sk.rmul||1);
+    for(i=0;i<enemies.length;i++){ var en=enemies[i]; if(en.dead) continue; var dx=en.x-tw.x,dy=en.y-tw.y; if(dx*dx+dy*dy<=R*R) return true; }
+    return false;
+  }
   function castSkill(tw){
     var sk=TOWERS[tw.type].skill;
     if(tw.skCd>0||state==="over"||state==="win") return;
@@ -380,7 +390,7 @@
     } else if(tw.type==="buff"){
       tw.chargeT=sk.dur; addFx(tw.x,tw.y,"#56cfaf",true); popText(tw.x,tw.y-10,"冲锋号 📣","#56cfaf",1.3);
     }
-    beep(880,0.06); renderCtrl();
+    beep(880,0.06); if(selected===tw) renderCtrl();
   }
 
   // ---- 绘制 ----
@@ -661,6 +671,7 @@
 
   // ---- 按钮 ----
   document.getElementById("next").addEventListener("click",startWave);
+  document.getElementById("auto").addEventListener("click",function(){ autoSkill=!autoSkill; this.textContent=autoSkill?"⚡自动":"⚡手动"; if(autoSkill) this.classList.add("on"); else this.classList.remove("on"); });
   document.getElementById("s1").addEventListener("click",function(){ timeScale=1;this.classList.add("on");document.getElementById("s2").classList.remove("on"); });
   document.getElementById("s2").addEventListener("click",function(){ timeScale=2;this.classList.add("on");document.getElementById("s1").classList.remove("on"); });
   sb.addEventListener("click",function(){ reset(); ovl.classList.add("hidden"); });
