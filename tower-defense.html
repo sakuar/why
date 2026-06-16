@@ -79,7 +79,7 @@
 <div class="bar">
   <div class="shop" id="shop"></div>
   <div class="ctrl" id="ctrl"></div>
-  <div class="hint">点下方塔种 → 点空地建造围迷宫 · 点已建的塔可升级 / 放技能 / 出售</div>
+  <div class="hint">蓝线=怪物当前路线，建塔时金色虚线=放下后的新路线 · 点已建的塔可升级 / 放技能 / 出售</div>
 </div>
 <script>
 "use strict";
@@ -132,15 +132,28 @@
     return d;
   }
   function computeFlow(){ dist=bfs(-1); }
-  function bestNeighbor(c,r){
-    var dirs=[[1,0],[-1,0],[0,1],[0,-1]],cur=dist[idx(c,r)],best=null,bv=cur;
+  function bestNeighbor(c,r,d){
+    d=d||dist;
+    var dirs=[[1,0],[-1,0],[0,1],[0,-1]],cur=d[idx(c,r)],best=null,bv=cur;
     for(var k=0;k<4;k++){
       var nc=c+dirs[k][0],nr=r+dirs[k][1];
       if(nc<0||nc>=COLS||nr<0||nr>=ROWS) continue;
-      var dv=dist[idx(nc,nr)];
+      var dv=d[idx(nc,nr)];
       if(dv<bv){ bv=dv; best={c:nc,r:nr}; }
     }
     return best;
+  }
+  // 沿流场从起点走到终点，得到一条预览路径(沙盘)
+  function tracePath(blockIdx){
+    var d = (blockIdx==null)? dist : bfs(blockIdx);
+    if(d[idx(START.c,START.r)]===Infinity) return null;
+    var pts=[{x:centerX(START.c),y:centerY(START.r)}];
+    var c=START.c,r=START.r,guard=0;
+    while(!(c===END.c&&r===END.r) && guard++<240){
+      var nb=bestNeighbor(c,r,d); if(!nb) break;
+      c=nb.c;r=nb.r; pts.push({x:centerX(c),y:centerY(r)});
+    }
+    return pts;
   }
   function centerX(c){ return c*CELL+CELL/2; }
   function centerY(r){ return r*CELL+CELL/2; }
@@ -203,10 +216,11 @@
   }
 
   // ---- 主循环 ----
-  var lastT=0;
+  var lastT=0,animT=0;
   function loop(now){
     var dt=(now-lastT)/1000; lastT=now;
     if(dt>0.05) dt=0.05;
+    animT+=dt;
     if(state==="wave") step(dt*timeScale);
     draw();
     requestAnimationFrame(loop);
@@ -340,6 +354,13 @@
     ctx.fillStyle="rgba(86,207,175,.16)";ctx.fillRect(END.c*CELL,END.r*CELL,CELL,CELL);
     ctx.font="20px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";
     ctx.fillText("⬆️",sx,sy);ctx.fillText("🏁",ex,ey);
+    // 沙盘路径预览：蓝线=怪物当前路线，金色虚线=放塔后的新路线
+    var rp=tracePath(null);
+    if(rp){ drawPathLine(rp,"#7ed6ff",false); drawFlowDots(rp); }
+    if(buildType && hoverCell && canBuild(hoverCell.c,hoverCell.r) && gold>=TOWERS[buildType].cost){
+      var pp=tracePath(idx(hoverCell.c,hoverCell.r));
+      if(pp) drawPathLine(pp,"#ffd166",true);
+    }
     // 建造预览
     if(buildType && hoverCell){
       var ok=canBuild(hoverCell.c,hoverCell.r) && gold>=TOWERS[buildType].cost;
@@ -390,6 +411,32 @@
     ctx.fillStyle="rgba(0,0,0,.5)";ctx.fillRect(e.x-w/2,e.y-e.r-8,w,4);
     ctx.fillStyle=hp>0.5?"#56cfaf":hp>0.25?"#ffd166":"#ff6584";
     ctx.fillRect(e.x-w/2,e.y-e.r-8,w*hp,4);
+  }
+  function drawPathLine(pts,color,dashed){
+    if(!pts||pts.length<2) return;
+    ctx.save();
+    if(dashed) ctx.setLineDash([9,7]);
+    ctx.strokeStyle=color;ctx.lineWidth=3;ctx.lineJoin="round";ctx.lineCap="round";
+    ctx.shadowColor=color;ctx.shadowBlur=8;ctx.globalAlpha=dashed?0.95:0.55;
+    ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+    for(var i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y);
+    ctx.stroke();
+    ctx.restore();
+  }
+  function drawFlowDots(pts){
+    if(!pts||pts.length<2) return;
+    var seg=[],total=0,i;
+    for(i=0;i<pts.length-1;i++){ var dx=pts[i+1].x-pts[i].x,dy=pts[i+1].y-pts[i].y; var l=Math.sqrt(dx*dx+dy*dy); seg.push(l); total+=l; }
+    var spacing=24, off=(animT*42)%spacing;
+    ctx.fillStyle="rgba(180,230,255,.9)";
+    for(var dpos=off; dpos<total; dpos+=spacing){
+      var acc=0,si=0;
+      while(si<seg.length && acc+seg[si]<dpos){ acc+=seg[si]; si++; }
+      if(si>=seg.length) break;
+      var t=(dpos-acc)/(seg[si]||1);
+      var x=pts[si].x+(pts[si+1].x-pts[si].x)*t, y=pts[si].y+(pts[si+1].y-pts[si].y)*t;
+      ctx.beginPath();ctx.arc(x,y,2.4,0,6.2832);ctx.fill();
+    }
   }
   function addFx(x,y,color,big){ fx.push({x:x,y:y,color:color,life:0.28,max:0.28,r:big?24:11,vy:null}); }
   function popText(x,y,txt,color,life){ fx.push({x:x,y:y,txt:txt,color:color,life:life,max:life,vy:-26}); }
