@@ -79,7 +79,7 @@
 <div class="bar">
   <div class="shop" id="shop"></div>
   <div class="ctrl" id="ctrl"></div>
-  <div class="hint">蓝线=怪物当前路线，建塔时金色虚线=放下后的新路线 · 点已建的塔可升级 / 放技能 / 出售</div>
+  <div class="hint">选塔种后<b>按住拖动</b>=连续建塔画迷宫墙 · 蓝线=怪物路线，金虚线=放塔后新路线 · 点塔可升级/技能/出售</div>
 </div>
 <script>
 "use strict";
@@ -276,7 +276,7 @@
       var aura=auraFor(tw);
       var rate=st.rate/aura.rm; if(tw.berserkT>0) rate*=0.42;
       if(tw.cd<=0){
-        var target=null,best=-1;
+        var target=null,best=-Infinity;
         for(var k=0;k<enemies.length;k++){
           var en=enemies[k]; if(en.dead) continue;
           var ddx=en.x-tw.x,ddy=en.y-tw.y;
@@ -546,25 +546,33 @@
     var cy=(ev.touches?ev.touches[0].clientY:ev.clientY);
     return {x:(cx-rect.left)*(cv.width/rect.width),y:(cy-rect.top)*(cv.height/rect.height)};
   }
-  cv.addEventListener("mousemove",function(ev){ if(!buildType){hoverCell=null;return;} var p=toLocal(ev); hoverCell=cellAt(p.x,p.y); });
-  cv.addEventListener("mouseleave",function(){ hoverCell=null; });
-  cv.addEventListener("click",function(ev){
+  // 拖拽建造：按住拖动可连续建塔，画出迷宫墙
+  var dragging=false,lastBuildKey=null;
+  function tryBuildAt(cell){
+    if(!buildType) return;
+    if(gold<TOWERS[buildType].cost){ popText(centerX(cell.c),centerY(cell.r),"金币不足","#ff6584",0.7); return; }
+    if(canBuild(cell.c,cell.r)){
+      gold-=TOWERS[buildType].cost;
+      grid[idx(cell.c,cell.r)]=1; computeFlow();
+      towers.push({type:buildType,cc:cell.c,rr:cell.r,x:centerX(cell.c),y:centerY(cell.r),lvl:0,cd:0,ang:0,skCd:0,berserkT:0,mineT:0,chargeT:0,invested:TOWERS[buildType].cost});
+      for(var i=0;i<enemies.length;i++) aimNext(enemies[i]);
+      beep(440,0.05);syncHUD();renderShop();
+    } else { popText(centerX(cell.c),centerY(cell.r),"不能建","#ff6584",0.6); }
+  }
+  cv.addEventListener("pointerdown",function(ev){
     if(state==="over"||state==="win") return;
     var p=toLocal(ev),cell=cellAt(p.x,p.y);
-    if(buildType){
-      if(gold<TOWERS[buildType].cost){ popText(p.x,p.y,"金币不足","#ff6584",0.8); return; }
-      if(canBuild(cell.c,cell.r)){
-        gold-=TOWERS[buildType].cost;
-        grid[idx(cell.c,cell.r)]=1; computeFlow();
-        towers.push({type:buildType,cc:cell.c,rr:cell.r,x:centerX(cell.c),y:centerY(cell.r),lvl:0,cd:0,ang:0,skCd:0,berserkT:0,mineT:0,chargeT:0,invested:TOWERS[buildType].cost});
-        for(var i=0;i<enemies.length;i++) aimNext(enemies[i]);
-        beep(440,0.05);syncHUD();renderShop();
-      } else { popText(p.x,p.y,"这里不能建(会堵死路)","#ff6584",0.9); }
-      return;
-    }
-    var tw=towerAt(p.x,p.y);
-    if(tw){ selectTower(tw); } else { deselect(); }
+    if(buildType){ dragging=true; lastBuildKey=cell.c+","+cell.r; tryBuildAt(cell); }
+    else { var tw=towerAt(p.x,p.y); if(tw){ selectTower(tw); } else { deselect(); } }
   });
+  cv.addEventListener("pointermove",function(ev){
+    var p=toLocal(ev),cell=cellAt(p.x,p.y);
+    hoverCell=buildType?cell:null;
+    if(dragging&&buildType){ var key=cell.c+","+cell.r; if(key!==lastBuildKey){ lastBuildKey=key; tryBuildAt(cell); } }
+  });
+  cv.addEventListener("pointerup",function(){ dragging=false; });
+  cv.addEventListener("pointercancel",function(){ dragging=false; });
+  cv.addEventListener("pointerleave",function(){ dragging=false; hoverCell=null; });
 
   // ---- 商店 / 升级面板 ----
   var shop=document.getElementById("shop"),ctrl=document.getElementById("ctrl");
