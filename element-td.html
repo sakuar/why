@@ -127,7 +127,15 @@
     bolt:{el:"bolt",name:"雷塔",icon:"⚡",color:"#ffe14d",cost:80,up:[70,115],desc:"附雷高伤",
       L:[{dmg:16,range:118,rate:720,bs:9},{dmg:27,range:132,rate:660,bs:9.5},{dmg:46,range:148,rate:600,bs:10}]},
     water:{el:"water",name:"水塔",icon:"💧",color:"#5ad2ff",cost:55,up:[50,85],desc:"附水易反应",
-      L:[{dmg:7,range:114,rate:600,bs:7},{dmg:12,range:128,rate:540,bs:7.5},{dmg:20,range:144,rate:480,bs:8}]}
+      L:[{dmg:7,range:114,rate:600,bs:7},{dmg:12,range:128,rate:540,bs:7.5},{dmg:20,range:144,rate:480,bs:8}]},
+    chain:{el:"bolt",name:"电塔",icon:"⚡",color:"#ffe14d",cost:95,up:[85,135],desc:"附雷+弹射",
+      L:[{dmg:13,range:120,rate:780,jumps:3,jr:92},{dmg:21,range:134,rate:720,jumps:4,jr:100},{dmg:35,range:150,rate:660,jumps:5,jr:110}]},
+    poison:{el:null,name:"毒塔",icon:"☠️",color:"#7fd957",cost:75,up:[65,110],desc:"持续掉血",
+      L:[{dmg:3,range:108,rate:900,bs:6,pdps:9,pdur:3000},{dmg:5,range:122,rate:820,bs:6,pdps:16,pdur:3500},{dmg:8,range:136,rate:740,bs:6,pdps:28,pdur:4000}]},
+    mine:{el:null,name:"金矿",icon:"💰",color:"#ffd166",cost:120,up:[100,160],desc:"每隔几秒产金",noatk:true,
+      L:[{gold:14,interval:3000,range:0},{gold:24,interval:2800,range:0},{gold:40,interval:2600,range:0}]},
+    buff:{el:null,name:"光环",icon:"🔆",color:"#56cfaf",cost:110,up:[95,150],desc:"增益周围塔",noatk:true,
+      L:[{range:96,dmgMul:0.2,rateMul:0.15},{range:108,dmgMul:0.3,rateMul:0.22},{range:122,dmgMul:0.45,rateMul:0.32}]}
   };
   var ENEMIES={
     swarm:{hp:18,speed:116,reward:4,color:"#ffe08a",r:9,name:"虫群"},
@@ -198,7 +206,7 @@
     var hpScale=1+(wave-1)*0.28, spScale=1+(wave-1)*0.012;
     enemies.push({type:type,x:way[0].x,y:way[0].y,wp:1,
       hp:d.hp*hpScale,max:d.hp*hpScale,speed:d.speed*spScale,
-      r:d.r,color:d.color,reward:d.reward,slow:0,slowT:0,
+      r:d.r,color:d.color,reward:d.reward,slow:0,slowT:0,pdps:0,pT:0,
       el:null,elT:0,freezeT:0,brittleT:0,dead:false});
   }
 
@@ -218,6 +226,7 @@
     for(var i=enemies.length-1;i>=0;i--){
       var e=enemies[i];
       if(e.dead){ enemies.splice(i,1); continue; }
+      if(e.pT>0){ e.pT-=dt*1000; hurt(e,e.pdps*dt); if(e.dead){ enemies.splice(i,1); continue; } }
       if(e.elT>0) e.elT-=dt*1000; if(e.elT<=0) e.el=null;
       if(e.freezeT>0){ e.freezeT-=dt*1000; }
       if(e.brittleT>0){ e.brittleT-=dt*1000; }
@@ -231,7 +240,14 @@
       else if(move>0){ e.x+=dx/d*move; e.y+=dy/d*move; }
     }
     for(var t=0;t<towers.length;t++){
-      var tw=towers[t],st=stat(tw),range=st.range*buffs.range;
+      var tw=towers[t],T=TOWERS[tw.type],st=stat(tw);
+      if(tw.type==="mine"){
+        tw.mineT-=dt*1000;
+        if(tw.mineT<=0){ gold+=st.gold; popText(tw.x,tw.y-6,"+"+st.gold+" 🪙","#ffd166",1); tw.mineT=st.interval; syncHUD(); }
+        continue;
+      }
+      if(tw.type==="buff"){ continue; }
+      var range=st.range*buffs.range, aura=auraFor(tw);
       tw.cd-=dt*1000;
       if(tw.cd<=0){
         var target=null,best=-1;
@@ -244,12 +260,16 @@
           }
         }
         if(target){
-          tw.cd=st.rate/buffs.rate; tw.ang=Math.atan2(target.y-tw.y,target.x-tw.x);
-          var dmg=st.dmg*buffs.dmg[tw.el]*buffs.dmg.all;
+          tw.cd=(st.rate/buffs.rate)/aura.rm; tw.ang=Math.atan2(target.y-tw.y,target.x-tw.x);
+          var dmg=st.dmg*(tw.el?buffs.dmg[tw.el]:1)*buffs.dmg.all*aura.dm;
           var crit=Math.random()<buffs.crit; if(crit) dmg*=2;
-          bullets.push({x:tw.x,y:tw.y,tg:target,ex:target.x,ey:target.y,bs:st.bs,
-            dmg:dmg,el:tw.el,crit:crit,slow:st.slow||0,slowT:st.slowT||0,color:TOWERS[tw.type].color});
-          beep(tw.el==="bolt"?300:tw.el==="fire"?200:520,0.03);
+          if(tw.type==="chain"){ fireChain(tw,target,dmg,st); }
+          else {
+            bullets.push({x:tw.x,y:tw.y,tg:target,ex:target.x,ey:target.y,bs:st.bs,
+              dmg:dmg,el:tw.el,crit:crit,slow:st.slow||0,slowT:st.slowT||0,
+              pdps:st.pdps||0,pdur:st.pdur||0,color:T.color});
+          }
+          beep(tw.el==="bolt"?300:tw.type==="poison"?160:tw.el==="fire"?200:520,0.03);
         }
       }
     }
@@ -275,12 +295,39 @@
   function onHit(e,bu){
     var d=bu.dmg;
     if(e.brittleT>0) d*=1.3;
-    var rk = e.el? reactionKey(e.el,bu.el): null;
-    if(rk){ fireReaction(rk,e,bu.dmg); e.el=null; e.elT=0; }
-    else { e.el=bu.el; e.elT=ATTACH; }
+    if(bu.el){
+      var rk = e.el? reactionKey(e.el,bu.el): null;
+      if(rk){ fireReaction(rk,e,bu.dmg); e.el=null; e.elT=0; }
+      else { e.el=bu.el; e.elT=ATTACH; }
+    }
     if(bu.slow>0){ e.slow=bu.slow; e.slowT=bu.slowT; }
+    if(bu.pdps>0){ e.pdps=Math.max(e.pdps||0,bu.pdps); e.pT=bu.pdur; }
     hurt(e,d);
     if(bu.crit) popText(e.x,e.y-16,"暴击","#fff",0.6);
+  }
+  // 光环加成
+  function auraFor(tw){
+    var dm=1,rm=1;
+    for(var i=0;i<towers.length;i++){ var b=towers[i]; if(b.type!=="buff") continue;
+      var L=stat(b),dx=b.x-tw.x,dy=b.y-tw.y;
+      if(dx*dx+dy*dy<=L.range*L.range){ dm+=L.dmgMul; rm+=L.rateMul; }
+    }
+    return {dm:dm,rm:rm};
+  }
+  // 电塔：附雷主目标 + 向最近敌人弹射(每跳也附雷, 可再触发感电连锁)
+  function fireChain(tw,first,dmg,st){
+    var jumps=st.jumps||3, jr=st.jr||90, from=first, used=[first];
+    arcFx(tw.x,tw.y,first.x,first.y);
+    onHit(first,{dmg:dmg,el:"bolt",slow:0,slowT:0,pdps:0,pdur:0,crit:false});
+    for(var j=1;j<jumps;j++){
+      var tgt=null,md=jr*jr;
+      for(var k=0;k<enemies.length;k++){ var en=enemies[k]; if(en.dead||used.indexOf(en)>=0) continue;
+        var dx=en.x-from.x,dy=en.y-from.y,dd=dx*dx+dy*dy; if(dd<md){ md=dd; tgt=en; } }
+      if(!tgt) break;
+      arcFx(from.x,from.y,tgt.x,tgt.y);
+      onHit(tgt,{dmg:dmg*0.8,el:"bolt",slow:0,slowT:0,pdps:0,pdur:0,crit:false});
+      used.push(tgt); from=tgt;
+    }
   }
   function fireReaction(rk,e,base){
     var rd=buffs.reactDmg;
@@ -362,6 +409,7 @@
   }
   function drawTower(tw){
     var c=TOWERS[tw.type].color,x=tw.x,y=tw.y;
+    if(tw.type==="buff"){ var BL=stat(tw); ctx.strokeStyle="rgba(86,207,175,.22)";ctx.lineWidth=1.5;ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(x,y,BL.range,0,6.2832);ctx.stroke();ctx.setLineDash([]); }
     ctx.fillStyle="rgba(0,0,0,.35)";ctx.beginPath();ctx.arc(x,y+3,CELL*0.34,0,6.2832);ctx.fill();
     ctx.fillStyle="#10141f";ctx.beginPath();ctx.arc(x,y,CELL*0.34,0,6.2832);ctx.fill();
     ctx.lineWidth=2.5;ctx.strokeStyle=c;ctx.stroke();
@@ -378,6 +426,7 @@
     ctx.fillStyle="rgba(255,255,255,.85)";ctx.beginPath();ctx.arc(e.x-e.r*0.3,e.y-e.r*0.3,e.r*0.3,0,6.2832);ctx.fill();
     // 元素附着标记
     if(e.el){ ctx.font="11px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(EL[e.el].icon,e.x+e.r*0.7,e.y-e.r*0.7); }
+    if(e.pT>0){ ctx.fillStyle="#7fd957";ctx.beginPath();ctx.arc(e.x-e.r*0.7,e.y-e.r*0.7,2.6,0,6.2832);ctx.fill(); }
     if(e.brittleT>0){ ctx.strokeStyle="rgba(195,166,255,.8)";ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(e.x,e.y,e.r+2,0,6.2832);ctx.stroke(); }
     var w=e.r*2,hp=Math.max(0,e.hp/e.max);
     ctx.fillStyle="rgba(0,0,0,.5)";ctx.fillRect(e.x-w/2,e.y-e.r-8,w,4);
@@ -432,7 +481,7 @@
       if(gold<TOWERS[buildType].cost){ popText(p.x,p.y,"金币不足","#ff6584",0.8); return; }
       if(canBuild(cell.c,cell.r)){
         gold-=TOWERS[buildType].cost;
-        towers.push({type:buildType,el:TOWERS[buildType].el,cc:cell.c,rr:cell.r,x:cell.c*CELL+CELL/2,y:cell.r*CELL+CELL/2,lvl:0,cd:0,ang:0,invested:TOWERS[buildType].cost});
+        towers.push({type:buildType,el:TOWERS[buildType].el,cc:cell.c,rr:cell.r,x:cell.c*CELL+CELL/2,y:cell.r*CELL+CELL/2,lvl:0,cd:0,ang:0,mineT:0,invested:TOWERS[buildType].cost});
         beep(440,0.05);syncHUD();renderShop();
       } else { popText(p.x,p.y,"这里不能建","#ff6584",0.8); }
       return;
@@ -463,9 +512,17 @@
     if(!selected) return;
     var tw=selected,T=TOWERS[tw.type],L=T.L[tw.lvl],max=tw.lvl>=T.L.length-1;
     var upCost=max?0:T.up[tw.lvl];
-    var ed=Math.round(L.dmg*buffs.dmg[tw.el]*buffs.dmg.all);
-    var props=EL[tw.el].icon+EL[tw.el].name+'属性 · 伤害 '+ed+' · 射程 '+Math.round(L.range*buffs.range);
-    if(L.slow) props+=' · 减速'+Math.round(L.slow*100)+'%';
+    var props;
+    if(tw.type==="mine"){ props='每 '+(L.interval/1000).toFixed(1)+' 秒产 🪙'+L.gold; }
+    else if(tw.type==="buff"){ props='范围 '+Math.round(L.range)+' · 增伤 +'+Math.round(L.dmgMul*100)+'% · 增速 +'+Math.round(L.rateMul*100)+'%'; }
+    else if(tw.type==="poison"){ props='☠️ 毒属性 · 直伤 '+L.dmg+' · 毒 '+L.pdps+'/秒 · 射程 '+Math.round(L.range*buffs.range); }
+    else {
+      var ed=Math.round(L.dmg*(tw.el?buffs.dmg[tw.el]:1)*buffs.dmg.all);
+      var props2=EL[tw.el].icon+EL[tw.el].name+'属性 · 伤害 '+ed+' · 射程 '+Math.round(L.range*buffs.range);
+      if(L.slow) props2+=' · 减速'+Math.round(L.slow*100)+'%';
+      if(L.jumps) props2+=' · 弹 '+L.jumps+' 目标';
+      props=props2;
+    }
     var sell=Math.floor(tw.invested*0.6);
     var upBtn=max?'<button class="up" disabled>已满级</button>'
       :'<button class="up" id="upBtn"'+(gold<upCost?' disabled':'')+'>升级 🪙'+upCost+'</button>';
