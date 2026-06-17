@@ -370,10 +370,172 @@ var PHYS=[
 }
 ];
 
-/* ====== 学科注册(物理满，化学/数学下批) ====== */
+/* ============================== 化学主题 ============================== */
+var ATOM={H:{c:"#dfe6f0",r:0.34,n:"氢"},C:{c:"#46505f",r:0.52,n:"碳"},O:{c:"#ff5a6e",r:0.48,n:"氧"},N:{c:"#5aa0ff",r:0.48,n:"氮"}};
+var MOLECULES={
+  water:{name:"水 H₂O",atoms:[["O",0,0,0],["H",0.79,0.61,0],["H",-0.79,0.61,0]],bonds:[[0,1,1],[0,2,1]]},
+  methane:{name:"甲烷 CH₄",atoms:[["C",0,0,0],["H",0.63,0.63,0.63],["H",-0.63,-0.63,0.63],["H",-0.63,0.63,-0.63],["H",0.63,-0.63,-0.63]],bonds:[[0,1,1],[0,2,1],[0,3,1],[0,4,1]]},
+  ammonia:{name:"氨 NH₃",atoms:[["N",0,0.35,0],["H",0.94,-0.25,0],["H",-0.47,-0.25,0.81],["H",-0.47,-0.25,-0.81]],bonds:[[0,1,1],[0,2,1],[0,3,1]]},
+  co2:{name:"二氧化碳 CO₂",atoms:[["C",0,0,0],["O",1.16,0,0],["O",-1.16,0,0]],bonds:[[0,1,2],[0,2,2]]},
+  benzene:(function(){var a=[],b=[];for(var i=0;i<6;i++){var an=i/6*Math.PI*2;a.push(["C",1.4*Math.cos(an),1.4*Math.sin(an),0]);a.push(["H",2.5*Math.cos(an),2.5*Math.sin(an),0]);}
+    for(var j=0;j<6;j++){b.push([j*2,((j+1)%6)*2,(j%2)?1:2]);b.push([j*2,j*2+1,1]);}return {name:"苯 C₆H₆",atoms:a,bonds:b};})(),
+  ethanol:{name:"乙醇 C₂H₅OH",atoms:[["C",-0.9,0,0],["C",0.4,0.5,0],["O",1.5,-0.35,0],["H",-1.6,0.8,0],["H",-1.2,-0.6,0.8],["H",-1.2,-0.6,-0.8],["H",0.6,1.15,0.8],["H",0.6,1.15,-0.8],["H",2.25,0.1,0]],
+    bonds:[[0,1,1],[1,2,1],[0,3,1],[0,4,1],[0,5,1],[1,6,1],[1,7,1],[2,8,1]]}
+};
+// 元素周期表数据 [序号,符号,中文,行,列,类别]  类别:1碱金属2碱土3过渡4后过渡5类金属6非金属7卤素8稀有气体9镧系10锕系0超重
+var ELEMENTS=[
+ [1,"H","氢",1,1,6],[2,"He","氦",1,18,8],
+ [3,"Li","锂",2,1,1],[4,"Be","铍",2,2,2],[5,"B","硼",2,13,5],[6,"C","碳",2,14,6],[7,"N","氮",2,15,6],[8,"O","氧",2,16,6],[9,"F","氟",2,17,7],[10,"Ne","氖",2,18,8],
+ [11,"Na","钠",3,1,1],[12,"Mg","镁",3,2,2],[13,"Al","铝",3,13,4],[14,"Si","硅",3,14,5],[15,"P","磷",3,15,6],[16,"S","硫",3,16,6],[17,"Cl","氯",3,17,7],[18,"Ar","氩",3,18,8],
+ [19,"K","钾",4,1,1],[20,"Ca","钙",4,2,2],[21,"Sc","钪",4,3,3],[22,"Ti","钛",4,4,3],[23,"V","钒",4,5,3],[24,"Cr","铬",4,6,3],[25,"Mn","锰",4,7,3],[26,"Fe","铁",4,8,3],[27,"Co","钴",4,9,3],[28,"Ni","镍",4,10,3],[29,"Cu","铜",4,11,3],[30,"Zn","锌",4,12,3],[31,"Ga","镓",4,13,4],[32,"Ge","锗",4,14,5],[33,"As","砷",4,15,5],[34,"Se","硒",4,16,6],[35,"Br","溴",4,17,7],[36,"Kr","氪",4,18,8],
+ [37,"Rb","铷",5,1,1],[38,"Sr","锶",5,2,2],[39,"Y","钇",5,3,3],[40,"Zr","锆",5,4,3],[41,"Nb","铌",5,5,3],[42,"Mo","钼",5,6,3],[43,"Tc","锝",5,7,3],[44,"Ru","钌",5,8,3],[45,"Rh","铑",5,9,3],[46,"Pd","钯",5,10,3],[47,"Ag","银",5,11,3],[48,"Cd","镉",5,12,3],[49,"In","铟",5,13,4],[50,"Sn","锡",5,14,4],[51,"Sb","锑",5,15,5],[52,"Te","碲",5,16,5],[53,"I","碘",5,17,7],[54,"Xe","氙",5,18,8],
+ [55,"Cs","铯",6,1,1],[56,"Ba","钡",6,2,2],[72,"Hf","铪",6,4,3],[73,"Ta","钽",6,5,3],[74,"W","钨",6,6,3],[75,"Re","铼",6,7,3],[76,"Os","锇",6,8,3],[77,"Ir","铱",6,9,3],[78,"Pt","铂",6,10,3],[79,"Au","金",6,11,3],[80,"Hg","汞",6,12,3],[81,"Tl","铊",6,13,4],[82,"Pb","铅",6,14,4],[83,"Bi","铋",6,15,4],[84,"Po","钋",6,16,5],[85,"At","砹",6,17,7],[86,"Rn","氡",6,18,8],
+ [87,"Fr","钫",7,1,1],[88,"Ra","镭",7,2,2],[104,"Rf","Rf",7,4,3],[105,"Db","Db",7,5,3],[106,"Sg","Sg",7,6,3],[107,"Bh","Bh",7,7,3],[108,"Hs","Hs",7,8,3],[109,"Mt","Mt",7,9,0],[110,"Ds","Ds",7,10,0],[111,"Rg","Rg",7,11,0],[112,"Cn","Cn",7,12,0],[113,"Nh","Nh",7,13,0],[114,"Fl","Fl",7,14,0],[115,"Mc","Mc",7,15,0],[116,"Lv","Lv",7,16,0],[117,"Ts","Ts",7,17,7],[118,"Og","Og",7,18,8],
+ [57,"La","镧",8,3,9],[58,"Ce","铈",8,4,9],[59,"Pr","镨",8,5,9],[60,"Nd","钕",8,6,9],[61,"Pm","钷",8,7,9],[62,"Sm","钐",8,8,9],[63,"Eu","铕",8,9,9],[64,"Gd","钆",8,10,9],[65,"Tb","铽",8,11,9],[66,"Dy","镝",8,12,9],[67,"Ho","钬",8,13,9],[68,"Er","铒",8,14,9],[69,"Tm","铥",8,15,9],[70,"Yb","镱",8,16,9],[71,"Lu","镥",8,17,9],
+ [89,"Ac","锕",9,3,10],[90,"Th","钍",9,4,10],[91,"Pa","镤",9,5,10],[92,"U","铀",9,6,10],[93,"Np","镎",9,7,10],[94,"Pu","钚",9,8,10],[95,"Am","镅",9,9,10],[96,"Cm","锔",9,10,10],[97,"Bk","锫",9,11,10],[98,"Cf","锎",9,12,10],[99,"Es","锿",9,13,10],[100,"Fm","镄",9,14,10],[101,"Md","钔",9,15,10],[102,"No","锘",9,16,10],[103,"Lr","铹",9,17,10]
+];
+var CATCOL={1:"#ff8a5c",2:"#ffcf66",3:"#56a0ff",4:"#5ad6c0",5:"#9ad36a",6:"#7ee787",7:"#c6e36a",8:"#b98cff",9:"#ff8aa0",10:"#ff6ab0",0:"#8090a8"};
+var CATNAME={1:"碱金属",2:"碱土金属",3:"过渡金属",4:"后过渡金属",5:"类金属",6:"非金属",7:"卤素",8:"稀有气体",9:"镧系",10:"锕系",0:"超重元素"};
+
+var CHEM=[
+{
+  id:"molecule", em:"🧪", name:"3D 分子结构",
+  ttl:"球棍分子模型 (3D)",
+  eq:"原子 + 共价键 · 立体构型由 VSEPR(价层电子对互斥)决定",
+  nt:"用<b>球棍模型</b>展示分子的真实三维构型：球是原子(红=O 蓝=N 灰=C 白=H)，棍是共价键(双线=双键)。例如水是 104.5° 折线形、甲烷是正四面体、苯是平面六元环。自动旋转,可调倾角。",
+  params:[{k:"mol",label:"分子",type:"sel",opts:[["水","water"],["甲烷","methane"],["氨","ammonia"],["二氧化碳","co2"],["苯","benzene"],["乙醇","ethanol"]],def:"water"},{k:"tilt",label:"俯仰角",min:-1,max:1,step:0.02,def:0.3}],
+  init:function(){},
+  frame:function(g,w,h,t,dt,P){
+    var mol=MOLECULES[P.mol];if(!mol)return;
+    var rotY=t*0.6, rotX=P.tilt, cx=w/2, cy=h*0.5, sc=Math.min(w,h)*0.17;
+    var cY=Math.cos(rotY),sY=Math.sin(rotY),cX=Math.cos(rotX),sX=Math.sin(rotX);
+    var pts=[];
+    for(var i=0;i<mol.atoms.length;i++){var a=mol.atoms[i],x=a[1],y=a[2],z=a[3];
+      var x1=x*cY+z*sY, z1=-x*sY+z*cY;
+      var y1=y*cX-z1*sX, z2=y*sX+z1*cX;
+      var persp=4/(4+z2);
+      pts.push({el:a[0],sx:cx+x1*persp*sc,sy:cy-y1*persp*sc,z:z2,persp:persp});
+    }
+    // 键(先画,按z排序)
+    var bl=mol.bonds.map(function(b){return {b:b,z:(pts[b[0]].z+pts[b[1]].z)/2};}).sort(function(a,b){return b.z-a.z;});
+    for(var k=0;k<bl.length;k++){var b=bl[k].b,p0=pts[b[0]],p1=pts[b[1]];
+      var dx=p1.sx-p0.sx,dy=p1.sy-p0.sy,len=Math.hypot(dx,dy)||1,ox=-dy/len*3.2,oy=dx/len*3.2;
+      g.strokeStyle="rgba(180,195,220,0.8)";g.lineWidth=3.2*((p0.persp+p1.persp)/2);
+      if(b[2]===2){g.beginPath();g.moveTo(p0.sx+ox,p0.sy+oy);g.lineTo(p1.sx+ox,p1.sy+oy);g.moveTo(p0.sx-ox,p0.sy-oy);g.lineTo(p1.sx-ox,p1.sy-oy);g.stroke();}
+      else{g.beginPath();g.moveTo(p0.sx,p0.sy);g.lineTo(p1.sx,p1.sy);g.stroke();}
+    }
+    // 原子(按z排序,远先画)
+    var order=pts.map(function(p,i){return i;}).sort(function(a,b){return pts[b].z-pts[a].z;});
+    for(var oi=0;oi<order.length;oi++){var p=pts[order[oi]],el=ATOM[p.el]||ATOM.C;var rr=el.r*sc*p.persp;
+      var grd=g.createRadialGradient(p.sx-rr*0.3,p.sy-rr*0.3,rr*0.1,p.sx,p.sy,rr);
+      grd.addColorStop(0,"#fff");grd.addColorStop(0.25,el.c);grd.addColorStop(1,el.c);
+      g.fillStyle=grd;g.beginPath();g.arc(p.sx,p.sy,rr,0,7);g.fill();
+      g.fillStyle=p.el==="H"?"#333":"#fff";g.font="bold "+Math.round(rr*0.9)+"px system-ui";g.textAlign="center";g.textBaseline="middle";
+      g.fillText(p.el,p.sx,p.sy);g.textAlign="left";
+    }
+    setLive("分子：<span class='live'>"+mol.name+"</span>　原子 "+mol.atoms.length+" · 键 "+mol.bonds.length);
+  }
+},
+{
+  id:"ptable", em:"📋", name:"元素周期表",
+  ttl:"元素周期表 (Periodic Table)",
+  eq:"按原子序数排列 · 同族(同列)化学性质相似 · 同周期(同行)电子层数相同",
+  nt:"点击任意元素查看详情。颜色代表元素<b>类别</b>。门捷列夫发现：把元素按原子序数排列，性质会<b>周期性重现</b>——这就是周期律。最左是活泼金属，最右是惰性的稀有气体。",
+  params:[],
+  init:function(){MOD.sel=null;MOD.cells=[];},
+  frame:function(g,w,h,t,dt,P){
+    var cols=18, pad=8, gapY=6;
+    var cw=(w-pad*2)/cols, ch=Math.min(cw, (h-pad*2-gapY)/9.4);
+    MOD.cells=[];
+    for(var i=0;i<ELEMENTS.length;i++){var e=ELEMENTS[i];
+      var row=e[3], col=e[4];
+      var yoff=(row>=8)?gapY:0;
+      var x=pad+(col-1)*cw, y=pad+(row-1)*ch+yoff;
+      var cellW=cw-1.5, cellH=ch-1.5;
+      MOD.cells.push({x:x,y:y,w:cellW,h:cellH,e:e});
+      var sel=MOD.sel&&MOD.sel[0]===e[0];
+      g.fillStyle=CATCOL[e[5]]||"#667";g.globalAlpha=sel?1:0.82;
+      g.fillRect(x,y,cellW,cellH);g.globalAlpha=1;
+      if(sel){g.strokeStyle="#fff";g.lineWidth=2;g.strokeRect(x,y,cellW,cellH);}
+      g.fillStyle="rgba(10,12,20,0.85)";g.font="bold "+Math.max(7,Math.round(cellH*0.34))+"px system-ui";g.textAlign="center";g.textBaseline="middle";
+      g.fillText(e[1],x+cellW/2,y+cellH*0.46);
+      g.font=Math.max(5,Math.round(cellH*0.2))+"px system-ui";g.fillText(""+e[0],x+cellW/2,y+cellH*0.78);
+    }
+    g.textAlign="left";
+    // 选中信息
+    if(MOD.sel){var e=MOD.sel;
+      setLive("<span class='live'>"+e[0]+" "+e[1]+"</span> "+e[2]+"　类别："+CATNAME[e[5]]+"　第"+(e[3]>=8?(e[5]===9?6:7):e[3])+"周期");
+    }else setLive("👆 点击元素查看详情　· 颜色 = 元素类别");
+  },
+  onClick:function(x,y){if(!MOD.cells)return;for(var i=0;i<MOD.cells.length;i++){var c=MOD.cells[i];
+    if(x>=c.x&&x<=c.x+c.w&&y>=c.y&&y<=c.y+c.h){MOD.sel=c.e;return;}}}
+},
+{
+  id:"gas", em:"💨", name:"分子运动论",
+  ttl:"气体分子运动论 (Kinetic Theory)",
+  eq:"½m⟨v²⟩ = (3/2)kT　⟹　温度越高，分子平均速率越大",
+  nt:"气体由大量做<b>无规则热运动</b>的分子组成。<b>温度</b>本质上是分子平均动能的体现——升温，分子跑得更快、撞墙更频繁(压强更大)。右侧直方图是实时<b>速率分布</b>，趋近麦克斯韦-玻尔兹曼分布。",
+  params:[{k:"T",label:"温度(相对)",min:0.2,max:3,step:0.1,def:1},{k:"N",label:"分子数",min:20,max:150,step:5,def:80}],
+  init:function(P){MOD.ps=[];var n=P?P.N:80;for(var i=0;i<n;i++){var a=Math.random()*7,sp=1;MOD.ps.push({x:Math.random(),y:Math.random(),vx:Math.cos(a)*sp,vy:Math.sin(a)*sp});}MOD.hits=0;},
+  frame:function(g,w,h,t,dt,P){
+    if(!MOD.ps||MOD.ps.length!==Math.round(P.N))this.init(P);
+    var boxX=12,boxY=12,boxW=w*0.56,boxH=h-24;
+    g.strokeStyle="rgba(120,140,180,0.5)";g.lineWidth=2;g.strokeRect(boxX,boxY,boxW,boxH);
+    var spd=Math.sqrt(P.T)*0.45;
+    var speeds=[];
+    for(var i=0;i<MOD.ps.length;i++){var p=MOD.ps[i];
+      p.x+=p.vx*spd*dt*4;p.y+=p.vy*spd*dt*4;
+      if(p.x<0){p.x=0;p.vx=Math.abs(p.vx);}if(p.x>1){p.x=1;p.vx=-Math.abs(p.vx);}
+      if(p.y<0){p.y=0;p.vy=Math.abs(p.vy);}if(p.y>1){p.y=1;p.vy=-Math.abs(p.vy);}
+      var px=boxX+p.x*boxW,py=boxY+p.y*boxH;
+      var sp=Math.hypot(p.vx,p.vy);speeds.push(sp*spd);
+      g.fillStyle="hsl("+(200-sp*spd*120)+",85%,62%)";g.beginPath();g.arc(px,py,3,0,7);g.fill();
+    }
+    // 速率分布直方图
+    var hx=boxX+boxW+24, hw=w-hx-14, hy=h-24, hh=h*0.6;
+    g.strokeStyle="rgba(120,140,180,0.4)";g.beginPath();g.moveTo(hx,hy);g.lineTo(hx+hw,hy);g.moveTo(hx,hy);g.lineTo(hx,hy-hh);g.stroke();
+    var bins=14,cnt=new Array(bins).fill(0),vmax=spd*2.2;
+    var sum=0;for(var s=0;s<speeds.length;s++){sum+=speeds[s];var bi=Math.min(bins-1,Math.floor(speeds[s]/vmax*bins));cnt[bi]++;}
+    var mx=Math.max(1,Math.max.apply(null,cnt));
+    for(var b=0;b<bins;b++){var bh=cnt[b]/mx*hh;g.fillStyle="hsl("+(200-b/bins*120)+",70%,55%)";g.fillRect(hx+b*(hw/bins)+1,hy-bh,hw/bins-2,bh);}
+    g.fillStyle="#8b96ad";g.font="11px system-ui";g.fillText("速率分布",hx,hy-hh-6);
+    setLive("温度 T=<span class='live'>"+fmtn(P.T,1)+"</span>　平均速率≈"+fmtn(sum/Math.max(1,speeds.length))+"　分子数 "+MOD.ps.length);
+  }
+},
+{
+  id:"reaction", em:"⚗️", name:"可逆反应平衡",
+  ttl:"化学平衡 (Chemical Equilibrium)",
+  eq:"A ⇌ B　正逆速率：v₊=k₊[A]，v₋=k₋[B]　平衡时 v₊=v₋，K=k₊/k₋=[B]/[A]",
+  nt:"可逆反应中正、逆反应同时进行。开始时 A 多、正反应快；随 A 减少正反应变慢、逆反应变快；最终<b>正逆速率相等</b>，浓度不再变化(动态平衡)。改变速率常数看平衡点如何移动。",
+  params:[{k:"kf",label:"正反应 k₊",min:0.1,max:3,step:0.1,def:1.2},{k:"kr",label:"逆反应 k₋",min:0.1,max:3,step:0.1,def:0.6}],
+  init:function(){MOD.A=1;MOD.B=0;MOD.hist=[];},
+  frame:function(g,w,h,t,dt,P){
+    if(MOD.A===undefined)this.init();
+    var sub=4,hdt=Math.min(0.05,dt)/sub;
+    for(var i=0;i<sub;i++){var r=P.kf*MOD.A-P.kr*MOD.B;MOD.A-=r*hdt;MOD.B+=r*hdt;if(MOD.A<0)MOD.A=0;if(MOD.B<0)MOD.B=0;}
+    MOD.hist=MOD.hist||[];if(dt>0){MOD.hist.push([MOD.A,MOD.B]);if(MOD.hist.length>w*0.5)MOD.hist.shift();}
+    // 烧杯(左) A/B 分子点
+    var bx=20,by=h*0.18,bw=w*0.3,bh=h*0.66;
+    g.strokeStyle="rgba(120,140,180,0.5)";g.lineWidth=2;g.strokeRect(bx,by,bw,bh);
+    var total=40;var nB=Math.round(MOD.B/(MOD.A+MOD.B+1e-6)*total);
+    for(var k=0;k<total;k++){var rx=bx+8+((k*37)%(bw-16)),ry=by+12+((k*53)%(bh-24));
+      g.fillStyle=k<nB?"#7ee787":"#ffd166";g.beginPath();g.arc(rx,ry,4,0,7);g.fill();}
+    g.fillStyle="#ffd166";g.font="12px system-ui";g.fillText("● A",bx,by-6);g.fillStyle="#7ee787";g.fillText("● B",bx+34,by-6);
+    // 浓度-时间曲线(右)
+    var gx=bx+bw+30,gw=w-gx-16,gy=h-30,gh=h*0.66;
+    g.strokeStyle="rgba(120,140,180,0.4)";g.beginPath();g.moveTo(gx,gy);g.lineTo(gx+gw,gy);g.moveTo(gx,gy);g.lineTo(gx,gy-gh);g.stroke();
+    function plot(idx,col){g.strokeStyle=col;g.lineWidth=2.2;g.beginPath();for(var i=0;i<MOD.hist.length;i++){var yy=gy-MOD.hist[i][idx]*gh;if(i===0)g.moveTo(gx+i,yy);else g.lineTo(gx+i,yy);}g.stroke();}
+    plot(0,"#ffd166");plot(1,"#7ee787");
+    var K=P.kf/P.kr, eqA=1/(1+K), eqB=K/(1+K);
+    setLive("K=k₊/k₋=<span class='live'>"+fmtn(K)+"</span>　平衡浓度 [A]≈"+fmtn(eqA)+" [B]≈"+fmtn(eqB)+"　当前 [A]="+fmtn(MOD.A)+" [B]="+fmtn(MOD.B));
+  }
+}
+];
+
+/* ====== 学科注册 ====== */
 var SUBJECTS=[
   {id:"phys", name:"物理", em:"⚛️", topics:PHYS},
-  {id:"chem", name:"化学", em:"⚗️", wip:"3D 球棍分子结构(可旋转缩放)、交互式元素周期表、气体分子运动论、反应动力学"},
+  {id:"chem", name:"化学", em:"⚗️", topics:CHEM},
   {id:"math", name:"数学", em:"➗", wip:"傅里叶级数、泰勒展开、黎曼和、欧拉公式、利萨茹、洛伦兹吸引子等(现可在独立的「🧮 数学之美」模块体验，后续并入本门户)"}
 ];
 
@@ -479,6 +641,12 @@ var playTog=document.getElementById("playTog");
 playTog.addEventListener("click",function(){S.play=!S.play;playTog.classList.toggle("on",S.play);});
 document.getElementById("rSpeed").addEventListener("input",function(e){S.speed=parseFloat(e.target.value);document.getElementById("vSpeed").textContent=fmtn(S.speed,1);});
 document.getElementById("btnReset").addEventListener("click",function(){S.t=0;reinit();});
+// 画布点击(供可点击主题如周期表)
+cv.addEventListener("click",function(e){
+  var tp=curTopic();if(!tp||!tp.onClick)return;
+  var rect=cv.getBoundingClientRect(),scale=cv.width/rect.width;
+  tp.onClick((e.clientX-rect.left)*scale,(e.clientY-rect.top)*scale,cv.width,cv.height,curParams());
+});
 window.addEventListener("resize",fit);
 
 /* ============================== 启动 ============================== */
