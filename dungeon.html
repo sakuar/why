@@ -177,7 +177,7 @@
 /* ============================== 配置 ============================== */
 var TS=32;                 // 瓦片像素
 var MAPW=42, MAPH=30;      // 地牢尺寸(格)
-var FOV_R=6;               // 视野半径
+var FOV_R=8;               // 视野半径(走廊)
 var WIN_DEPTH=15;          // 击败第15层龙王通关
 var SAVE_KEY="dungeon_rogue_v1";
 
@@ -312,6 +312,7 @@ function descend(){
   if(G.depth>SAVE.maxDepth){SAVE.maxDepth=G.depth;persist();}
   var f=genFloor();
   G.map=f.map;
+  G.rooms=f.rooms; // 保存房间用于"整间照亮"
   var W=MAPW,H=MAPH;
   G.seen=[];G.vis=[];for(var y=0;y<H;y++){G.seen[y]=[];G.vis[y]=[];for(var x=0;x<W;x++){G.seen[y][x]=false;G.vis[y][x]=false;}}
   // 玩家放第一个房间
@@ -433,6 +434,18 @@ function computeFOV(){
       if(tx<0||ty<0||tx>=W||ty>=H)continue;
       var dx=tx-px,dy=ty-py;if(dx*dx+dy*dy>FOV_R*FOV_R+FOV_R)continue;
       if(losClear(px,py,tx,ty)){G.vis[ty][tx]=true;G.seen[ty][tx]=true;}
+    }
+  }
+  // 站在房间里:整个房间(含四周墙)一次点亮,避免房间内还要逐格摸索
+  if(G.rooms){
+    for(var ri2=0;ri2<G.rooms.length;ri2++){
+      var r=G.rooms[ri2];
+      if(px>=r.x&&px<r.x+r.w&&py>=r.y&&py<r.y+r.h){
+        for(var yy=r.y-1;yy<=r.y+r.h;yy++)for(var xx=r.x-1;xx<=r.x+r.w;xx++){
+          if(xx<0||yy<0||xx>=W||yy>=H)continue;
+          G.vis[yy][xx]=true;G.seen[yy][xx]=true;
+        }
+      }
     }
   }
 }
