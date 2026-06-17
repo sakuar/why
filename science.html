@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>科学可视化实验室</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;min-height:100vh;overflow-x:hidden;}
+  .top{width:100%;max-width:900px;display:flex;align-items:center;justify-content:space-between;padding:12px 14px 4px;}
+  .top h1{font-size:17px;font-weight:800;letter-spacing:1px;
+    background:linear-gradient(90deg,#56b6ff,#7ee787,#ffd166);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:5px 10px;}
+  /* 学科 tab */
+  .subjects{width:100%;max-width:900px;display:flex;gap:8px;padding:6px 14px 10px;}
+  .subj{flex:1;text-align:center;font-size:14px;font-weight:700;padding:10px;border-radius:11px;
+    background:#101729;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.13s;}
+  .subj:hover{border-color:#3a445e;}
+  .subj.on{background:linear-gradient(135deg,#6c63ff,#8a63ff);border-color:#6c63ff;color:#fff;}
+  .subj .em{font-size:18px;display:block;margin-bottom:2px;}
+  #stage{position:relative;width:100%;max-width:900px;padding:0 14px;}
+  canvas{width:100%;display:block;background:radial-gradient(ellipse at 50% 35%,#0e1426,#06070d 80%);
+    border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+  .formula{width:100%;max-width:900px;margin:10px 14px 4px;padding:13px 16px;background:#0e1322;border:1px solid #232c44;border-radius:12px;}
+  .formula .ttl{font-size:14px;font-weight:800;color:#ffd166;margin-bottom:6px;}
+  .formula .eq{font-size:16px;line-height:1.7;color:#e8eef7;font-family:"Cambria Math","Times New Roman",Georgia,serif;letter-spacing:.3px;overflow-x:auto;white-space:nowrap;padding-bottom:2px;}
+  .formula .eq sub,.formula .eq sup{font-size:64%;}
+  .formula .nt{font-size:12.5px;color:#8b96ad;margin-top:8px;line-height:1.6;}
+  .formula .nt b{color:#aab6cc;}
+  .formula .live{color:#56b6ff;font-weight:700;}
+  .panel{width:100%;max-width:900px;padding:6px 14px 34px;}
+  .row{margin-bottom:12px;}
+  .row .lab{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:7px;}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{font-size:13px;padding:7px 12px;border-radius:20px;background:#121829;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.13s;white-space:nowrap;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;}
+  .chip .em{margin-right:4px;}
+  #params{display:grid;grid-template-columns:1fr 1fr;gap:11px 18px;}
+  @media(max-width:520px){#params{grid-template-columns:1fr;}}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px;}
+  .slider .sl-top .nm{color:#cfd8ea;}
+  .slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .selrow{display:flex;gap:7px;flex-wrap:wrap;}
+  .selrow .chip{font-size:12px;padding:5px 11px;}
+  .globals{display:flex;flex-wrap:wrap;gap:14px 18px;align-items:center;}
+  .globals .slider{min-width:160px;flex:1;}
+  .toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:#cfd8ea;cursor:pointer;user-select:none;}
+  .sw{width:38px;height:21px;border-radius:11px;background:#232c44;position:relative;transition:.15s;flex:0 0 auto;}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#8090a8;transition:.15s;}
+  .toggle.on .sw{background:#6c63ff;}
+  .toggle.on .sw::after{left:19px;background:#fff;}
+  .btn{font-size:12.5px;padding:7px 13px;border-radius:9px;background:#121829;border:1px solid #232c44;color:#aab6cc;cursor:pointer;}
+  .wip{padding:50px 20px;text-align:center;color:#8090a8;line-height:1.9;font-size:13.5px;}
+  .wip .big{font-size:40px;margin-bottom:12px;}
+  .wip b{color:#cfd8ea;}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>🔬 科学可视化实验室</h1>
+  <a class="back" href="index.html">← 返回合集</a>
+</div>
+<div class="subjects" id="subjects"></div>
+
+<div id="stage"><canvas id="cv" width="900" height="500"></canvas></div>
+
+<div class="formula" id="formula">
+  <div class="ttl" id="fTtl"></div>
+  <div class="eq" id="fEq"></div>
+  <div class="nt" id="fNt"></div>
+</div>
+
+<div class="panel" id="panel">
+  <div class="row">
+    <div class="lab">主题</div>
+    <div class="chips" id="topicChips"></div>
+  </div>
+  <div class="row" id="paramRow">
+    <div class="lab">参数</div>
+    <div id="params"></div>
+  </div>
+  <div class="row">
+    <div class="lab">播放</div>
+    <div class="globals">
+      <div class="toggle on" id="playTog"><span class="sw"></span><span>播放动画</span></div>
+      <div class="slider"><div class="sl-top"><span class="nm">速度</span><span class="val" id="vSpeed">1.0</span></div>
+        <input type="range" id="rSpeed" min="0.1" max="3" step="0.1" value="1"></div>
+      <button class="btn" id="btnReset">重置</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+function fmtn(v,d){d=d===undefined?2:d;var m=Math.pow(10,d);return (Math.round(v*m)/m).toString();}
+function setLive(html){var el=document.getElementById("fLive");if(el)el.innerHTML=html;}
+var MOD={}; // 当前主题内部状态
+
+/* ====== 通用绘图 ====== */
+function arrow(g,x1,y1,x2,y2,col,wd){
+  g.strokeStyle=col;g.fillStyle=col;g.lineWidth=wd||2;
+  g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke();
+  var ang=Math.atan2(y2-y1,x2-x1),s=6+(wd||2);
+  g.beginPath();g.moveTo(x2,y2);g.lineTo(x2-s*Math.cos(ang-0.4),y2-s*Math.sin(ang-0.4));
+  g.lineTo(x2-s*Math.cos(ang+0.4),y2-s*Math.sin(ang+0.4));g.closePath();g.fill();
+}
+function grid(g,w,h,ox,oy){g.strokeStyle="rgba(120,140,180,0.18)";g.lineWidth=1;
+  g.beginPath();g.moveTo(0,oy);g.lineTo(w,oy);g.moveTo(ox,0);g.lineTo(ox,h);g.stroke();}
+
+/* ============================== 物理主题 ============================== */
+var PHYS=[
+{
+  id:"pendulum", em:"🪀", name:"单摆",
+  ttl:"单摆 (Simple Pendulum)",
+  eq:"θ″ = −(g/L)·sin θ　　小角近似周期　T = 2π√(L/g)",
+  nt:"摆球受重力切向分量牵引往复摆动。<b>大角度时</b>真实运动并非严格简谐(sinθ≠θ)，周期会随振幅变长。拖动滑块改变摆长 L、重力 g、初始角度与阻尼，观察周期与能量变化。",
+  params:[{k:"L",label:"摆长 L (m)",min:0.4,max:2.4,step:0.05,def:1.4},{k:"g",label:"重力 g",min:1,max:25,step:0.5,def:9.8},{k:"a0",label:"初始角 (°)",min:5,max:160,step:1,def:60},{k:"damp",label:"阻尼",min:0,max:0.6,step:0.01,def:0.05}],
+  init:function(P){MOD.th=(P?P.a0:60)*Math.PI/180;MOD.w=0;MOD.trail=[];},
+  frame:function(g,w,h,t,dt,P){
+    if(MOD.th===undefined)this.init(P);
+    var sub=6, hdt=dt/sub;
+    for(var i=0;i<sub;i++){var acc=-(P.g/P.L)*Math.sin(MOD.th)-P.damp*MOD.w;MOD.w+=acc*hdt;MOD.th+=MOD.w*hdt;}
+    var px=w/2, py=h*0.16, len=Math.min(h*0.62, P.L/2.4*h*0.62);
+    var bx=px+len*Math.sin(MOD.th), by=py+len*Math.cos(MOD.th);
+    // 轨迹
+    MOD.trail.unshift([bx,by]);if(MOD.trail.length>40)MOD.trail.pop();
+    for(var k=0;k<MOD.trail.length;k++){g.fillStyle="rgba(86,182,255,"+(0.4*(1-k/40))+")";g.beginPath();g.arc(MOD.trail[k][0],MOD.trail[k][1],3,0,7);g.fill();}
+    // 支架/摆线/球
+    g.strokeStyle="#556";g.lineWidth=4;g.beginPath();g.moveTo(px-40,py);g.lineTo(px+40,py);g.stroke();
+    g.strokeStyle="#9fb0cc";g.lineWidth=2;g.beginPath();g.moveTo(px,py);g.lineTo(bx,by);g.stroke();
+    var rad=14;
+    var grd=g.createRadialGradient(bx-4,by-4,2,bx,by,rad);grd.addColorStop(0,"#ffd98a");grd.addColorStop(1,"#e8902a");
+    g.fillStyle=grd;g.beginPath();g.arc(bx,by,rad,0,7);g.fill();
+    // 角度弧
+    g.strokeStyle="rgba(126,231,135,0.6)";g.lineWidth=1.5;g.beginPath();g.arc(px,py,34,Math.PI/2-Math.abs(MOD.th),Math.PI/2+0,MOD.th<0);g.stroke();
+    var T=2*Math.PI*Math.sqrt(P.L/P.g);
+    var E=P.g*P.L*(1-Math.cos(MOD.th))+0.5*P.L*P.L*MOD.w*MOD.w;
+    setLive("θ=<span class='live'>"+fmtn(MOD.th*180/Math.PI,0)+"°</span>　ω="+fmtn(MOD.w)+" rad/s　小角周期 T≈"+fmtn(T)+" s　机械能="+fmtn(E,1));
+  }
+},
+{
+  id:"spring", em:"🌀", name:"弹簧振子",
+  ttl:"弹簧振子 · 简谐运动 (SHM)",
+  eq:"m·x″ = −k·x　⟹　x(t)=A·cos(ωt)，ω=√(k/m)，T=2π√(m/k)",
+  nt:"理想弹簧的回复力与位移成正比且反向(胡克定律)，产生最纯粹的<b>简谐运动</b>。位移、速度、加速度都是正弦曲线且相位依次相差 90°。改变劲度系数 k 与质量 m，看角频率 ω 怎么变。",
+  params:[{k:"kk",label:"劲度系数 k",min:2,max:60,step:1,def:20},{k:"m",label:"质量 m",min:0.5,max:6,step:0.1,def:1.5},{k:"A",label:"振幅 A",min:0.3,max:1,step:0.05,def:0.8}],
+  init:function(){MOD.hist=[];},
+  frame:function(g,w,h,t,dt,P){
+    var omega=Math.sqrt(P.kk/P.m);
+    var x=P.A*Math.cos(omega*t);
+    var v=-P.A*omega*Math.sin(omega*t);
+    var wallX=60, cy=h*0.36, span=w*0.34, bx=wallX+span*0.5+x*span*0.5;
+    // 墙 + 弹簧(锯齿)
+    g.fillStyle="#445";g.fillRect(wallX-12,cy-40,12,80);
+    g.strokeStyle="#9fb0cc";g.lineWidth=2;g.beginPath();g.moveTo(wallX,cy);
+    var coils=14;for(var i=0;i<=coils;i++){var fx=wallX+(bx-wallX)*i/coils, fy=cy+(i%2?-12:12)*(i>0&&i<coils?1:0);g.lineTo(fx,fy);}
+    g.lineTo(bx,cy);g.stroke();
+    // 滑块
+    g.fillStyle="#56b6ff";g.fillRect(bx-16,cy-16,32,32);
+    g.strokeStyle="rgba(120,140,180,0.3)";g.beginPath();g.moveTo(wallX,cy+30);g.lineTo(wallX+span,cy+30);g.stroke();
+    // x-t / v-t 曲线
+    MOD.hist=MOD.hist||[];if(dt>0){MOD.hist.unshift([x,v]);if(MOD.hist.length>w*0.42)MOD.hist.pop();}
+    var gx=w*0.56, gw=w*0.4, gy=h*0.72;
+    g.strokeStyle="rgba(120,140,180,0.3)";g.beginPath();g.moveTo(gx,gy);g.lineTo(gx+gw,gy);g.stroke();
+    function plot(idx,col,sc){g.strokeStyle=col;g.lineWidth=2;g.beginPath();for(var i=0;i<MOD.hist.length;i++){var yy=gy-MOD.hist[i][idx]*sc;if(i===0)g.moveTo(gx+i,yy);else g.lineTo(gx+i,yy);}g.stroke();}
+    plot(0,"#ffd166",60);plot(1,"#7ee787",60/Math.max(0.5,omega));
+    g.fillStyle="#ffd166";g.font="12px system-ui";g.fillText("位移 x",gx,gy-78);g.fillStyle="#7ee787";g.fillText("速度 v",gx+64,gy-78);
+    setLive("ω=<span class='live'>"+fmtn(omega)+"</span> rad/s　周期 T="+fmtn(2*Math.PI/omega)+" s　x="+fmtn(x)+"　v="+fmtn(v));
+  }
+},
+{
+  id:"projectile", em:"🎯", name:"抛体运动",
+  ttl:"抛体运动 (Projectile Motion)",
+  eq:"x=v₀cosθ·t　y=v₀sinθ·t−½gt²　射程 R=v₀²sin2θ/g",
+  nt:"水平方向匀速、竖直方向匀加速的合成运动，轨迹是<b>抛物线</b>。45° 时射程最大；互余的两个角(如 30° 与 60°)射程相同。改变初速与角度，看射程与最高点。",
+  params:[{k:"v0",label:"初速度 v₀",min:8,max:30,step:0.5,def:18},{k:"ang",label:"发射角 (°)",min:10,max:85,step:1,def:45},{k:"g",label:"重力 g",min:2,max:20,step:0.5,def:9.8}],
+  init:function(){MOD.shots=[];MOD.timer=0;},
+  frame:function(g,w,h,t,dt,P){
+    var groundY=h*0.86, ox=50, scale=h*0.04;
+    g.strokeStyle="rgba(120,140,180,0.4)";g.lineWidth=1.5;g.beginPath();g.moveTo(0,groundY);g.lineTo(w,groundY);g.stroke();
+    var rad=P.ang*Math.PI/180, vx=P.v0*Math.cos(rad), vy=P.v0*Math.sin(rad);
+    var tFlight=2*vy/P.g, R=vx*tFlight, H=vy*vy/(2*P.g);
+    // 发射新弹
+    MOD.timer=(MOD.timer||0)+dt; if(MOD.timer>tFlight*0.65){MOD.timer=0;MOD.shots.push(0);}
+    // 理想轨迹(虚线)
+    g.strokeStyle="rgba(255,209,102,0.35)";g.setLineDash([5,5]);g.lineWidth=1.5;g.beginPath();
+    for(var s=0;s<=tFlight;s+=tFlight/60){var X=ox+vx*s*scale, Y=groundY-(vy*s-0.5*P.g*s*s)*scale;if(s===0)g.moveTo(X,Y);else g.lineTo(X,Y);}
+    g.stroke();g.setLineDash([]);
+    // 飞行中的弹
+    for(var i=MOD.shots.length-1;i>=0;i--){MOD.shots[i]+=dt; var tt=MOD.shots[i];
+      if(tt>tFlight){MOD.shots.splice(i,1);continue;}
+      var X2=ox+vx*tt*scale, Y2=groundY-(vy*tt-0.5*P.g*tt*tt)*scale;
+      g.fillStyle="#ff8aa0";g.beginPath();g.arc(X2,Y2,6,0,7);g.fill();
+    }
+    // 炮口速度矢量
+    arrow(g,ox,groundY,ox+vx*scale*0.6,groundY-vy*scale*0.6,"#7ee787",2);
+    // 最高点/射程标注
+    g.strokeStyle="rgba(86,182,255,0.5)";g.setLineDash([3,3]);
+    g.beginPath();g.moveTo(ox+R*scale,groundY);g.lineTo(ox+R*scale,groundY-6);g.stroke();g.setLineDash([]);
+    setLive("射程 R=<span class='live'>"+fmtn(R,1)+"</span> m　最高 H="+fmtn(H,1)+" m　飞行 "+fmtn(tFlight,1)+" s"+(Math.abs(P.ang-45)<1?"　(45°射程最大)":""));
+  }
+},
+{
+  id:"orbit", em:"🪐", name:"行星轨道",
+  ttl:"开普勒轨道 · 万有引力",
+  eq:"F = G·M·m / r²　(指向中心)　开普勒第二定律：等时间扫过等面积",
+  nt:"行星在恒星引力下沿<b>椭圆轨道</b>运行(开普勒第一定律)。离恒星越近跑得越快——相同时间内行星与恒星连线扫过的<b>面积相等</b>(第二定律)。调初速度可得圆、椭圆乃至逃逸轨道。",
+  params:[{k:"v0",label:"初速度",min:0.5,max:1.9,step:0.02,def:1.1},{k:"GM",label:"引力强度 GM",min:0.4,max:2.5,step:0.1,def:1.2}],
+  init:function(P){MOD.p={x:1.6,y:0};MOD.v={x:0,y:(P?P.v0:1.1)};MOD.trail=[];MOD.sweep=[];MOD.acc=0;},
+  frame:function(g,w,h,t,dt,P){
+    if(!MOD.p)this.init(P);
+    var cx=w/2, cy=h/2, sc=Math.min(w,h)*0.22;
+    var sub=8, hdt=Math.min(0.03,dt)/sub;
+    for(var i=0;i<sub;i++){
+      var r2=MOD.p.x*MOD.p.x+MOD.p.y*MOD.p.y+0.02, r=Math.sqrt(r2);
+      var a=-P.GM/r2;
+      MOD.v.x+=a*MOD.p.x/r*hdt;MOD.v.y+=a*MOD.p.y/r*hdt;
+      MOD.p.x+=MOD.v.x*hdt;MOD.p.y+=MOD.v.y*hdt;
+    }
+    // 防止飞太远
+    if(Math.hypot(MOD.p.x,MOD.p.y)>6){this.init(P);MOD.v.y=P.v0;}
+    var px=cx+MOD.p.x*sc, py=cy+MOD.p.y*sc;
+    MOD.trail.unshift([px,py]);if(MOD.trail.length>360)MOD.trail.pop();
+    // 轨迹
+    g.lineWidth=1.6;
+    for(var k=1;k<MOD.trail.length;k++){var al=1-k/360;g.strokeStyle="rgba(86,182,255,"+al*0.8+")";
+      g.beginPath();g.moveTo(MOD.trail[k-1][0],MOD.trail[k-1][1]);g.lineTo(MOD.trail[k][0],MOD.trail[k][1]);g.stroke();}
+    // 扫过的扇形(开普勒第二定律可视化)
+    MOD.sweep.unshift([px,py]);if(MOD.sweep.length>26)MOD.sweep.pop();
+    g.fillStyle="rgba(255,209,102,0.18)";g.beginPath();g.moveTo(cx,cy);
+    for(var s=0;s<MOD.sweep.length;s++)g.lineTo(MOD.sweep[s][0],MOD.sweep[s][1]);
+    g.closePath();g.fill();
+    // 恒星
+    var grd=g.createRadialGradient(cx,cy,2,cx,cy,16);grd.addColorStop(0,"#fff3b0");grd.addColorStop(1,"#ff9b3a");
+    g.fillStyle=grd;g.beginPath();g.arc(cx,cy,11,0,7);g.fill();
+    // 行星
+    g.fillStyle="#9fd0ff";g.beginPath();g.arc(px,py,6,0,7);g.fill();
+    var speed=Math.hypot(MOD.v.x,MOD.v.y), dist=Math.hypot(MOD.p.x,MOD.p.y);
+    setLive("距恒星 r=<span class='live'>"+fmtn(dist)+"</span>　速度 v=<span class='live'>"+fmtn(speed)+"</span>　(近快远慢，黄色扇形面积速率恒定)");
+  }
+},
+{
+  id:"waves", em:"〰️", name:"波的叠加",
+  ttl:"波的叠加与干涉 (Superposition)",
+  eq:"y = A·sin(kx−ωt) + A·sin(kx+ωt) = 2A·sin(kx)·cos(ωt)　(驻波)",
+  nt:"两列波相遇时位移直接相加。同频反向行波叠加形成<b>驻波</b>：有些点始终不动(波节)，有些点振幅最大(波腹)。切换为同向不同频则产生<b>拍</b>。",
+  params:[{k:"k1",label:"波数 k₁",min:1,max:8,step:0.1,def:3},{k:"k2",label:"波数 k₂",min:1,max:8,step:0.1,def:3},{k:"mode",label:"模式",type:"sel",opts:[["驻波(反向同频)","stand"],["双波叠加","add"]],def:"stand"}],
+  init:function(){},
+  frame:function(g,w,h,t,dt,P){
+    var cy=h/2, A=h*0.16, pad=20, plotW=w-2*pad, om=2.4;
+    function w1(x){return A*Math.sin(P.k1*x - om*t);}
+    function w2(x){return P.mode==="stand"? A*Math.sin(P.k1*x + om*t) : A*Math.sin(P.k2*x - om*t*0.8);}
+    grid(g,w,h,pad,cy);
+    function drawWave(fn,col,wd,al){g.strokeStyle=col;g.lineWidth=wd;g.globalAlpha=al;g.beginPath();
+      for(var px=0;px<=plotW;px+=2){var x=px/plotW*Math.PI*2;var y=cy-fn(x);if(px===0)g.moveTo(pad+px,y);else g.lineTo(pad+px,y);}g.stroke();g.globalAlpha=1;}
+    drawWave(w1,"#56b6ff",1.5,0.5);
+    drawWave(w2,"#ff8aa0",1.5,0.5);
+    drawWave(function(x){return w1(x)+w2(x);},"#ffd166",2.6,1);
+    // 驻波节点标注
+    if(P.mode==="stand"){g.fillStyle="rgba(126,231,135,0.9)";
+      for(var n=0;n<=P.k1*2;n++){var xn=n*Math.PI/P.k1;if(xn>Math.PI*2)break;var pxn=pad+xn/(Math.PI*2)*plotW;g.beginPath();g.arc(pxn,cy,3,0,7);g.fill();}}
+    setLive(P.mode==="stand"?"驻波：<span class='live'>绿点=波节</span>(永不振动)，波节间为波腹":"两列波叠加，黄色为合成波(可现拍现象)");
+  }
+},
+{
+  id:"transverse", em:"📶", name:"横波传播",
+  ttl:"简谐横波 (Transverse Wave)",
+  eq:"y(x,t) = A·sin(2π(x/λ − t/T))　波速 v = λ·f = λ/T",
+  nt:"波向前传播，但介质中每个<b>质点只在原地上下振动</b>，并不随波迁移——红色质点会清楚地展示这一点。相邻质点依次延迟起振，形成向前推进的波形。",
+  params:[{k:"lam",label:"波长 λ",min:0.5,max:3,step:0.1,def:1.5},{k:"f",label:"频率 f",min:0.3,max:2,step:0.1,def:0.8},{k:"A",label:"振幅 A",min:0.3,max:1,step:0.05,def:0.7}],
+  init:function(){},
+  frame:function(g,w,h,t,dt,P){
+    var cy=h/2, A=h*0.22*P.A, pad=20, plotW=w-2*pad;
+    var kk=2*Math.PI/P.lam, om=2*Math.PI*P.f;
+    grid(g,w,h,pad,cy);
+    // 质点
+    var N=46;
+    for(var i=0;i<=N;i++){var x=i/N*6; var px=pad+i/N*plotW; var y=cy-A*Math.sin(kk*x-om*t);
+      var marked=(i%9===0);
+      g.fillStyle=marked?"#ff5a6e":"rgba(86,182,255,0.55)";
+      g.beginPath();g.arc(px,y,marked?5:3,0,7);g.fill();
+      if(marked){g.strokeStyle="rgba(255,90,110,0.3)";g.lineWidth=1;g.beginPath();g.moveTo(px,cy-A);g.lineTo(px,cy+A);g.stroke();}
+    }
+    // 连线波形
+    g.strokeStyle="rgba(255,209,102,0.6)";g.lineWidth=2;g.beginPath();
+    for(var px2=0;px2<=plotW;px2+=2){var x2=px2/plotW*6;var y2=cy-A*Math.sin(kk*x2-om*t);if(px2===0)g.moveTo(pad+px2,y2);else g.lineTo(pad+px2,y2);}
+    g.stroke();
+    setLive("波速 v = λf = <span class='live'>"+fmtn(P.lam*P.f)+"</span> 　红色质点只上下动，不随波前进");
+  }
+},
+{
+  id:"efield", em:"🧲", name:"电场线",
+  ttl:"点电荷电场 (Electric Field)",
+  eq:"E = k·q / r²　(方向沿连线)　合场为各点电荷矢量叠加",
+  nt:"电场线从<b>正电荷</b>发出、汇入<b>负电荷</b>，线的疏密表示场强强弱。两个电荷异号时场线相连，同号时相互排斥。拖动滑块改变两个电荷的电量正负与大小。",
+  params:[{k:"q1",label:"电荷 q₁",min:-5,max:5,step:0.5,def:3},{k:"q2",label:"电荷 q₂",min:-5,max:5,step:0.5,def:-3}],
+  init:function(){},
+  frame:function(g,w,h,t,dt,P){
+    var c1={x:w*0.36,y:h/2,q:P.q1}, c2={x:w*0.64,y:h/2,q:P.q2};
+    function field(x,y){var ex=0,ey=0;[c1,c2].forEach(function(c){var dx=x-c.x,dy=y-c.y,r2=dx*dx+dy*dy+40;var r=Math.sqrt(r2);var e=c.q/r2;ex+=e*dx/r;ey+=e*dy/r;});return [ex,ey];}
+    // 从每个电荷发出场线(流线积分)
+    [c1,c2].forEach(function(c){
+      if(Math.abs(c.q)<0.25)return;
+      var lines=Math.max(6,Math.round(Math.abs(c.q)*3.2));
+      for(var L=0;L<lines;L++){var a=L/lines*Math.PI*2 + 0.2;
+        var x=c.x+Math.cos(a)*16, y=c.y+Math.sin(a)*16;
+        var dir=c.q>0?1:-1;
+        g.strokeStyle="rgba(150,180,255,0.5)";g.lineWidth=1.2;g.beginPath();g.moveTo(x,y);
+        for(var step=0;step<160;step++){var f=field(x,y);var mag=Math.hypot(f[0],f[1])||1e-6;
+          x+=dir*f[0]/mag*4;y+=dir*f[1]/mag*4;
+          if(x<0||y<0||x>w||y>h)break;
+          var d1=Math.hypot(x-c1.x,y-c1.y),d2=Math.hypot(x-c2.x,y-c2.y);
+          g.lineTo(x,y); if(d1<14||d2<14)break;
+        }
+        g.stroke();
+      }
+    });
+    // 电荷
+    [c1,c2].forEach(function(c){var pos=c.q>=0;
+      g.fillStyle=Math.abs(c.q)<0.25?"#667":(pos?"#ff5a6e":"#56b6ff");
+      g.beginPath();g.arc(c.x,c.y,13,0,7);g.fill();
+      g.fillStyle="#fff";g.font="bold 16px system-ui";g.textAlign="center";g.textBaseline="middle";
+      g.fillText(Math.abs(c.q)<0.25?"0":(pos?"+":"−"),c.x,c.y);g.textAlign="left";});
+    setLive("q₁=<span class='live'>"+P.q1+"</span>　q₂=<span class='live'>"+P.q2+"</span>　"+((P.q1>0)!==(P.q2>0)&&Math.abs(P.q1)>0.2&&Math.abs(P.q2)>0.2?"异号相吸，场线相连":"同号相斥"));
+  }
+},
+{
+  id:"cyclotron", em:"💫", name:"磁场中粒子",
+  ttl:"带电粒子在磁场中 (Lorentz Force)",
+  eq:"F = q·v×B　回旋半径 r = m·v/(q·B)　周期 T = 2πm/(qB)",
+  nt:"匀强磁场中运动的带电粒子受<b>洛伦兹力</b>，力始终垂直于速度，于是粒子做<b>匀速圆周运动</b>。磁场越强或电荷越大，圆越小。改变正负电荷会让旋转方向相反。",
+  params:[{k:"B",label:"磁场 B",min:0.3,max:3,step:0.1,def:1.2},{k:"v",label:"速度 v",min:1,max:6,step:0.2,def:3},{k:"q",label:"电荷 q",min:-3,max:3,step:0.5,def:1.5},{k:"m",label:"质量 m",min:0.5,max:3,step:0.1,def:1}],
+  init:function(P){MOD.p={x:0,y:0};MOD.v={x:(P?P.v:3),y:0};MOD.trail=[];},
+  frame:function(g,w,h,t,dt,P){
+    if(!MOD.p)this.init(P);
+    var cx=w/2, cy=h/2, sc=26;
+    // 磁场符号阵列(× 表示入屏)
+    g.fillStyle="rgba(120,140,180,0.3)";g.font="13px system-ui";g.textAlign="center";g.textBaseline="middle";
+    for(var gx=40;gx<w;gx+=52)for(var gy=30;gy<h;gy+=52)g.fillText("×",gx,gy);
+    g.textAlign="left";
+    if(Math.abs(P.q)<0.2){g.fillStyle="#8090a8";g.fillText("电荷为0，不受力",cx-50,cy);return;}
+    var sub=8, hdt=Math.min(0.03,dt)/sub;
+    for(var i=0;i<sub;i++){
+      // F = q v×B, B 沿 -z(入屏); v×B 在 xy 平面: (vy*Bz... ) 简化为 2D 旋转
+      var Bz=-P.B; var fx=P.q*(MOD.v.y*Bz), fy=P.q*(-MOD.v.x*Bz);
+      MOD.v.x+=fx/P.m*hdt;MOD.v.y+=fy/P.m*hdt;
+      // 归一化保持速率(理想无功)
+      var sp=Math.hypot(MOD.v.x,MOD.v.y)||1;MOD.v.x=MOD.v.x/sp*P.v;MOD.v.y=MOD.v.y/sp*P.v;
+      MOD.p.x+=MOD.v.x*hdt;MOD.p.y+=MOD.v.y*hdt;
+    }
+    var px=cx+MOD.p.x*sc, py=cy+MOD.p.y*sc;
+    if(px<10||px>w-10||py<10||py>h-10){this.init(P);}
+    MOD.trail.unshift([px,py]);if(MOD.trail.length>200)MOD.trail.pop();
+    g.lineWidth=1.8;
+    for(var k=1;k<MOD.trail.length;k++){g.strokeStyle="rgba(255,209,102,"+(1-k/200)+")";g.beginPath();g.moveTo(MOD.trail[k-1][0],MOD.trail[k-1][1]);g.lineTo(MOD.trail[k][0],MOD.trail[k][1]);g.stroke();}
+    // 粒子 + 速度/力箭头
+    var px2=cx+MOD.p.x*sc, py2=cy+MOD.p.y*sc;
+    arrow(g,px2,py2,px2+MOD.v.x*sc*0.5,py2+MOD.v.y*sc*0.5,"#7ee787",2);
+    g.fillStyle=P.q>0?"#ff5a6e":"#56b6ff";g.beginPath();g.arc(px2,py2,7,0,7);g.fill();
+    var r=P.m*P.v/(Math.abs(P.q)*P.B);
+    setLive("回旋半径 r=<span class='live'>"+fmtn(r)+"</span>　周期 T="+fmtn(2*Math.PI*P.m/(Math.abs(P.q)*P.B))+"　"+(P.q>0?"正电荷":"负电荷")+(P.B>0?"(× 表示磁场入屏)":""));
+  }
+}
+];
+
+/* ====== 学科注册(物理满，化学/数学下批) ====== */
+var SUBJECTS=[
+  {id:"phys", name:"物理", em:"⚛️", topics:PHYS},
+  {id:"chem", name:"化学", em:"⚗️", wip:"3D 球棍分子结构(可旋转缩放)、交互式元素周期表、气体分子运动论、反应动力学"},
+  {id:"math", name:"数学", em:"➗", wip:"傅里叶级数、泰勒展开、黎曼和、欧拉公式、利萨茹、洛伦兹吸引子等(现可在独立的「🧮 数学之美」模块体验，后续并入本门户)"}
+];
+
+/* ============================== 状态 + 主循环 ============================== */
+var S={subj:"phys", cur:"pendulum", play:true, speed:1, t:0, vals:{}, last:0};
+function curSubj(){for(var i=0;i<SUBJECTS.length;i++)if(SUBJECTS[i].id===S.subj)return SUBJECTS[i];return SUBJECTS[0];}
+function curTopic(){var sj=curSubj();if(!sj.topics)return null;for(var i=0;i<sj.topics.length;i++)if(sj.topics[i].id===S.cur)return sj.topics[i];return sj.topics[0];}
+function ensureVals(tp){if(!S.vals[tp.id]){S.vals[tp.id]={};for(var i=0;i<tp.params.length;i++)S.vals[tp.id][tp.params[i].k]=tp.params[i].def;}}
+function curParams(){var tp=curTopic();if(!tp)return{};ensureVals(tp);return S.vals[tp.id];}
+
+function fit(){var ww=Math.min(900,window.innerWidth);cv.width=ww-(ww<560?0:0);cv.style.width="100%";
+  cv.width=Math.min(900,window.innerWidth)-28; if(cv.width<300)cv.width=window.innerWidth-28;
+  cv.height=Math.max(340,Math.round(Math.min(520,window.innerHeight*0.5)));}
+
+function loop(ts){
+  if(!S.last)S.last=ts;
+  var dt=Math.min(0.05,(ts-S.last)/1000); S.last=ts;
+  var edt = S.play? dt*S.speed : 0;
+  if(S.play)S.t+=edt;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  var tp=curTopic();
+  if(tp){try{tp.frame(ctx,cv.width,cv.height,S.t,edt,curParams());}catch(e){}}
+  requestAnimationFrame(loop);
+}
+
+/* ============================== UI ============================== */
+function renderSubjects(){
+  var h="";for(var i=0;i<SUBJECTS.length;i++){var s=SUBJECTS[i];
+    h+='<div class="subj'+(s.id===S.subj?" on":"")+'" data-s="'+s.id+'"><span class="em">'+s.em+'</span>'+s.name+'</div>';}
+  document.getElementById("subjects").innerHTML=h;
+}
+function renderTopics(){
+  var sj=curSubj();var h="";
+  if(sj.topics){for(var i=0;i<sj.topics.length;i++){var tp=sj.topics[i];
+    h+='<div class="chip'+(tp.id===S.cur?" on":"")+'" data-t="'+tp.id+'"><span class="em">'+tp.em+'</span>'+tp.name+'</div>';}}
+  document.getElementById("topicChips").innerHTML=h;
+}
+function renderFormula(){
+  var tp=curTopic();if(!tp)return;
+  document.getElementById("fTtl").innerHTML=tp.em+" "+tp.ttl;
+  document.getElementById("fEq").innerHTML=tp.eq;
+  document.getElementById("fNt").innerHTML=tp.nt+' <span id="fLive" style="display:block;margin-top:6px;color:#56b6ff"></span>';
+}
+function renderParams(){
+  var tp=curTopic();if(!tp)return;ensureVals(tp);var h="";
+  if(!tp.params.length){document.getElementById("paramRow").style.display="none";document.getElementById("params").innerHTML="";return;}
+  document.getElementById("paramRow").style.display="";
+  for(var i=0;i<tp.params.length;i++){var pr=tp.params[i];var val=S.vals[tp.id][pr.k];
+    if(pr.type==="sel"){
+      h+='<div class="slider"><div class="sl-top"><span class="nm">'+pr.label+'</span></div><div class="selrow" data-sel="'+pr.k+'">';
+      for(var o=0;o<pr.opts.length;o++)h+='<div class="chip'+(pr.opts[o][1]===val?" on":"")+'" data-v="'+pr.opts[o][1]+'">'+pr.opts[o][0]+'</div>';
+      h+='</div></div>';
+    }else{
+      h+='<div class="slider"><div class="sl-top"><span class="nm">'+pr.label+'</span><span class="val" id="pv_'+pr.k+'">'+fmtn(val)+'</span></div>'+
+         '<input type="range" data-p="'+pr.k+'" min="'+pr.min+'" max="'+pr.max+'" step="'+pr.step+'" value="'+val+'"></div>';
+    }
+  }
+  document.getElementById("params").innerHTML=h;
+}
+function showWip(){
+  var sj=curSubj();
+  document.getElementById("formula").style.display="none";
+  document.getElementById("topicChips").innerHTML="";
+  document.getElementById("paramRow").style.display="none";
+  document.getElementById("params").innerHTML='<div class="wip"><div class="big">'+sj.em+' 🚧</div><b>「'+sj.name+'」学科正在建设中</b><br>即将上线：'+sj.wip+'</div>';
+  // 画布画提示
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.fillStyle="#5a6680";ctx.font="16px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillText(sj.em+"  "+sj.name+" · 建设中",cv.width/2,cv.height/2);ctx.textAlign="left";
+}
+function switchTopic(){
+  var sj=curSubj();
+  if(sj.wip){showWip();return;}
+  document.getElementById("formula").style.display="";
+  renderTopics();renderFormula();renderParams();
+  var tp=curTopic();if(tp&&tp.init)tp.init(curParams());
+}
+function reinit(){var tp=curTopic();if(tp&&tp.init)tp.init(curParams());}
+
+document.getElementById("subjects").addEventListener("click",function(e){
+  var c=e.target.closest(".subj");if(!c)return;S.subj=c.getAttribute("data-s");S.t=0;
+  var sj=curSubj();if(sj.topics)S.cur=sj.topics[0].id;
+  renderSubjects();switchTopic();
+});
+document.getElementById("topicChips").addEventListener("click",function(e){
+  var c=e.target.closest(".chip");if(!c)return;S.cur=c.getAttribute("data-t");S.t=0;
+  renderTopics();renderFormula();renderParams();reinit();
+});
+document.getElementById("params").addEventListener("input",function(e){
+  var inp=e.target;if(inp.tagName!=="INPUT")return;var k=inp.getAttribute("data-p");
+  S.vals[curTopic().id][k]=parseFloat(inp.value);
+  var lbl=document.getElementById("pv_"+k);if(lbl)lbl.textContent=fmtn(parseFloat(inp.value));
+  reinit();
+});
+document.getElementById("params").addEventListener("click",function(e){
+  var c=e.target.closest(".chip");if(!c)return;var row=c.closest("[data-sel]");if(!row)return;
+  var k=row.getAttribute("data-sel"), v=c.getAttribute("data-v");
+  S.vals[curTopic().id][k]=v;
+  var chips=row.querySelectorAll(".chip");for(var i=0;i<chips.length;i++)chips[i].classList.toggle("on",chips[i]===c);
+  reinit();
+});
+var playTog=document.getElementById("playTog");
+playTog.addEventListener("click",function(){S.play=!S.play;playTog.classList.toggle("on",S.play);});
+document.getElementById("rSpeed").addEventListener("input",function(e){S.speed=parseFloat(e.target.value);document.getElementById("vSpeed").textContent=fmtn(S.speed,1);});
+document.getElementById("btnReset").addEventListener("click",function(){S.t=0;reinit();});
+window.addEventListener("resize",fit);
+
+/* ============================== 启动 ============================== */
+fit();renderSubjects();switchTopic();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
