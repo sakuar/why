@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>统计 · 平均数 · 方差 · 正态分布</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+  .chips{display:flex;gap:8px;margin:4px 0 12px;flex-wrap:wrap;}
+  .chip{flex:1;min-width:110px;display:flex;align-items:center;gap:7px;justify-content:center;font-size:13px;padding:11px 8px;border-radius:11px;background:#0e1322;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.14s;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:10px;}
+  .slider{margin-bottom:11px;}.slider:last-child{margin-bottom:0;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;}
+  .slider .sl-top .nm{color:#cfd8ea;}.slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:13px;}
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;margin-bottom:6px;}
+  .readout .cell .v{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.ok .v{color:#56d6a8;}.readout .cell.hi .v{color:#ffd166;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .eq{font-size:16px;line-height:1.8;color:#e8eef7;font-family:"Cambria Math","Times New Roman",Georgia,serif;}
+  .card .eq .hl{color:#ffd166;font-weight:700;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;line-height:1.8;}.card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>📊 统计 · 平均数 · 方差 · 正态</h1><a class="back" href="index.html">← 返回</a></div>
+  <div class="chips" id="chips"></div>
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="540"></canvas></div>
+    <div class="controls">
+      <div><div class="ch" id="ctitle">调整数据</div><div id="params"></div></div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="readout">
+      <div class="cell"><div class="k" id="k0">平均数</div><div class="v" id="r0">—</div></div>
+      <div class="cell hi"><div class="k" id="k1">中位数</div><div class="v" id="r1">—</div></div>
+      <div class="cell ok"><div class="k" id="k2">标准差</div><div class="v" id="r2">—</div></div>
+    </div>
+    <div class="card"><div class="ttl">公式</div><div class="eq" id="eq"></div></div>
+    <div class="card"><div class="ttl">怎么理解</div><div class="nt" id="note"></div></div>
+  </div>
+  <footer>平均数看中心，方差/标准差看分散，正态分布是最常见的「钟形」· 纯前端单文件教学</footer>
+</div>
+<script>
+"use strict";
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=540;
+function fit(){var st=document.getElementById("stage");var cw=st.clientWidth||900;W=cw;H=Math.round(cw*0.60);if(H<320)H=320;
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.height=H+"px";ctx.setTransform(DPR,0,0,DPR,0,0);}
+var idx=0,P={};
+function mean(a){var s=0;for(var i=0;i<a.length;i++)s+=a[i];return s/a.length;}
+function median(a){var b=a.slice().sort(function(x,y){return x-y;}),n=b.length;return n%2?b[(n-1)/2]:(b[n/2-1]+b[n/2])/2;}
+function variance(a){var m=mean(a),s=0;for(var i=0;i<a.length;i++)s+=(a[i]-m)*(a[i]-m);return s/a.length;}
+function mode(a){var c={},best=a[0],bc=0;for(var i=0;i<a.length;i++){c[a[i]]=(c[a[i]]||0)+1;if(c[a[i]]>bc){bc=c[a[i]];best=a[i];}}return best;}
+
+var CONCEPTS=[
+{ id:"describe",emoji:"📈",name:"描述统计",
+  ctitle:"调整 6 个数据",
+  params:[{k:"d1",label:"数据 1",min:1,max:10,step:0.5,def:3},{k:"d2",label:"数据 2",min:1,max:10,step:0.5,def:4},{k:"d3",label:"数据 3",min:1,max:10,step:0.5,def:4},{k:"d4",label:"数据 4",min:1,max:10,step:0.5,def:5},{k:"d5",label:"数据 5",min:1,max:10,step:0.5,def:6},{k:"d6",label:"数据 6",min:1,max:10,step:0.5,def:8}],
+  data:function(){return [P.d1,P.d2,P.d3,P.d4,P.d5,P.d6];},
+  read:function(){var a=this.data();return [mean(a).toFixed(2),median(a).toFixed(2),Math.sqrt(variance(a)).toFixed(2)];},
+  labels:["平均数","中位数","标准差"],
+  eq:function(){var a=this.data();return '平均数 x̄ = (Σxᵢ)/n = <span class="hl">'+mean(a).toFixed(2)+'</span>　·　方差 s² = Σ(xᵢ−x̄)²/n = <span class="hl">'+variance(a).toFixed(2)+'</span>';},
+  hint:"拖动数据，看平均数(黄线)、中位数(绿线)和每个点到均值的偏差。",
+  note:'<b>平均数</b>：所有数加起来除以个数 = 重心。<br><b>中位数</b>：排序后正中间那个，不怕极端值。<br><b>方差/标准差</b>：每个数据到平均数距离的平方的平均（再开根）= 数据有多<b>分散</b>。点越聚拢，标准差越小。',
+  draw:function(){
+    var a=this.data(),m=mean(a),md=median(a);
+    var ox=W*0.08,axW=W*0.84,oy=H*0.62,xmin=0,xmax=11;
+    function X(v){return ox+(v-xmin)/(xmax-xmin)*axW;}
+    // 数轴
+    ctx.strokeStyle="rgba(150,170,210,.4)";ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+axW,oy);ctx.stroke();
+    for(var t=1;t<=10;t++){ctx.strokeStyle="rgba(120,140,180,.2)";ctx.beginPath();ctx.moveTo(X(t),oy-4);ctx.lineTo(X(t),oy+4);ctx.stroke();
+      ctx.fillStyle="#5a6680";ctx.font="10px system-ui";ctx.textAlign="center";ctx.textBaseline="top";ctx.fillText(t,X(t),oy+8);}
+    // 均值线
+    ctx.strokeStyle="#ffd166";ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(X(m),oy-H*0.42);ctx.lineTo(X(m),oy+22);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle="#ffd166";ctx.font="bold 12px system-ui";ctx.textAlign="center";ctx.textBaseline="bottom";ctx.fillText("平均 "+m.toFixed(2),X(m),oy-H*0.42-4);
+    // 中位线
+    ctx.strokeStyle="#56d6a8";ctx.lineWidth=1.6;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(X(md),oy);ctx.lineTo(X(md),oy+H*0.16);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle="#56d6a8";ctx.textBaseline="top";ctx.fillText("中位 "+md.toFixed(1),X(md),oy+H*0.16+2);
+    // 数据点（堆叠相同值）+ 偏差线
+    var seen={};
+    for(var i=0;i<a.length;i++){var v=a[i];seen[v]=(seen[v]||0)+1;var stack=seen[v];
+      var py=oy-18-(stack-1)*16;
+      // 偏差线 到均值
+      ctx.strokeStyle="rgba(86,182,255,.4)";ctx.lineWidth=1;ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(X(v),py);ctx.lineTo(X(m),py);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle="#56b6ff";ctx.beginPath();ctx.arc(X(v),py,6,0,2*Math.PI);ctx.fill();
+      ctx.fillStyle="#0b0e18";ctx.font="bold 10px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(v.toFixed(1),X(v),py);}
+    ctx.fillStyle="#8090a8";ctx.font="12px system-ui";ctx.textAlign="left";ctx.textBaseline="top";ctx.fillText("蓝点=数据，蓝虚线=到平均数的偏差",ox,10);
+  }
+},
+{ id:"normal",emoji:"🔔",name:"正态分布",
+  ctitle:"调整 μ 和 σ",
+  params:[{k:"mu",label:"均值 μ",min:-3,max:3,step:0.5,def:0},{k:"sig",label:"标准差 σ",min:0.5,max:3,step:0.25,def:1}],
+  read:function(){return [P.mu.toFixed(1),P.sig.toFixed(2),"["+(P.mu-P.sig).toFixed(1)+", "+(P.mu+P.sig).toFixed(1)+"]"];},
+  labels:["均值 μ","标准差 σ","μ±σ (68%)"],
+  eq:function(){return 'f(x) = 1/(σ√2π) · e^(−(x−μ)²/2σ²)　·　68% 落在 μ±σ，95% 在 μ±2σ，99.7% 在 μ±3σ';},
+  hint:"μ 决定钟的位置，σ 决定钟的胖瘦（σ 越大越扁平分散）。",
+  note:'<b>正态分布</b>（钟形曲线）是自然界最常见的分布：身高、体重、考试分数…<br><b>μ 均值</b>在正中央（最高点）。<b>σ 标准差</b>决定胖瘦。<br>有名的 <b>68–95–99.7 法则</b>：数据约 68% 落在 μ±σ，95% 在 μ±2σ，99.7% 在 μ±3σ。',
+  draw:function(){
+    var mu=P.mu,sig=P.sig;
+    var ox=W*0.08,axW=W*0.84,oy=H*0.84,xmin=-6,xmax=6;
+    function X(v){return ox+(v-xmin)/(xmax-xmin)*axW;}
+    function f(x){return Math.exp(-(x-mu)*(x-mu)/(2*sig*sig));} // 峰值归一为1
+    var ph=H*0.66;
+    // 阴影 ±σ ±2σ ±3σ
+    function shade(a,b,col){ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(X(a),oy);for(var x=a;x<=b;x+=0.05)ctx.lineTo(X(x),oy-f(x)*ph);ctx.lineTo(X(b),oy);ctx.closePath();ctx.fill();}
+    shade(mu-3*sig,mu+3*sig,"rgba(86,182,255,.10)");
+    shade(mu-2*sig,mu+2*sig,"rgba(86,182,255,.16)");
+    shade(mu-sig,mu+sig,"rgba(86,214,168,.30)");
+    // 数轴
+    ctx.strokeStyle="rgba(150,170,210,.4)";ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+axW,oy);ctx.stroke();
+    // 曲线
+    ctx.strokeStyle="#56b6ff";ctx.lineWidth=2.6;ctx.beginPath();for(var x2=xmin;x2<=xmax;x2+=0.05){var px=X(x2),py=oy-f(x2)*ph;if(x2===xmin)ctx.moveTo(px,py);else ctx.lineTo(px,py);}ctx.stroke();
+    // μ 线
+    ctx.strokeStyle="#ffd166";ctx.lineWidth=1.6;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(X(mu),oy);ctx.lineTo(X(mu),oy-ph);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle="#ffd166";ctx.font="bold 12px system-ui";ctx.textAlign="center";ctx.textBaseline="bottom";ctx.fillText("μ="+mu.toFixed(1),X(mu),oy-ph-2);
+    // σ 标注
+    ctx.fillStyle="#56d6a8";ctx.font="11px system-ui";ctx.textBaseline="top";ctx.fillText("68%",X(mu),oy-ph*0.25);
+    ctx.fillStyle="#8090a8";ctx.fillText("μ−σ",X(mu-sig),oy+6);ctx.fillText("μ+σ",X(mu+sig),oy+6);
+  }
+}
+];
+function buildChips(){var box=document.getElementById("chips");box.innerHTML="";
+  CONCEPTS.forEach(function(c,i){var el=document.createElement("div");el.className="chip"+(i===idx?" on":"");el.innerHTML='<span>'+c.emoji+'</span>'+c.name;el.onclick=function(){idx=i;location.hash=c.id;load();};box.appendChild(el);});}
+function buildParams(){var box=document.getElementById("params");box.innerHTML="";P={};document.getElementById("ctitle").textContent=CONCEPTS[idx].ctitle;
+  CONCEPTS[idx].params.forEach(function(pp){P[pp.k]=pp.def;var w=document.createElement("div");w.className="slider";
+    w.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_'+pp.k+'">'+pp.def.toFixed(1)+'</span></div><input type="range" id="r_'+pp.k+'" min="'+pp.min+'" max="'+pp.max+'" step="'+pp.step+'" value="'+pp.def+'">';
+    box.appendChild(w);var inp=w.querySelector("input");
+    inp.oninput=function(){P[pp.k]=parseFloat(inp.value);document.getElementById("v_"+pp.k).textContent=P[pp.k].toFixed(1);draw();};});}
+function draw(){ctx.clearRect(0,0,W,H);var c=CONCEPTS[idx];c.draw();
+  var r=c.read(),L=c.labels;
+  document.getElementById("k0").textContent=L[0];document.getElementById("r0").textContent=r[0];
+  document.getElementById("k1").textContent=L[1];document.getElementById("r1").textContent=r[1];
+  document.getElementById("k2").textContent=L[2];document.getElementById("r2").textContent=r[2];
+  document.getElementById("eq").innerHTML=c.eq();document.getElementById("note").innerHTML=c.note;document.getElementById("hint").textContent=c.hint;}
+function load(){buildChips();buildParams();draw();}
+window.addEventListener("resize",function(){fit();draw();});
+(function(){var hs=(location.hash||"").replace("#","");for(var i=0;i<CONCEPTS.length;i++)if(CONCEPTS[i].id===hs)idx=i;})();
+fit();load();
+</script>
+</body>
+</html>

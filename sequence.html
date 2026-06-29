@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>数列 · 等差 · 等比 · 求和</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+  .chips{display:flex;gap:8px;margin:4px 0 12px;flex-wrap:wrap;}
+  .chip{flex:1;min-width:110px;display:flex;align-items:center;gap:7px;justify-content:center;font-size:13px;padding:11px 8px;border-radius:11px;background:#0e1322;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.14s;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:16px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .slider{margin-bottom:13px;}.slider:last-child{margin-bottom:0;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px;}
+  .slider .sl-top .nm{color:#cfd8ea;}.slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:13px;}
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;margin-bottom:6px;}
+  .readout .cell .v{font-size:21px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.ok .v{color:#56d6a8;}.readout .cell.hi .v{color:#ffd166;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .eq{font-size:17px;line-height:1.8;color:#e8eef7;font-family:"Cambria Math","Times New Roman",Georgia,serif;}
+  .card .eq .hl{color:#ffd166;font-weight:700;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;line-height:1.8;}.card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>🔢 数列 · 等差 · 等比 · 求和</h1><a class="back" href="index.html">← 返回</a></div>
+  <div class="chips" id="chips"></div>
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="540"></canvas></div>
+    <div class="controls">
+      <div><div class="ch">参数调节</div><div id="params"></div></div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="readout">
+      <div class="cell"><div class="k">第 n 项 aₙ</div><div class="v" id="rAn">—</div></div>
+      <div class="cell hi"><div class="k">前 n 项和 Sₙ</div><div class="v" id="rSn">—</div></div>
+      <div class="cell ok"><div class="k" id="kx">通项</div><div class="v" id="rEx" style="font-size:14px;">—</div></div>
+    </div>
+    <div class="card"><div class="ttl">公式</div><div class="eq" id="eq"></div></div>
+    <div class="card"><div class="ttl">怎么理解</div><div class="nt" id="note"></div></div>
+  </div>
+  <footer>数列 = 按规律排成一列的数 · 柱子高度就是每一项 · 纯前端单文件教学</footer>
+</div>
+<script>
+"use strict";
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=540;
+function fit(){var st=document.getElementById("stage");var cw=st.clientWidth||900;W=cw;H=Math.round(cw*0.60);if(H<320)H=320;
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.height=H+"px";ctx.setTransform(DPR,0,0,DPR,0,0);}
+var idx=0,P={};
+var CONCEPTS=[
+{ id:"arith",emoji:"➕",name:"等差数列",
+  params:[{k:"a1",label:"首项 a₁",min:-5,max:8,step:1,def:2},{k:"d",label:"公差 d",min:-3,max:4,step:0.5,def:1.5},{k:"n",label:"项数 n",min:3,max:14,step:1,def:8}],
+  term:function(i){return P.a1+(i-1)*P.d;},
+  sn:function(){return P.n*(P.a1+this.term(P.n))/2;},
+  read:function(){return [this.term(P.n).toFixed(1),this.sn().toFixed(1),"aₙ = a₁+(n−1)d"];},
+  eq:function(){return 'aₙ = a₁ + (n−1)d = '+P.a1.toFixed(1)+' + (n−1)·'+P.d.toFixed(1)+'　　Sₙ = n(a₁+aₙ)/2 = <span class="hl">'+this.sn().toFixed(1)+'</span>';},
+  hint:"每一项比前一项多一个固定的「公差 d」。",
+  note:'<b>等差数列</b>：相邻两项的差是固定的 d。<br>求和 <b>Sₙ = n(a₁+aₙ)/2</b> —— 把数列正着、倒着各写一遍叠加，每一对都等于 (a₁+aₙ)，共 n 对、除以 2。这就是<b>首尾配对法</b>（高斯求和）。',
+  arith:true
+},
+{ id:"geo",emoji:"✖️",name:"等比数列",
+  params:[{k:"a1",label:"首项 a₁",min:0.5,max:4,step:0.5,def:1},{k:"q",label:"公比 q",min:0.3,max:2.2,step:0.1,def:1.5},{k:"n",label:"项数 n",min:3,max:12,step:1,def:7}],
+  term:function(i){return P.a1*Math.pow(P.q,i-1);},
+  sn:function(){return Math.abs(P.q-1)<1e-6?P.a1*P.n:P.a1*(1-Math.pow(P.q,P.n))/(1-P.q);},
+  read:function(){return [this.term(P.n).toFixed(2),this.sn().toFixed(2),"aₙ = a₁·qⁿ⁻¹"];},
+  eq:function(){return 'aₙ = a₁·qⁿ⁻¹ = '+P.a1.toFixed(1)+'·'+P.q.toFixed(1)+'ⁿ⁻¹　　Sₙ = a₁(1−qⁿ)/(1−q) = <span class="hl">'+this.sn().toFixed(2)+'</span>';},
+  hint:"每一项是前一项的固定倍数「公比 q」。",
+  note:'<b>等比数列</b>：相邻两项的比是固定的 q。q>1 时<b>爆炸式增长</b>（柱子越来越高），0&lt;q&lt;1 时越来越小。<br>求和 Sₙ = a₁(1−qⁿ)/(1−q)。当 0&lt;q&lt;1 且 n→∞ 时，和趋于有限值 a₁/(1−q)。',
+  arith:false
+}
+];
+function buildChips(){var box=document.getElementById("chips");box.innerHTML="";
+  CONCEPTS.forEach(function(c,i){var el=document.createElement("div");el.className="chip"+(i===idx?" on":"");el.innerHTML='<span>'+c.emoji+'</span>'+c.name;el.onclick=function(){idx=i;location.hash=c.id;load();};box.appendChild(el);});}
+function buildParams(){var box=document.getElementById("params");box.innerHTML="";P={};
+  CONCEPTS[idx].params.forEach(function(pp){P[pp.k]=pp.def;var w=document.createElement("div");w.className="slider";
+    var d=pp.k==="n"?pp.def.toFixed(0):pp.def.toFixed(1);
+    w.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_'+pp.k+'">'+d+'</span></div><input type="range" id="r_'+pp.k+'" min="'+pp.min+'" max="'+pp.max+'" step="'+pp.step+'" value="'+pp.def+'">';
+    box.appendChild(w);var inp=w.querySelector("input");
+    inp.oninput=function(){P[pp.k]=parseFloat(inp.value);document.getElementById("v_"+pp.k).textContent=pp.k==="n"?P[pp.k].toFixed(0):P[pp.k].toFixed(1);draw();};});}
+function draw(){ctx.clearRect(0,0,W,H);var c=CONCEPTS[idx],n=P.n;
+  // 各项值
+  var vals=[];for(var i=1;i<=n;i++)vals.push(c.term(i));
+  var maxv=Math.max(1,Math.max.apply(null,vals.map(Math.abs)));
+  var ox=W*0.08,oy=H*0.86,bw=(W*0.84)/n,scale=(H*0.66)/maxv;
+  // 0 轴
+  ctx.strokeStyle="rgba(120,140,180,.3)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+W*0.84,oy);ctx.stroke();
+  for(var k=0;k<n;k++){var v=vals[k],bh=v*scale,x=ox+k*bw;
+    ctx.fillStyle=k===n-1?"rgba(255,209,102,.6)":"rgba(86,182,255,.45)";
+    ctx.fillRect(x+bw*0.12,oy-Math.max(bh,0),bw*0.76,Math.abs(bh));
+    if(bh<0)ctx.fillRect(x+bw*0.12,oy,bw*0.76,-bh);
+    ctx.fillStyle="#cdd6e8";ctx.font="11px system-ui";ctx.textAlign="center";ctx.textBaseline=bh>=0?"bottom":"top";
+    ctx.fillText(v.toFixed(1),x+bw*0.5,oy-bh-(bh>=0?3:-3));
+    ctx.fillStyle="#5a6680";ctx.textBaseline="top";ctx.fillText("a"+(k+1),x+bw*0.5,oy+5);}
+  ctx.fillStyle="#8090a8";ctx.font="12px system-ui";ctx.textAlign="left";ctx.textBaseline="top";
+  ctx.fillText("柱子高度 = 每一项的值（黄色 = 第 n 项）",ox,10);
+  var r=c.read();document.getElementById("rAn").textContent=r[0];document.getElementById("rSn").textContent=r[1];document.getElementById("rEx").textContent=r[2];
+  document.getElementById("eq").innerHTML=c.eq();document.getElementById("note").innerHTML=c.note;document.getElementById("hint").textContent=c.hint;}
+function load(){buildChips();buildParams();draw();}
+window.addEventListener("resize",function(){fit();draw();});
+(function(){var hs=(location.hash||"").replace("#","");for(var i=0;i<CONCEPTS.length;i++)if(CONCEPTS[i].id===hs)idx=i;})();
+fit();load();
+</script>
+</body>
+</html>
