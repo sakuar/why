@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>导数入门 · 割线逼近切线</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+  .chips{display:flex;gap:8px;margin:4px 0 12px;flex-wrap:wrap;}
+  .chip{flex:1;min-width:96px;display:flex;align-items:center;gap:7px;justify-content:center;font-size:13px;padding:11px 8px;border-radius:11px;background:#0e1322;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.14s;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:16px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .slider{margin-bottom:13px;}.slider:last-child{margin-bottom:0;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px;}
+  .slider .sl-top .nm{color:#cfd8ea;}.slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .btn{font-size:14px;padding:11px 16px;border-radius:10px;background:#6c63ff;border:1px solid #6c63ff;color:#fff;font-weight:700;cursor:pointer;width:100%;}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:13px;}
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;margin-bottom:6px;}
+  .readout .cell .v{font-size:21px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.ok .v{color:#56d6a8;}.readout .cell.hi .v{color:#ffd166;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .eq{font-size:17px;line-height:1.8;color:#e8eef7;font-family:"Cambria Math","Times New Roman",Georgia,serif;}
+  .card .eq .hl{color:#ffd166;font-weight:700;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;line-height:1.8;}.card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>📈 导数入门 · 割线逼近切线</h1><a class="back" href="index.html">← 返回</a></div>
+  <div class="chips" id="chips"></div>
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="560"></canvas></div>
+    <div class="controls">
+      <div><div class="ch">参数调节</div><div id="params"></div></div>
+      <button class="btn" id="bPlay">▶ 让 h → 0</button>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="readout">
+      <div class="cell"><div class="k">间距 h</div><div class="v" id="rH">—</div></div>
+      <div class="cell hi"><div class="k">割线斜率 Δy/Δx</div><div class="v" id="rSec">—</div></div>
+      <div class="cell ok"><div class="k">导数 f′(x₀) = 切线斜率</div><div class="v" id="rDer">—</div></div>
+    </div>
+    <div class="card"><div class="ttl">导数的定义</div><div class="eq" id="eq"></div></div>
+    <div class="card"><div class="ttl">怎么理解</div><div class="nt" id="note"></div></div>
+  </div>
+  <footer>导数 = 瞬时变化率 = 切线斜率 · 割线两点越靠近，斜率就越接近导数 · 纯前端单文件教学</footer>
+</div>
+<script>
+"use strict";
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=560,Vw={ox:0,oy:0,sx:40,sy:40,xmin:-3.5,xmax:3.5,ymin:-2,ymax:8};
+function fit(){var st=document.getElementById("stage");var cw=st.clientWidth||900;W=cw;H=Math.round(cw*0.62);if(H<320)H=320;
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.height=H+"px";ctx.setTransform(DPR,0,0,DPR,0,0);}
+function setView(a,b,c,d){Vw.xmin=a;Vw.xmax=b;Vw.ymin=c;Vw.ymax=d;}
+function PX(x){var p=30;return p+(x-Vw.xmin)/(Vw.xmax-Vw.xmin)*(W-2*p);}
+function PY(y){var p=22;return p+(Vw.ymax-y)/(Vw.ymax-Vw.ymin)*(H-2*p);}
+var idx=0,P={};
+function grid(){ctx.strokeStyle="rgba(120,140,180,.09)";ctx.lineWidth=1;ctx.beginPath();
+  for(var x=Math.ceil(Vw.xmin);x<=Vw.xmax;x++){ctx.moveTo(PX(x),0);ctx.lineTo(PX(x),H);}
+  for(var y=Math.ceil(Vw.ymin);y<=Vw.ymax;y++){ctx.moveTo(0,PY(y));ctx.lineTo(W,PY(y));}ctx.stroke();
+  ctx.strokeStyle="rgba(150,170,210,.35)";ctx.lineWidth=1.1;ctx.beginPath();ctx.moveTo(0,PY(0));ctx.lineTo(W,PY(0));ctx.moveTo(PX(0),0);ctx.lineTo(PX(0),H);ctx.stroke();}
+function plot(f,col,w){ctx.strokeStyle=col;ctx.lineWidth=w||2.6;ctx.beginPath();var st=false;
+  for(var px=30;px<=W-30;px+=2){var x=Vw.xmin+(px-30)/(W-60)*(Vw.xmax-Vw.xmin),y=f(x),py=PY(y);
+    if(py<-500||py>H+500){st=false;continue;}if(!st){ctx.moveTo(px,py);st=true;}else ctx.lineTo(px,py);}ctx.stroke();}
+function dot(x,y,col,r){ctx.fillStyle=col;ctx.beginPath();ctx.arc(PX(x),PY(y),r||5,0,2*Math.PI);ctx.fill();ctx.strokeStyle="rgba(0,0,0,.5)";ctx.lineWidth=1;ctx.stroke();}
+function lineThrough(x0,y0,k,col,w,dash){var y1=k*(Vw.xmin-x0)+y0,y2=k*(Vw.xmax-x0)+y0;
+  ctx.strokeStyle=col;ctx.lineWidth=w||2;ctx.setLineDash(dash||[]);ctx.beginPath();ctx.moveTo(PX(Vw.xmin),PY(y1));ctx.lineTo(PX(Vw.xmax),PY(y2));ctx.stroke();ctx.setLineDash([]);}
+function lbl(txt,x,y,col,dx,dy){ctx.fillStyle=col;ctx.font="bold 12px system-ui";ctx.textAlign="left";ctx.textBaseline="middle";ctx.fillText(txt,PX(x)+(dx||6),PY(y)+(dy||-8));}
+var BL="#56b6ff",YE="#ffd166",GR="#56d6a8",PU="#b98cff";
+
+var CONCEPTS=[
+{ id:"sq",emoji:"x²",name:"f(x)=x²",f:function(x){return x*x;},df:function(x){return 2*x;},dfStr:"2x",view:[-3.4,3.4,-1.5,8],x0d:1.2},
+{ id:"cube",emoji:"x³",name:"f(x)=x³",f:function(x){return x*x*x;},df:function(x){return 3*x*x;},dfStr:"3x²",view:[-2.4,2.4,-6,6],x0d:1.0},
+{ id:"sin",emoji:"sin",name:"f(x)=sin x",f:function(x){return Math.sin(x);},df:function(x){return Math.cos(x);},dfStr:"cos x",view:[-3.4,3.4,-2,2],x0d:0.6}
+];
+function buildChips(){var box=document.getElementById("chips");box.innerHTML="";
+  CONCEPTS.forEach(function(c,i){var el=document.createElement("div");el.className="chip"+(i===idx?" on":"");el.textContent=c.name;el.onclick=function(){idx=i;location.hash=c.id;load();};box.appendChild(el);});}
+function buildParams(){var box=document.getElementById("params");box.innerHTML="";P={};var c=CONCEPTS[idx];
+  var defs=[{k:"x0",label:"切点 x₀",min:c.view[0]+0.3,max:c.view[1]-0.3,step:0.1,def:c.x0d},{k:"h",label:"两点间距 h",min:0.05,max:2.5,step:0.05,def:2}];
+  defs.forEach(function(pp){P[pp.k]=pp.def;var w=document.createElement("div");w.className="slider";
+    w.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_'+pp.k+'">'+pp.def.toFixed(2)+'</span></div><input type="range" id="r_'+pp.k+'" min="'+pp.min+'" max="'+pp.max+'" step="'+pp.step+'" value="'+pp.def+'">';
+    box.appendChild(w);var inp=w.querySelector("input");
+    inp.oninput=function(){P[pp.k]=parseFloat(inp.value);document.getElementById("v_"+pp.k).textContent=P[pp.k].toFixed(2);draw();};});}
+function draw(){ctx.clearRect(0,0,W,H);var c=CONCEPTS[idx];setView(c.view[0],c.view[1],c.view[2],c.view[3]);grid();
+  plot(c.f,BL,2.6);
+  var x0=P.x0,h=P.h,y0=c.f(x0),x1=x0+h,y1=c.f(x1);
+  var sec=(y1-y0)/h, der=c.df(x0);
+  // 切线
+  lineThrough(x0,y0,der,"rgba(86,214,168,.85)",2.4);
+  // 割线
+  lineThrough(x0,y0,sec,YE,2,[6,4]);
+  // Δx Δy 直角
+  ctx.strokeStyle="rgba(255,209,102,.5)";ctx.lineWidth=1.3;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(PX(x0),PY(y0));ctx.lineTo(PX(x1),PY(y0));ctx.lineTo(PX(x1),PY(y1));ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle="#ffd166";ctx.font="11px system-ui";ctx.textAlign="center";ctx.textBaseline="top";ctx.fillText("Δx="+h.toFixed(2),PX((x0+x1)/2),PY(y0)+5);
+  ctx.textAlign="left";ctx.textBaseline="middle";ctx.fillText("Δy="+(y1-y0).toFixed(2),PX(x1)+5,PY((y0+y1)/2));
+  dot(x0,y0,"#fff",6);dot(x1,y1,YE,5);
+  lbl("A(x₀)",x0,y0,"#fff");lbl("B",x1,y1,YE);
+  ctx.fillStyle="#56d6a8";ctx.font="12px system-ui";ctx.textAlign="left";ctx.textBaseline="top";ctx.fillText("绿=切线(导数)  黄虚=割线(平均变化率)",PX(Vw.xmin)+6,8);
+  document.getElementById("rH").textContent=h.toFixed(2);
+  document.getElementById("rSec").textContent=sec.toFixed(3);
+  document.getElementById("rDer").textContent=der.toFixed(3);
+  document.getElementById("eq").innerHTML='f′(x₀) = lim<sub style="font-size:.7em">h→0</sub> [f(x₀+h)−f(x₀)] / h　·　f(x)='+c.name.split("=")[1]+' → f′(x)=<span class="hl">'+c.dfStr+'</span>';
+  document.getElementById("note").innerHTML='<b>割线斜率</b> = Δy/Δx = 两点间的<b>平均变化率</b>。<br>让 B 点不断靠近 A（<b>h→0</b>），割线就转成了<b>切线</b>，它的斜率就是<b>导数 f′(x₀)</b> = 那一点的<b>瞬时变化率</b>。<br>现在割线 '+sec.toFixed(3)+' 正在逼近导数 '+der.toFixed(3)+'。';
+  document.getElementById("hint").textContent="拖小 h，或点「让 h→0」，看黄色割线转成绿色切线、斜率对上导数。";}
+function load(){buildChips();buildParams();draw();}
+var anim=null;
+function play(){if(anim)cancelAnimationFrame(anim);var h0=P.h,t0=performance.now(),dur=2000;
+  (function step(now){var pr=Math.min(1,(now-t0)/dur);P.h=h0+(0.05-h0)*pr;document.getElementById("v_h").textContent=P.h.toFixed(2);document.getElementById("r_h").value=P.h;draw();if(pr<1)anim=requestAnimationFrame(step);else anim=null;})(t0);}
+document.getElementById("bPlay").onclick=play;
+window.addEventListener("resize",function(){fit();draw();});
+(function(){var hs=(location.hash||"").replace("#","");for(var i=0;i<CONCEPTS.length;i++)if(CONCEPTS[i].id===hs)idx=i;})();
+fit();load();
+</script>
+</body>
+</html>
