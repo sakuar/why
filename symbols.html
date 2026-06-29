@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>数学符号篇 · 读法 · 含义 · 图解</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+  .cats{display:flex;gap:7px;margin:4px 0 12px;flex-wrap:wrap;}
+  .cat{font-size:13px;padding:9px 13px;border-radius:20px;background:#0e1322;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.14s;white-space:nowrap;}
+  .cat:hover{border-color:#3a445e;color:#e8eef7;}
+  .cat.on{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+  .work{display:grid;grid-template-columns:1fr 360px;gap:16px;align-items:start;}
+  @media(max-width:820px){.work{grid-template-columns:1fr;}}
+  .gridbox{background:#0b0f1a;border:1px solid #1c2236;border-radius:14px;padding:14px;}
+  .sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;}
+  .scell{background:#0e1322;border:1px solid #232c44;border-radius:11px;padding:12px 8px;text-align:center;cursor:pointer;transition:.14s;}
+  .scell:hover{border-color:#6c63ff;transform:translateY(-2px);}
+  .scell.on{border-color:#6c63ff;background:#161a33;}
+  .scell .sym{font-size:26px;font-weight:700;color:#ffd166;font-family:"Cambria Math","Times New Roman",Georgia,serif;line-height:1.1;}
+  .scell .nm{font-size:12px;color:#9aa6bd;margin-top:6px;}
+  .scell .viztag{font-size:10px;color:#56d6a8;margin-top:3px;}
+  /* 详情 */
+  .detail{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;position:sticky;top:12px;}
+  .detail .dsym{font-size:54px;font-weight:700;color:#ffd166;text-align:center;font-family:"Cambria Math","Times New Roman",Georgia,serif;line-height:1.1;}
+  .detail .dname{font-size:17px;font-weight:800;text-align:center;margin-top:6px;}
+  .detail .dread{font-size:13px;color:#56b6ff;text-align:center;margin-top:4px;}
+  .detail canvas{width:100%;display:block;background:radial-gradient(ellipse at 50% 45%,#0e1426,#06070d 80%);border:1px solid #1c2236;border-radius:11px;margin:14px 0 6px;touch-action:none;}
+  .detail .vctrl{margin:4px 0 6px;}
+  .detail .vctrl .sl-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;color:#cfd8ea;}
+  .detail .vctrl .val{color:#56b6ff;font-weight:700;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .detail .row{margin-top:12px;}
+  .detail .lab{font-size:11px;color:#8090a8;font-weight:700;letter-spacing:1px;margin-bottom:4px;}
+  .detail .txt{font-size:13.5px;color:#cdd6e8;line-height:1.7;}
+  .detail .eg{font-size:14px;color:#e8eef7;font-family:"Cambria Math","Times New Roman",Georgia,serif;background:#0b0f1a;border:1px solid #1c2236;border-radius:8px;padding:8px 11px;margin-top:4px;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+  .hintbar{font-size:12px;color:#5a6680;margin:2px 2px 10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>🔣 数学符号篇</h1><a class="back" href="index.html">← 返回</a></div>
+  <div class="cats" id="cats"></div>
+  <div class="hintbar">点任意符号看读法、含义和例子 · 带 <span style="color:#56d6a8">图解</span> 的符号可以拖动参数互动</div>
+  <div class="work">
+    <div class="gridbox"><div class="sgrid" id="sgrid"></div></div>
+    <div class="detail" id="detail">
+      <div class="dsym" id="dsym">∑</div>
+      <div class="dname" id="dname">求和号</div>
+      <div class="dread" id="dread">读作 sigma（西格玛）</div>
+      <canvas id="vcv" width="320" height="220" style="display:none;"></canvas>
+      <div class="vctrl" id="vctrl" style="display:none;">
+        <div class="sl-top"><span id="vlab">参数</span><span class="val" id="vval">—</span></div>
+        <input type="range" id="vsl" min="0" max="1" step="0.01" value="0.5">
+      </div>
+      <div class="row"><div class="lab">含义</div><div class="txt" id="dmean"></div></div>
+      <div class="row"><div class="lab">例子</div><div class="eg" id="deg"></div></div>
+    </div>
+  </div>
+  <footer>参照中学数学课程标准的符号体系 · 纯前端单文件教学</footer>
+</div>
+<script>
+"use strict";
+var PI=Math.PI;
+/* 每个符号: {s,nm,read,mean,eg,viz?} ; viz: 'unit'|'venn'|'integral'|'sum'|'perp'|'para'|'angle'|'sqrt' */
+var CATS=[
+{id:"op",name:"运算",syms:[
+  {s:"+",nm:"加号",read:"加",mean:"把两个数合在一起。",eg:"3 + 4 = 7"},
+  {s:"−",nm:"减号",read:"减",mean:"从一个数里去掉另一个数。",eg:"7 − 4 = 3"},
+  {s:"×",nm:"乘号",read:"乘",mean:"几个相同的数连加的简写。",eg:"3 × 4 = 12"},
+  {s:"÷",nm:"除号",read:"除以",mean:"把一个数平均分成若干份。",eg:"12 ÷ 4 = 3"},
+  {s:"·",nm:"点乘",read:"乘",mean:"乘号的另一种写法，多用于字母之间。",eg:"a · b = ab"},
+  {s:"±",nm:"正负号",read:"正负",mean:"同时取「加」和「减」两种情况。",eg:"x = ±3 表示 3 或 −3"},
+  {s:"√",nm:"根号",read:"根号 / 平方根",mean:"哪个正数平方后等于它。",eg:"√9 = 3，因为 3² = 9",viz:"sqrt"},
+  {s:"∛",nm:"立方根",read:"立方根",mean:"哪个数立方后等于它。",eg:"∛27 = 3"},
+  {s:"xⁿ",nm:"乘方/幂",read:"x 的 n 次方",mean:"n 个 x 连乘。",eg:"2³ = 2×2×2 = 8"},
+  {s:"!",nm:"阶乘",read:"阶乘",mean:"从 1 连乘到这个数。",eg:"4! = 1×2×3×4 = 24"},
+  {s:"|x|",nm:"绝对值",read:"x 的绝对值",mean:"到 0 的距离，永远非负。",eg:"|−5| = 5"},
+  {s:"%",nm:"百分号",read:"百分之",mean:"表示百分之几，即除以 100。",eg:"25% = 0.25"}
+]},
+{id:"rel",name:"关系",syms:[
+  {s:"=",nm:"等号",read:"等于",mean:"两边的值完全相等。",eg:"2 + 2 = 4"},
+  {s:"≠",nm:"不等号",read:"不等于",mean:"两边不相等。",eg:"3 ≠ 5"},
+  {s:"<",nm:"小于号",read:"小于",mean:"左边比右边小。",eg:"3 < 5"},
+  {s:">",nm:"大于号",read:"大于",mean:"左边比右边大。",eg:"5 > 3"},
+  {s:"≤",nm:"小于等于",read:"小于或等于",mean:"不超过。",eg:"x ≤ 5：x 最大是 5"},
+  {s:"≥",nm:"大于等于",read:"大于或等于",mean:"不少于。",eg:"x ≥ 0：x 非负"},
+  {s:"≈",nm:"约等号",read:"约等于",mean:"差不多相等（取近似）。",eg:"π ≈ 3.14"},
+  {s:"≡",nm:"恒等号",read:"恒等于",mean:"对所有值都相等（恒成立）。",eg:"(a+b)² ≡ a²+2ab+b²"},
+  {s:"∝",nm:"正比号",read:"正比于",mean:"一个量是另一个的固定倍数。",eg:"周长 ∝ 半径"},
+  {s:"∞",nm:"无穷大",read:"无穷大",mean:"比任何数都大，没有尽头。",eg:"1, 2, 3, … → ∞"},
+  {s:"→",nm:"趋于",read:"趋向 / 趋于",mean:"无限接近某个值。",eg:"x → 0"}
+]},
+{id:"set",name:"集合",syms:[
+  {s:"∈",nm:"属于",read:"属于",mean:"某个元素在这个集合里。",eg:"3 ∈ {1,2,3}",viz:"vennIn"},
+  {s:"∉",nm:"不属于",read:"不属于",mean:"某个元素不在这个集合里。",eg:"5 ∉ {1,2,3}"},
+  {s:"⊆",nm:"子集",read:"包含于 / 是…的子集",mean:"一个集合的元素都在另一个里。",eg:"{1,2} ⊆ {1,2,3}",viz:"vennSub"},
+  {s:"⊂",nm:"真子集",read:"真包含于",mean:"是子集，且不相等。",eg:"{1,2} ⊂ {1,2,3}"},
+  {s:"∪",nm:"并集",read:"并",mean:"两个集合合起来的所有元素。",eg:"{1,2} ∪ {2,3} = {1,2,3}",viz:"vennUnion"},
+  {s:"∩",nm:"交集",read:"交",mean:"两个集合公共的元素。",eg:"{1,2} ∩ {2,3} = {2}",viz:"vennInter"},
+  {s:"∁",nm:"补集",read:"补集",mean:"全集里不属于该集合的部分。",eg:"∁ᵤA",viz:"vennComp"},
+  {s:"∅",nm:"空集",read:"空集",mean:"一个元素都没有的集合。",eg:"{x | x² = −1, x∈R} = ∅"},
+  {s:"ℕ",nm:"自然数集",read:"自然数集 N",mean:"0,1,2,3,…",eg:"3 ∈ ℕ"},
+  {s:"ℤ",nm:"整数集",read:"整数集 Z",mean:"…−2,−1,0,1,2…",eg:"−5 ∈ ℤ"},
+  {s:"ℝ",nm:"实数集",read:"实数集 R",mean:"所有实数（数轴上的点）。",eg:"√2 ∈ ℝ"}
+]},
+{id:"logic",name:"逻辑",syms:[
+  {s:"∀",nm:"全称量词",read:"对任意 / 对所有",mean:"对每一个都成立。",eg:"∀x, x² ≥ 0"},
+  {s:"∃",nm:"存在量词",read:"存在",mean:"至少有一个满足。",eg:"∃x, x² = 4"},
+  {s:"∧",nm:"合取",read:"且 / 与",mean:"两个条件同时成立。",eg:"x>0 ∧ x<5"},
+  {s:"∨",nm:"析取",read:"或",mean:"至少一个条件成立。",eg:"x<0 ∨ x>5"},
+  {s:"¬",nm:"否定",read:"非",mean:"取相反（不成立）。",eg:"¬(x>0) 即 x≤0"},
+  {s:"⇒",nm:"推出",read:"推出 / 则",mean:"由前者可以得到后者。",eg:"x>2 ⇒ x>0"},
+  {s:"⇔",nm:"等价",read:"当且仅当",mean:"互相推出，双向成立。",eg:"x²=1 ⇔ x=±1"},
+  {s:"∴",nm:"所以",read:"所以",mean:"由前面推出结论。",eg:"∵a=b ∴a−b=0"},
+  {s:"∵",nm:"因为",read:"因为",mean:"给出理由/前提。",eg:"∵ 两边相等"}
+]},
+{id:"geo",name:"几何",syms:[
+  {s:"∠",nm:"角",read:"角",mean:"两条射线从一点张开。",eg:"∠ABC = 90°",viz:"angle"},
+  {s:"⊥",nm:"垂直",read:"垂直于",mean:"两条线成 90° 相交。",eg:"AB ⊥ CD",viz:"perp"},
+  {s:"∥",nm:"平行",read:"平行于",mean:"两条线永不相交。",eg:"AB ∥ CD",viz:"para"},
+  {s:"≌",nm:"全等",read:"全等于",mean:"形状大小完全相同。",eg:"△ABC ≌ △DEF"},
+  {s:"∽",nm:"相似",read:"相似于",mean:"形状相同、大小成比例。",eg:"△ABC ∽ △DEF"},
+  {s:"°",nm:"度",read:"度",mean:"角的单位，一圈 360°。",eg:"直角 = 90°"},
+  {s:"△",nm:"三角形",read:"三角形",mean:"三条边围成的图形。",eg:"△ABC"},
+  {s:"⊙",nm:"圆",read:"圆 O",mean:"到圆心等距的点的集合。",eg:"⊙O 半径 r"},
+  {s:"⌒",nm:"弧",read:"弧",mean:"圆周上的一段。",eg:"⌒AB"},
+  {s:"π",nm:"圆周率",read:"派 (pi)",mean:"圆周长与直径的比，≈3.14159。",eg:"C = 2πr"},
+  {s:"′ ″",nm:"分 秒",read:"角分 / 角秒",mean:"1° = 60′，1′ = 60″。",eg:"30°15′"}
+]},
+{id:"trig",name:"三角函数",syms:[
+  {s:"sin",nm:"正弦",read:"sine（赛因）",mean:"直角三角形中，对边比斜边；单位圆上是 P 点的纵坐标 y。",eg:"sin 30° = 0.5",viz:"unit"},
+  {s:"cos",nm:"余弦",read:"cosine（余弦）",mean:"邻边比斜边；单位圆上是 P 点的横坐标 x。",eg:"cos 60° = 0.5",viz:"unit"},
+  {s:"tan",nm:"正切",read:"tangent（正切）",mean:"对边比邻边 = sin/cos；线的斜率。",eg:"tan 45° = 1",viz:"unit"},
+  {s:"cot",nm:"余切",read:"cotangent",mean:"邻边比对边 = cos/sin = 1/tan。",eg:"cot 45° = 1",viz:"unit"},
+  {s:"sec",nm:"正割",read:"secant",mean:"斜边比邻边 = 1/cos。",eg:"sec 60° = 2",viz:"unit"},
+  {s:"csc",nm:"余割",read:"cosecant",mean:"斜边比对边 = 1/sin。",eg:"csc 30° = 2",viz:"unit"}
+]},
+{id:"calc",name:"微积分·数列",syms:[
+  {s:"∑",nm:"求和号",read:"sigma（西格玛）",mean:"把一串数加起来。",eg:"∑ₖ₌₁ⁿ k = 1+2+…+n",viz:"sum"},
+  {s:"∏",nm:"连乘号",read:"pi（大写派）",mean:"把一串数乘起来。",eg:"∏ₖ₌₁ⁿ k = n!"},
+  {s:"∫",nm:"积分号",read:"integral（积分）",mean:"把无穷多薄片加起来 = 曲线下面积。",eg:"∫₀¹ x dx = ½",viz:"integral"},
+  {s:"∮",nm:"环积分",read:"环路积分",mean:"沿闭合曲线一圈的积分。",eg:"∮ 沿圆一周"},
+  {s:"lim",nm:"极限",read:"limit（极限）",mean:"无限接近时趋向的值。",eg:"lim(x→0) sin x / x = 1"},
+  {s:"Δ",nm:"增量/判别式",read:"delta（德尔塔）",mean:"变化量；也指 b²−4ac。",eg:"Δx = x₂ − x₁"},
+  {s:"d",nm:"微分",read:"d / 微分",mean:"无穷小的变化量。",eg:"dy/dx 是导数"},
+  {s:"∂",nm:"偏导",read:"偏 d（partial）",mean:"多元函数对某一个变量求导。",eg:"∂f/∂x"},
+  {s:"′",nm:"导数撇",read:"撇 / prime",mean:"求导，表示变化率。",eg:"f′(x)"}
+]},
+{id:"greek",name:"希腊字母",syms:[
+  {s:"π",nm:"pi",read:"派",mean:"圆周率 ≈ 3.14159。",eg:"S = πr²"},
+  {s:"θ",nm:"theta",read:"西塔",mean:"常表示角度。",eg:"sin θ"},
+  {s:"α",nm:"alpha",read:"阿尔法",mean:"常表示角或系数。",eg:"∠α"},
+  {s:"β",nm:"beta",read:"贝塔",mean:"常表示第二个角。",eg:"∠β"},
+  {s:"γ",nm:"gamma",read:"伽马",mean:"常表示第三个角。",eg:"∠γ"},
+  {s:"Δ",nm:"Delta(大)",read:"德尔塔",mean:"增量、判别式、三角形面积。",eg:"Δ = b²−4ac"},
+  {s:"λ",nm:"lambda",read:"拉姆达",mean:"常表示比例、特征值、波长。",eg:"λ = 2"},
+  {s:"Σ",nm:"Sigma(大)",read:"西格玛",mean:"求和号。",eg:"Σ aᵢ"},
+  {s:"φ",nm:"phi",read:"斐 / fai",mean:"黄金比、角、空集旧记号。",eg:"φ ≈ 1.618"},
+  {s:"ω",nm:"omega",read:"欧米伽",mean:"角速度、终边。",eg:"ω = 2π/T"},
+  {s:"μ",nm:"mu",read:"缪",mean:"平均数、摩擦系数。",eg:"均值 μ"},
+  {s:"σ",nm:"sigma(小)",read:"西格玛",mean:"标准差。",eg:"标准差 σ"}
+]}
+];
+
+var catIdx=0, curSym=null;
+var cv=document.getElementById("vcv"), ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+function fitCv(){var w=cv.clientWidth||320;cv.width=Math.round(w*DPR);cv.height=Math.round(220*DPR);cv.style.height="220px";ctx.setTransform(DPR,0,0,DPR,0,0);CW=w;CH=220;}
+var CW=320,CH=220;
+
+function buildCats(){var box=document.getElementById("cats");box.innerHTML="";
+  CATS.forEach(function(c,i){var el=document.createElement("div");el.className="cat"+(i===catIdx?" on":"");el.textContent=c.name;el.onclick=function(){catIdx=i;buildGrid();};box.appendChild(el);});}
+function buildGrid(){
+  document.querySelectorAll(".cat").forEach(function(e,i){e.className="cat"+(i===catIdx?" on":"");});
+  var box=document.getElementById("sgrid");box.innerHTML="";
+  CATS[catIdx].syms.forEach(function(sy){
+    var el=document.createElement("div");el.className="scell";
+    el.innerHTML='<div class="sym">'+sy.s+'</div><div class="nm">'+sy.nm+'</div>'+(sy.viz?'<div class="viztag">▶ 图解</div>':'');
+    el.onclick=function(){showDetail(sy,el);};box.appendChild(el);
+  });
+  // 默认选中第一个
+  showDetail(CATS[catIdx].syms[0],box.firstChild);
+}
+function showDetail(sy,el){
+  curSym=sy;
+  document.querySelectorAll(".scell").forEach(function(e){e.classList.remove("on");});
+  if(el)el.classList.add("on");
+  document.getElementById("dsym").textContent=sy.s;
+  document.getElementById("dname").textContent=sy.nm;
+  document.getElementById("dread").textContent="读作 "+sy.read;
+  document.getElementById("dmean").textContent=sy.mean;
+  document.getElementById("deg").textContent=sy.eg;
+  var ctrl=document.getElementById("vctrl");
+  if(sy.viz){
+    cv.style.display="block";fitCv();
+    if(sy.viz==="unit"){ctrl.style.display="block";document.getElementById("vlab").textContent="角度 θ";VT=45;document.getElementById("vsl").min=0;document.getElementById("vsl").max=360;document.getElementById("vsl").step=1;document.getElementById("vsl").value=45;document.getElementById("vval").textContent="45°";}
+    else if(sy.viz==="integral"||sy.viz==="sum"){ctrl.style.display="block";document.getElementById("vlab").textContent="切成几份 N";VT=8;document.getElementById("vsl").min=2;document.getElementById("vsl").max=40;document.getElementById("vsl").step=1;document.getElementById("vsl").value=8;document.getElementById("vval").textContent="8";}
+    else{ctrl.style.display="none";}
+    drawViz();
+  }else{cv.style.display="none";ctrl.style.display="none";}
+}
+var VT=45;
+function drawViz(){
+  if(!curSym||!curSym.viz)return;
+  ctx.clearRect(0,0,CW,CH);var v=curSym.viz;
+  if(v==="unit")vizUnit(curSym.s);
+  else if(v.indexOf("venn")===0)vizVenn(v);
+  else if(v==="integral")vizIntegral();
+  else if(v==="sum")vizSum();
+  else if(v==="angle")vizAngle();
+  else if(v==="perp")vizPerp();
+  else if(v==="para")vizPara();
+  else if(v==="sqrt")vizSqrt();
+}
+/* ---- 单位圆：sin/cos/tan ---- */
+function vizUnit(which){
+  var cx=CW*0.42,cy=CH*0.54,R=Math.min(CW,CH)*0.34;
+  var th=VT*PI/180, px=cx+R*Math.cos(th), py=cy-R*Math.sin(th);
+  // 轴
+  ctx.strokeStyle="rgba(120,140,180,.25)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx-R-12,cy);ctx.lineTo(cx+R+24,cy);ctx.moveTo(cx,cy+R+12);ctx.lineTo(cx,cy-R-12);ctx.stroke();
+  // 单位圆
+  ctx.strokeStyle="rgba(150,170,210,.5)";ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,cy,R,0,2*PI);ctx.stroke();
+  // 半径
+  ctx.strokeStyle="#e8eef7";ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(px,py);ctx.stroke();
+  // cos (横, 蓝)
+  ctx.strokeStyle=(which==="cos"||which==="sec")?"#ffd166":"#56b6ff";ctx.lineWidth=(which==="cos")?4:2.6;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(px,cy);ctx.stroke();
+  // sin (竖, 绿)
+  ctx.strokeStyle=(which==="sin"||which==="csc")?"#ffd166":"#56d6a8";ctx.lineWidth=(which==="sin")?4:2.6;ctx.beginPath();ctx.moveTo(px,cy);ctx.lineTo(px,py);ctx.stroke();
+  // tan (切线, 紫) 到 x 轴延长
+  if((which==="tan"||which==="cot"||which==="sec")&&Math.abs(Math.cos(th))>0.02){
+    var tx=cx+R/Math.cos(th); // 切点在 x=R 竖线上
+    ctx.strokeStyle="#b98cff";ctx.lineWidth=(which==="tan")?4:2.2;ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.moveTo(cx+R,cy);ctx.lineTo(cx+R,cy-R*Math.tan(th));ctx.stroke();ctx.setLineDash([]);
+    ctx.strokeStyle="rgba(185,140,255,.4)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+R,cy-R*Math.tan(th));ctx.stroke();
+  }
+  // P 点
+  ctx.fillStyle="#ffd166";ctx.beginPath();ctx.arc(px,py,4,0,2*PI);ctx.fill();
+  // 数值
+  ctx.fillStyle="#cdd6e8";ctx.font="12px system-ui";ctx.textAlign="left";ctx.textBaseline="top";
+  var val=which==="sin"?Math.sin(th):which==="cos"?Math.cos(th):which==="tan"?Math.tan(th):which==="cot"?1/Math.tan(th):which==="sec"?1/Math.cos(th):1/Math.sin(th);
+  ctx.fillText(which+" "+VT+"° = "+val.toFixed(3),10,8);
+  ctx.fillStyle="#56b6ff";ctx.fillText("cos = x（横）",10,CH-34);
+  ctx.fillStyle="#56d6a8";ctx.fillText("sin = y（竖）",10,CH-18);
+}
+/* ---- 韦恩图 ---- */
+function vizVenn(mode){
+  var cyy=CH*0.5,r=CH*0.30,ax=CW*0.40,bx=CW*0.60;
+  function discA(){ctx.beginPath();ctx.arc(ax,cyy,r,0,2*PI);}
+  function discB(){ctx.beginPath();ctx.arc(bx,cyy,r,0,2*PI);}
+  // 高亮区域
+  ctx.save();
+  if(mode==="vennUnion"){ctx.fillStyle="rgba(108,99,255,.4)";discA();ctx.fill();discB();ctx.fill();}
+  else if(mode==="vennInter"){discA();ctx.clip();ctx.fillStyle="rgba(86,214,168,.55)";discB();ctx.fill();}
+  else if(mode==="vennComp"){ctx.fillStyle="rgba(108,99,255,.28)";ctx.fillRect(CW*0.10,CH*0.12,CW*0.80,CH*0.76);ctx.globalCompositeOperation="destination-out";discA();ctx.fill();ctx.globalCompositeOperation="source-over";}
+  else if(mode==="vennSub"){ctx.fillStyle="rgba(86,214,168,.4)";discA();ctx.fill();}
+  else if(mode==="vennIn"){ctx.fillStyle="rgba(86,182,255,.18)";discA();ctx.fill();}
+  ctx.restore();
+  // 边框
+  ctx.strokeStyle="#56b6ff";ctx.lineWidth=2;discA();ctx.stroke();
+  if(mode!=="vennComp"){ctx.strokeStyle="#b98cff";discB();ctx.stroke();}
+  ctx.fillStyle="#cdd6e8";ctx.font="bold 14px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillText("A",ax-r*0.5,cyy);if(mode!=="vennComp"&&mode!=="vennSub"&&mode!=="vennIn")ctx.fillText("B",bx+r*0.5,cyy);
+  if(mode==="vennIn"){ctx.fillStyle="#ffd166";ctx.beginPath();ctx.arc(ax,cyy,4,0,2*PI);ctx.fill();ctx.fillStyle="#cdd6e8";ctx.font="12px system-ui";ctx.fillText("元素 ∈ A",ax,cyy+r+14);}
+  if(mode==="vennSub"){ctx.fillStyle="#ffd166";ctx.beginPath();ctx.arc(bx,cyy,r*0.5,0,2*PI);ctx.strokeStyle="#ffd166";ctx.lineWidth=2;ctx.stroke();ctx.fillStyle="#cdd6e8";ctx.font="12px system-ui";ctx.fillText("小圈 ⊆ 大圈",CW*0.5,CH-14);}
+}
+/* ---- 积分：曲线下面积 ---- */
+function vizIntegral(){
+  var ox=CW*0.16,oy=CH*0.82,w=CW*0.7,h=CH*0.64,N=VT;
+  ctx.strokeStyle="rgba(120,140,180,.3)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+w,oy);ctx.moveTo(ox,oy);ctx.lineTo(ox,oy-h);ctx.stroke();
+  // y=x² on [0,1]
+  function fy(x){return x*x;}
+  var dx=1/N;
+  for(var i=0;i<N;i++){var xm=(i+0.5)*dx,bh=fy(xm);ctx.fillStyle="rgba(86,182,255,.35)";ctx.fillRect(ox+i*dx*w,oy-bh*h,dx*w,bh*h);ctx.strokeStyle="rgba(255,255,255,.12)";ctx.strokeRect(ox+i*dx*w,oy-bh*h,dx*w,bh*h);}
+  ctx.strokeStyle="#56b6ff";ctx.lineWidth=2.2;ctx.beginPath();for(var t=0;t<=60;t++){var x=t/60,px=ox+x*w,py=oy-fy(x)*h;if(t===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);}ctx.stroke();
+  var sum=0;for(var k=0;k<N;k++){var xm2=(k+0.5)*dx;sum+=fy(xm2)*dx;}
+  ctx.fillStyle="#cdd6e8";ctx.font="12px system-ui";ctx.textAlign="left";ctx.textBaseline="top";
+  ctx.fillText("∫₀¹ x² dx ≈ "+sum.toFixed(3)+"（真值 ⅓）",8,6);
+}
+/* ---- 求和：条形累加 ---- */
+function vizSum(){
+  var N=VT,ox=CW*0.12,oy=CH*0.84,w=CW*0.78,bw=w/N;
+  var sum=0;for(var i=1;i<=N;i++)sum+=i;
+  var maxv=N;
+  for(var k=1;k<=N;k++){var bh=(k/maxv)*(CH*0.62);ctx.fillStyle="rgba(86,214,168,.5)";ctx.fillRect(ox+(k-1)*bw,oy-bh,bw*0.8,bh);}
+  ctx.strokeStyle="rgba(120,140,180,.3)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+w,oy);ctx.stroke();
+  ctx.fillStyle="#cdd6e8";ctx.font="12px system-ui";ctx.textAlign="left";ctx.textBaseline="top";
+  ctx.fillText("∑ₖ₌₁^"+N+" k = "+sum+"　(= N(N+1)/2)",8,6);
+}
+/* ---- 几何示意 ---- */
+function vizAngle(){var cx=CW*0.3,cy=CH*0.7,L=CW*0.5;
+  ctx.strokeStyle="#56b6ff";ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+L,cy);ctx.stroke();
+  ctx.strokeStyle="#b98cff";ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+L*Math.cos(-PI/4),cy+L*Math.sin(-PI/4));ctx.stroke();
+  ctx.strokeStyle="#ffd166";ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,28,0,-PI/4,true);ctx.stroke();
+  ctx.fillStyle="#ffd166";ctx.font="bold 13px system-ui";ctx.textAlign="left";ctx.fillText("∠ = 45°",cx+34,cy-16);}
+function vizPerp(){var cx=CW*0.5,cy=CH*0.5,L=CW*0.32;
+  ctx.strokeStyle="#56b6ff";ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(cx-L,cy);ctx.lineTo(cx+L,cy);ctx.stroke();
+  ctx.strokeStyle="#b98cff";ctx.beginPath();ctx.moveTo(cx,cy-L);ctx.lineTo(cx,cy+L);ctx.stroke();
+  ctx.strokeStyle="#ffd166";ctx.lineWidth=1.6;ctx.strokeRect(cx,cy-16,16,16);
+  ctx.fillStyle="#cdd6e8";ctx.font="12px system-ui";ctx.textAlign="center";ctx.fillText("两线成 90°",cx,cy+L+16);}
+function vizPara(){var cy=CH*0.5,L=CW*0.34;
+  ctx.strokeStyle="#56b6ff";ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(CW*0.5-L,cy-22);ctx.lineTo(CW*0.5+L,cy-22);ctx.stroke();
+  ctx.strokeStyle="#b98cff";ctx.beginPath();ctx.moveTo(CW*0.5-L,cy+22);ctx.lineTo(CW*0.5+L,cy+22);ctx.stroke();
+  ctx.fillStyle="#cdd6e8";ctx.font="12px system-ui";ctx.textAlign="center";ctx.fillText("两线永不相交",CW*0.5,cy+50);}
+function vizSqrt(){var cx=CW*0.5,cy=CH*0.5,s=CH*0.44;
+  ctx.fillStyle="rgba(86,182,255,.3)";ctx.fillRect(cx-s/2,cy-s/2,s,s);ctx.strokeStyle="#56b6ff";ctx.lineWidth=2;ctx.strokeRect(cx-s/2,cy-s/2,s,s);
+  ctx.fillStyle="#cdd6e8";ctx.font="12px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("面积 = 9",cx,cy);
+  ctx.fillStyle="#ffd166";ctx.fillText("边长 = √9 = 3",cx,cy+s/2+16);}
+
+document.getElementById("vsl").oninput=function(){VT=parseFloat(this.value);
+  document.getElementById("vval").textContent=(curSym&&curSym.viz==="unit")?VT+"°":VT;drawViz();};
+window.addEventListener("resize",function(){if(curSym&&curSym.viz){fitCv();drawViz();}});
+buildCats();buildGrid();
+</script>
+</body>
+</html>
