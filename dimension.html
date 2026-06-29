@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>点动成线 · 线动成面 · 面动成体</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;
+    background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+
+  .stages{display:flex;gap:8px;margin:4px 0 12px;flex-wrap:wrap;}
+  .stage-chip{flex:1;min-width:120px;display:flex;align-items:center;gap:8px;justify-content:center;
+    font-size:13px;padding:11px 10px;border-radius:11px;background:#0e1322;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.14s;}
+  .stage-chip .dot{font-size:16px;}
+  .stage-chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .stage-chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);
+    border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:20px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;}
+  .slider{margin-bottom:16px;}
+  .slider:last-child{margin-bottom:0;}
+  .slider .sl-top .nm{color:#cfd8ea;}
+  .slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .btn{font-size:14px;padding:12px 16px;border-radius:10px;background:#6c63ff;border:1px solid #6c63ff;color:#fff;font-weight:700;cursor:pointer;width:100%;}
+  .btn:hover{filter:brightness(1.08);}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:14px;}
+
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;margin-bottom:6px;}
+  .readout .cell .v{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.hi .v{color:#ffd166;}
+  .readout .cell.ok .v{color:#56d6a8;}
+  .readout .cell .u{font-size:11px;color:#5a6680;margin-top:5px;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .eq{font-size:19px;line-height:1.8;color:#e8eef7;font-family:"Cambria Math","Times New Roman",Georgia,serif;}
+  .card .eq sup{font-size:62%;}
+  .card .eq .hl{color:#ffd166;font-weight:700;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;line-height:1.8;}
+  .card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>🌱 点动成线 · 线动成面 · 面动成体</h1>
+    <a class="back" href="index.html">← 返回</a>
+  </div>
+
+  <div class="stages">
+    <div class="stage-chip on" data-s="0"><span class="dot">●</span> 点 → 线</div>
+    <div class="stage-chip" data-s="1"><span class="dot">╱</span> 线 → 面</div>
+    <div class="stage-chip" data-s="2"><span class="dot">▦</span> 面 → 体</div>
+  </div>
+
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="560"></canvas></div>
+    <div class="controls">
+      <div>
+        <div class="ch">参数调节</div>
+        <div id="params"></div>
+      </div>
+      <button class="btn" id="bPlay">▶ 让它动起来</button>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+
+  <div class="info">
+    <div class="readout">
+      <div class="cell"><div class="k" id="k0">被移动的</div><div class="v" id="r0">—</div><div class="u" id="u0"></div></div>
+      <div class="cell hi"><div class="k" id="k1">移动距离</div><div class="v" id="r1">—</div><div class="u" id="u1"></div></div>
+      <div class="cell ok"><div class="k" id="k2">扫出的</div><div class="v" id="r2">—</div><div class="u" id="u2"></div></div>
+    </div>
+    <div class="card">
+      <div class="ttl">扫出来的度量</div>
+      <div class="eq" id="eq"></div>
+    </div>
+    <div class="card">
+      <div class="ttl">一个统一的想法</div>
+      <div class="nt" id="note"></div>
+    </div>
+  </div>
+
+  <footer>测度 = 底 × 移动距离 —— 长度、面积、体积，其实是同一件事在不同维度</footer>
+</div>
+
+<script>
+"use strict";
+var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=560,U=42;            // U: 一个单位对应的像素
+function fit(){
+  var st=document.getElementById("stage");
+  var cw=st.clientWidth||900; W=cw; H=Math.round(cw*0.62); if(H<320)H=320;
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  U=Math.min(48, W/16, H/11);
+}
+
+/* 斜二测投影：3D(x,y,z) -> 2D 屏幕（z 为深度，向右上方偏） */
+function P3(x,y,z,ox,oy){
+  var k=0.5; // 深度压缩
+  return {x:ox + x*U + z*U*k*0.72, y:oy - y*U - z*U*k*0.55};
+}
+function line(a,b,col,w){ctx.strokeStyle=col;ctx.lineWidth=w||2;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
+function poly(pts,fill,stroke,w){
+  ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(var i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);ctx.closePath();
+  if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=w||2;ctx.stroke();}
+}
+function pt(p,col,r){ctx.fillStyle=col;ctx.beginPath();ctx.arc(p.x,p.y,r||5,0,7);ctx.fill();ctx.strokeStyle="rgba(0,0,0,.5)";ctx.lineWidth=1;ctx.stroke();}
+function lbl(txt,x,y,col,size,align){ctx.fillStyle=col;ctx.font="bold "+(size||13)+"px system-ui";ctx.textAlign=align||"center";ctx.textBaseline="middle";ctx.fillText(txt,x,y);}
+
+var T=0; // 扫掠进度 0..1
+var stage=0;
+var P={};
+
+/* ===== 三个阶段 ===== */
+var STAGES=[
+{ /* 0: 点 -> 线 */
+  name:"点 → 线",
+  params:[{k:"d",label:"移动距离 d",min:2,max:10,step:0.5,def:6}],
+  eq:function(){return '线段长度 = 移动距离 = <span class="hl">'+P.d.toFixed(1)+'</span>';},
+  read:function(){return ["一个点","0维","移动距离",P.d.toFixed(1),"d","扫出 线段","长 "+( P.d*T).toFixed(2)];},
+  hint:"一个没有大小的点，沿一个方向滑过去，划过的痕迹就是一条线段。",
+  note:'<b>点是 0 维</b>（没有长宽高）。让它沿一个方向移动，划过的轨迹就成了 <b>1 维的线段</b>，长度正好等于它走过的距离。',
+  draw:function(){
+    var oy=H*0.62, ox=W*0.5 - (P.d*U)/2;
+    // 轨道
+    line({x:ox,y:oy},{x:ox+P.d*U,y:oy},"rgba(120,140,180,.25)",1);
+    // 已扫出的线段
+    line({x:ox,y:oy},{x:ox+P.d*U*T,y:oy},"#56d6a8",4);
+    // 起点 + 当前点
+    pt({x:ox,y:oy},"rgba(140,160,200,.6)",4);
+    pt({x:ox+P.d*U*T,y:oy},"#ffd166",6);
+    lbl("点",ox+P.d*U*T,oy-18,"#ffd166",13);
+    if(T>0.05)lbl("长 = "+(P.d*T).toFixed(2),ox+P.d*U*T/2,oy+20,"#56d6a8",13);
+  }
+},
+{ /* 1: 线 -> 面 */
+  name:"线 → 面",
+  params:[{k:"a",label:"线段长 a",min:2,max:9,step:0.5,def:6},{k:"h",label:"移动距离 h",min:2,max:8,step:0.5,def:4}],
+  eq:function(){return '矩形面积 = 线长 × 移动距离 = '+P.a.toFixed(1)+' × <span class="hl">'+(P.h*T).toFixed(2)+'</span> = <span class="hl">'+(P.a*P.h*T).toFixed(2)+'</span>';},
+  read:function(){return ["线段 a","长 "+P.a.toFixed(1),"移动距离 h",(P.h*T).toFixed(2),"h","扫出 矩形","面积 "+(P.a*P.h*T).toFixed(2)];},
+  hint:"一条线段，垂直于自己的方向平移，扫过的区域就是一个矩形。",
+  note:'<b>线段是 1 维</b>。让它整体平移，扫过的面就是 <b>2 维的矩形</b>。面积 = 线段的长 × 它移动的距离 —— 这就是「<b>底 × 高</b>」的真正来历。',
+  draw:function(){
+    var a=P.a*U, h=P.h*U, ox=W*0.5-a/2, oy=H*0.30+h;
+    // 终点位置参考框
+    ctx.setLineDash([5,5]);line({x:ox,y:oy-h},{x:ox+a,y:oy-h},"rgba(120,140,180,.25)",1);ctx.setLineDash([]);
+    // 已扫出的矩形
+    var top=oy-h*T;
+    poly([{x:ox,y:oy},{x:ox+a,y:oy},{x:ox+a,y:top},{x:ox,y:top}],"rgba(86,182,255,.22)",null);
+    // 起始线段（底）
+    line({x:ox,y:oy},{x:ox+a,y:oy},"rgba(140,160,200,.5)",3);
+    // 当前线段（被扫掠的线）
+    line({x:ox,y:top},{x:ox+a,y:top},"#56b6ff",4);
+    pt({x:ox,y:top},"#ffd166",5);pt({x:ox+a,y:top},"#ffd166",5);
+    lbl("a = "+P.a.toFixed(1),ox+a/2,oy+18,"#9aa6bd",12);
+    if(T>0.05)lbl("面积 "+(P.a*P.h*T).toFixed(2),ox+a/2,(oy+top)/2,"#56b6ff",14);
+  }
+},
+{ /* 2: 面 -> 体 */
+  name:"面 → 体",
+  params:[{k:"a",label:"矩形宽 a",min:2,max:7,step:0.5,def:5},{k:"b",label:"矩形高 b",min:2,max:6,step:0.5,def:3.5},{k:"c",label:"移动距离 c",min:2,max:7,step:0.5,def:5}],
+  eq:function(){return '长方体体积 = 底面积 × 移动距离 = '+(P.a*P.b).toFixed(2)+' × <span class="hl">'+(P.c*T).toFixed(2)+'</span> = <span class="hl">'+(P.a*P.b*P.c*T).toFixed(2)+'</span>';},
+  read:function(){return ["矩形面","面积 "+(P.a*P.b).toFixed(2),"移动距离 c",(P.c*T).toFixed(2),"c","扫出 长方体","体积 "+(P.a*P.b*P.c*T).toFixed(2)];},
+  hint:"一个矩形面，沿垂直它的方向（深度方向）平移，扫出一个长方体。",
+  note:'<b>矩形是 2 维</b>。让它沿「深度」方向平移，扫过的就是 <b>3 维的长方体</b>。体积 = 底面积 × 移动距离。<br>看出规律了吗？<b>每升一维，都是「上一级图形 × 它移动的距离」</b>。',
+  draw:function(){
+    var a=P.a,b=P.b,c=P.c*T;
+    var ox=W*0.40, oy=H*0.64;
+    // 八个顶点（z=0 前面, z=c 后面）
+    function V(x,y,z){return P3(x,y,z,ox,oy);}
+    var f=[V(0,0,0),V(a,0,0),V(a,b,0),V(0,b,0)];      // 前面 (起始矩形)
+    var bk=[V(0,0,c),V(a,0,c),V(a,b,c),V(0,b,c)];     // 后面 (当前矩形)
+    // 后面 + 顶面 + 右面（填充体）
+    if(T>0.02){
+      poly([bk[0],bk[1],bk[2],bk[3]],"rgba(86,214,168,.14)",null);
+      poly([f[3],f[2],bk[2],bk[3]],"rgba(86,214,168,.20)",null); // 顶
+      poly([f[1],f[2],bk[2],bk[1]],"rgba(86,214,168,.26)",null); // 右
+      // 连接棱
+      for(var i=0;i<4;i++)line(f[i],bk[i],"rgba(86,214,168,.5)",1.5);
+    }
+    // 前面（起始矩形）
+    poly([f[0],f[1],f[2],f[3]],"rgba(86,182,255,.22)","#56b6ff",2.5);
+    // 当前矩形（被扫掠的面）描边
+    if(T>0.02)poly([bk[0],bk[1],bk[2],bk[3]],null,"#ffd166",2);
+    lbl("底面积 "+(a*b).toFixed(1),(f[0].x+f[2].x)/2,(f[0].y+f[2].y)/2,"#56b6ff",13);
+    if(T>0.1)lbl("体积 "+(a*b*c).toFixed(2),(f[1].x+bk[2].x)/2+6,(f[1].y+bk[2].y)/2,"#56d6a8",13);
+  }
+}
+];
+
+function buildParams(){
+  var box=document.getElementById("params");box.innerHTML="";P={};
+  STAGES[stage].params.forEach(function(pp){
+    P[pp.k]=pp.def;
+    var w=document.createElement("div");w.className="slider";
+    w.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_'+pp.k+'">'+pp.def.toFixed(1)+'</span></div>'+
+      '<input type="range" id="r_'+pp.k+'" min="'+pp.min+'" max="'+pp.max+'" step="'+pp.step+'" value="'+pp.def+'">';
+    box.appendChild(w);
+    var inp=w.querySelector("input");
+    inp.oninput=function(){P[pp.k]=parseFloat(inp.value);document.getElementById("v_"+pp.k).textContent=P[pp.k].toFixed(1);draw();};
+  });
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  var S=STAGES[stage];
+  S.draw();
+  document.getElementById("eq").innerHTML=S.eq();
+  document.getElementById("hint").textContent=S.hint;
+  document.getElementById("note").innerHTML=S.note;
+  var r=S.read();
+  document.getElementById("k0").textContent=r[0];document.getElementById("r0").textContent=r[1];document.getElementById("u0").textContent="";
+  document.getElementById("k1").textContent=r[2];document.getElementById("r1").textContent=r[3];document.getElementById("u1").textContent="× "+r[4];
+  document.getElementById("k2").textContent=r[5];document.getElementById("r2").textContent=r[6];document.getElementById("u2").textContent="";
+}
+function loadStage(s){
+  stage=s;T=0;
+  document.querySelectorAll(".stage-chip").forEach(function(c){c.classList.toggle("on",parseInt(c.getAttribute("data-s"),10)===s);});
+  buildParams();draw();
+}
+document.querySelectorAll(".stage-chip").forEach(function(c){
+  c.onclick=function(){loadStage(parseInt(c.getAttribute("data-s"),10));};
+});
+
+/* 动画 */
+var anim=null;
+function play(){
+  if(anim)cancelAnimationFrame(anim);
+  T=0;var t0=performance.now(),dur=1600;
+  (function step(now){
+    var p=Math.min(1,(now-t0)/dur), e=p<0.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+    T=e;draw();
+    if(p<1)anim=requestAnimationFrame(step);else anim=null;
+  })(t0);
+}
+document.getElementById("bPlay").onclick=play;
+
+window.addEventListener("resize",function(){fit();draw();});
+fit();loadStage(0);
+// 首次自动演示一遍
+setTimeout(play,400);
+</script>
+</body>
+</html>

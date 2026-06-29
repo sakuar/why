@@ -3,150 +3,134 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小站合集 · 100 个小玩具</title>
+<title>几何之旅 · 从点到线到面到体</title>
 <style>
   * { box-sizing:border-box; margin:0; padding:0; }
-  body { min-height:100vh; background:#0c0f1a; color:#e8eef7; font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; padding:40px 16px 70px; }
-  .hero{ text-align:center; margin-bottom:16px; }
-  h1{ font-size:clamp(26px,5vw,40px); font-weight:800; letter-spacing:1px; background:linear-gradient(90deg,#ffd166,#ff8aa0,#b98cff,#56b6ff); -webkit-background-clip:text; background-clip:text; color:transparent; }
-  .hero p{ color:#8090a8; margin-top:10px; font-size:14px; }
-  /* tab 栏 */
-  .tabs{ position:sticky; top:0; z-index:20; max-width:980px; margin:6px auto 22px; display:flex; gap:8px; overflow-x:auto; padding:10px 2px; background:#0c0f1a; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
-  .tabs::-webkit-scrollbar{ height:0; display:none; }
-  .tab{ flex:0 0 auto; padding:8px 15px; border-radius:20px; font-size:13px; color:#aab6cc; background:#161c2b; border:1px solid #222840; cursor:pointer; white-space:nowrap; transition:.15s; }
-  .tab:hover{ border-color:#39415c; color:#e8eef7; }
-  .tab.on{ background:#6c63ff; color:#fff; border-color:#6c63ff; }
-  .tab .n{ opacity:.7; font-size:12px; margin-left:2px; }
-  .cat{ max-width:980px; margin:0 auto 26px; }
-  .cat h2{ font-size:14px; color:#aab6cc; font-weight:600; letter-spacing:2px; margin:0 4px 12px; display:flex; align-items:center; gap:8px; }
-  .cat h2 .c{ color:#5a6680; font-weight:400; }
+  body { min-height:100vh; background:#0c0f1a; color:#e8eef7; font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; padding:44px 16px 70px; }
+  .hero{ text-align:center; margin-bottom:14px; }
+  h1{ font-size:clamp(26px,5vw,40px); font-weight:800; letter-spacing:1px; background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .hero p{ color:#8090a8; margin-top:12px; font-size:14px; line-height:1.7; }
+  .dimbar{ max-width:1100px; margin:22px auto 30px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .dimbar .d{ display:flex; align-items:center; gap:8px; font-size:13px; color:#8090a8; }
+  .dimbar .d b{ color:#cdd6e8; font-weight:700; }
+  .dimbar .arrow{ color:#3a445e; }
+  .cat{ max-width:1100px; margin:0 auto 30px; }
+  .cat h2{ font-size:15px; color:#e8eef7; font-weight:700; letter-spacing:1px; margin:0 4px 14px; display:flex; align-items:center; gap:10px; }
+  .cat h2 .dim{ font-size:11px; font-weight:600; color:#0c0f1a; background:#56b6ff; border-radius:6px; padding:2px 8px; letter-spacing:.5px; }
+  .cat h2 .c{ color:#5a6680; font-weight:400; font-size:13px; }
   .cat h2::after{ content:""; flex:1; height:1px; background:rgba(255,255,255,.08); }
-  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(195px,1fr)); gap:12px; }
-  a.card{ text-decoration:none; color:inherit; position:relative; overflow:hidden; border-radius:13px; padding:15px; min-height:98px; display:flex; flex-direction:column; justify-content:flex-end; border:1px solid rgba(255,255,255,.08); transition:.22s; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:13px; }
+  a.card,.card{ text-decoration:none; color:inherit; position:relative; overflow:hidden; border-radius:14px; padding:16px; min-height:106px; display:flex; flex-direction:column; justify-content:flex-end; border:1px solid rgba(255,255,255,.08); transition:.22s; }
   a.card:hover{ transform:translateY(-4px); border-color:rgba(255,255,255,.28); box-shadow:0 16px 36px rgba(0,0,0,.5); }
-  .card .emoji{ font-size:22px; position:absolute; top:13px; left:15px; }
-  .card h3{ font-size:14px; font-weight:700; padding-right:24px; }
-  /* 收藏星标 */
-  .fav{ position:absolute; top:7px; right:8px; font-size:18px; line-height:1; color:#454c63; cursor:pointer; padding:4px 6px; border-radius:9px; z-index:3; transition:.15s; }
-  .fav:hover{ color:#ffd166; background:rgba(255,255,255,.08); transform:scale(1.15); }
-  .fav.on{ color:#ffd166; text-shadow:0 0 10px rgba(255,209,102,.5); }
-  .c-time{ background:radial-gradient(ellipse at top right,#1b3a6b,#0a1428); }
-  .c-decide{ background:radial-gradient(ellipse at top right,#3a2a5e,#160f28); }
-  .c-word{ background:radial-gradient(ellipse at top right,#5e4a1f,#281f0f); }
-  .c-tool{ background:radial-gradient(ellipse at top right,#0f3330,#0a1414); }
-  .c-visual{ background:radial-gradient(ellipse at top right,#5e2a48,#280f1f); }
-  .c-game{ background:radial-gradient(ellipse at top right,#2a4a2f,#101f14); }
-  .c-heal{ background:radial-gradient(ellipse at top right,#3a5a35,#13301a); }
-  .c-know{ background:radial-gradient(ellipse at top right,#1f4a5e,#0f2128); }
-  .empty{ text-align:center; color:#5a6680; font-size:14px; padding:70px 16px; line-height:2; }
-  footer{ max-width:980px; margin:34px auto 0; color:#5a6680; font-size:12px; text-align:center; line-height:1.8; }
-  footer a{ color:#8090a8; }
+  .card .emoji{ font-size:24px; position:absolute; top:14px; left:16px; }
+  .card .badge{ position:absolute; top:14px; right:14px; font-size:10px; font-weight:700; color:#ffd166; border:1px solid rgba(255,209,102,.4); border-radius:6px; padding:2px 7px; }
+  .card h3{ font-size:15px; font-weight:700; }
+  .card .desc{ font-size:12px; color:#9aa6bd; margin-top:5px; line-height:1.5; }
+  /* 维度配色 */
+  .c-gen{ background:radial-gradient(ellipse at top right,#4a2e6b,#1c0f2e); }
+  .c-pt{ background:radial-gradient(ellipse at top right,#5e4a1f,#28200f); }
+  .c-ln{ background:radial-gradient(ellipse at top right,#1f4a5e,#0f2128); }
+  .c-fc{ background:radial-gradient(ellipse at top right,#1f3a5e,#0f1c2e); }
+  .c-sd{ background:radial-gradient(ellipse at top right,#2a4a2f,#101f14); }
+  .c-soon{ background:#11151f; border-style:dashed; cursor:default; }
+  .c-soon:hover{ transform:none; box-shadow:none; border-color:rgba(255,255,255,.12); }
+  .c-soon .emoji{ opacity:.4; }
+  .c-soon h3{ color:#69748c; }
+  footer{ max-width:1100px; margin:40px auto 0; color:#5a6680; font-size:12px; text-align:center; line-height:1.9; }
 </style>
 </head>
 <body>
-<div class="hero"><h1>小站合集</h1><p><b id="cntA">100</b> 个纯前端单文件小玩具 · 点 ☆ 收藏常玩的</p></div>
-<div class="tabs" id="tabs"></div>
+<div class="hero">
+  <h1>📐 几何之旅</h1>
+  <p>从 <b>点</b> 到 <b>线</b>，从线到 <b>面</b>，从面到 <b>立体</b> —— 拖动参数，亲眼看见每个公式怎么长出来。</p>
+</div>
+
+<div class="dimbar">
+  <span class="d">● <b>点</b> 0维</span><span class="arrow">→</span>
+  <span class="d">╱ <b>线</b> 1维</span><span class="arrow">→</span>
+  <span class="d">▦ <b>面</b> 2维</span><span class="arrow">→</span>
+  <span class="d">⬛ <b>体</b> 3维</span>
+</div>
+
 <div id="app"></div>
-<footer>全部代码在本地，收藏与数据只存在你自己的浏览器里。<br><span id="cntB">100</span> 个小玩具，慢慢玩 · <a href="https://github.com/sakuar/why">源码</a></footer>
+
+<footer>纯前端单文件教学合集 · 所有计算都在你的浏览器本地完成 · 无需安装</footer>
+
 <script>
 "use strict";
+/* 每个分区: [标题, 维度标签, 卡片类名, [ [slug, emoji, 标题, 描述, soon?] ] ] */
 var C=[
-["🌍 时间·天文","c-time",[["earth-night","🌍","此刻地球的夜晚"],["moon-phase","🌙","此刻月相"],["life-progress","⏳","生命进度条"],["sunset-countdown","🌇","日落倒计时"],["world-clock","🕐","世界时钟墙"],["birth-sky","🌟","你出生那天"],["star-age","🪐","星球年龄"],["second-counter","⏱️","你活了多少秒"],["holiday-countdown","🎉","节日倒计时"],["biorhythm","📈","生物节律"],["age-calc","📆","精确年龄"]]],
-["🎲 决策·占卜","c-decide",[["decision-maker","⚖️","一句话决定器"],["dinner-wheel","🍽️","晚饭转盘"],["magic8","🎱","神奇8号球"],["tarot","🔮","塔罗牌"],["fortune","🧧","今日运势"],["truth-dare","🎭","真心话大冒险"],["draw-lots","🎋","抽签筒"],["dice","🎲","骰子"],["spin-bottle","🍾","转瓶子"]]],
-["✍️ 文字·语言","c-word",[["zhongerbing","⚔️","中二台词机"],["emoji-translate","😀","句子转emoji"],["morse","📡","摩斯电码机"],["acrostic","📜","藏头诗"],["fake-language","👽","假语言生成器"],["caesar","🔐","凯撒密码"],["kaomoji","😸","颜文字库"],["pen-name","🖋️","笔名生成器"],["ascii-art","🔤","字符画"],["palindrome","🔄","回文大师"],["glitch-text","📺","故障文字"],["fake-book","📚","假书生成器"],["word-cloud","☁️","词云生成"]]],
-["🛠️ 工具·实用","c-tool",[["fake-work","💻","假装在工作"],["breathing","🫧","呼吸引导"],["gradient-css","🎨","渐变生成器"],["pomodoro","🍅","番茄钟"],["number-spell","💰","数字转大写"],["white-noise","🌊","白噪音"],["metronome","🎼","节拍器"],["password-gen","🔑","密码生成器"],["color-wheel","🎡","取色轮"],["unit-fun","🍌","趣味单位换算"],["word-count","📝","字数统计"],["stopwatch","⏲️","秒表计时"],["color-archaeology","🏺","颜色考古"],["bmi","🩺","健康计算器"],["tuner","🎸","调音器"],["encode","🔣","编解码玩具"],["fake-data","🎰","假数据生成"]]],
-["🎆 视觉·生成艺术","c-visual",[["fireworks","🎆","点击烟花"],["mandala","🌸","曼陀罗生成器"],["kaleidoscope","🔭","万花筒"],["pixel-draw","🖌️","像素画板"],["fractal-tree","🌳","分形树"],["starfield","✨","星空壁纸"],["cursor-trail","🌠","鼠标拖尾"],["poster","🖼️","几何海报"],["name-art","🎴","名字艺术"],["lava-lamp","🌋","熔岩灯"],["ripple","💧","水波纹"],["wireframe","🔷","3D 线框实验室"]]],
-["🕹️ 小游戏","c-game",[["game-2048","🔢","2048"],["snake","🐍","贪吃蛇"],["memory","🃏","记忆翻牌"],["reaction","⚡","反应测试"],["whack-a-mole","🔨","打地鼠"],["minesweeper","💣","扫雷"],["tictactoe","⭕","井字棋"],["breakout","🧱","打砖块"],["simon","🎵","西蒙记忆"],["puzzle15","🧩","数字华容道"],["rps","✊","石头剪刀布"],["sudoku","9️⃣","数独"],["guess-number","🎯","猜数字"],["dodge","🚀","躲陨石"],["tetris","🟦","俄罗斯方块"],["flappy","🐤","像素小鸟"],["tower-defense","🏰","手绘塔防"],["element-td","⚗️","元素反应塔防"],["dungeon","⚔️","秘境地牢"]]],
-["🌱 情绪·治愈","c-heal",[["pixel-garden","🌱","像素花园"],["praise","🌈","夸夸机"],["bubble-wrap","🫧","捏泡泡纸"],["bonfire","🏕️","虚拟篝火"],["cactus","🌵","电子仙人掌"],["mood-diary","📔","情绪日记"],["future-letter","💌","给未来的信"],["count-sheep","🐑","数羊助眠"],["gratitude","🙏","感恩日记"],["worry-burn","🔥","烦恼焚烧炉"],["zen-garden","🪨","禅意沙盘"],["rain-window","🌧️","雨窗"],["fish-tank","🐟","养鱼缸"],["jellyfish","🎐","发光水母"]]],
-["🧠 知识·好奇","c-know",[["typing-test","⌨️","打字速度测试"],["planet-weight","🪐","各星球体重"],["cold-fact","💡","随机冷知识"],["today-history","📅","历史上的今天"],["light-speed","🌌","光速旅行"],["population","👥","世界人口"],["dream-dict","💤","周公解梦"],["constellation","⭐","星座物语"],["zodiac","🐲","生肖物语"],["math-magic","🧮","数学之美"],["science","🔬","科学可视化实验室"]]]
+  ["🌌 维度生成 · 一切的起点","贯穿","c-gen",[
+    ["dimension","🌱","点动成线·线动成面·面动成体","拖一拖，看点扫出线、线扫出面、面扫出体 — 测度 = 底 × 移动距离"]
+  ]],
+  ["● 点 · 0 维","0维","c-pt",[
+    ["point-line#dist","📏","坐标与两点距离","距离 = √(Δx²+Δy²)，其实就是勾股"],
+    ["","🧭","点的运动轨迹","点怎么走出直线、圆、抛物线",1]
+  ]],
+  ["╱ 线 · 1 维","1维","c-ln",[
+    ["point-line#angle","📐","角的度量","拖一拖，看锐角/直角/钝角与度数"],
+    ["point-line#parallel","∥","平行与垂直","斜率相同则平行，乘积 −1 则垂直"],
+    ["point-line#lines","📍","线段·射线·直线","延伸一下，看三者区别"]
+  ]],
+  ["▦ 面 · 2 维 · 多边形与圆","2维","c-fc",[
+    ["area-circle","⭕","圆面积从哪来","切扇形拼成长方形 — 看面积爬向 πr²"],
+    ["area-cut#rect","◻️","长方形与正方形","面积 = 数方格 = 底×高（一切的根）"],
+    ["area-cut#para","▱","平行四边形 → 长方形","剪一刀补过去，面积不变"],
+    ["area-cut#tri","🔺","三角形 → 平行四边形","复制倒扣拼一起，取一半"],
+    ["area-cut#trap","⏢","梯形面积","½ ×(上底+下底)× 高 怎么来"],
+    ["area-cut#rhom","◇","菱形","对角线矩形的一半 = ½ d₁d₂"],
+    ["","⬡","正多边形","边数越多越接近圆",1],
+    ["","🥧","扇形 / 弓形","圆的一部分怎么算",1],
+    ["","⭕","圆环 (annulus)","大圆挖小圆 = π(R²−r²)",1]
+  ]],
+  ["🍩 旋转体 · Pappus 定理（一个公式统一四种立体）","旋转","c-gen",[
+    ["pappus#cyl","▭","矩形 → 圆柱","截面绕轴转一圈，V = A × 2πR"],
+    ["pappus#cone","◣","三角形 → 圆锥","形心到轴 r/3，自动得出 ⅓"],
+    ["pappus#sphere","◗","半圆 → 球","形心 4r/3π，转出 4⁄3πr³"],
+    ["pappus#torus","🍩","圆 → 环面 / 甜甜圈","V = 2π²Rr²"]
+  ]],
+  ["🍰 切片求和 · 曲线图形（微积分启蒙）","切片","c-gen",[
+    ["slice#ellipse","🥚","椭圆","π·a·b — 圆压扁，或切竖条累加"],
+    ["slice#para","🅿️","抛物线下面积","w³⁄3 — 外接矩形的 ⅓"],
+    ["slice#sphere","🔮","球（切片推导）","横切成一摞圆盘 → 4⁄3πr³"],
+    ["slice#cap","⛑️","球冠 · 球的部分体积","πh²(r−h⁄3)，h=2r 时回到整球"]
+  ]],
+  ["⬛ 体 · 3 维 · 立体图形","3维","c-sd",[
+    ["solid#box","📦","长方体 / 正方体","体积 = 底面积 × 高，可旋转看"],
+    ["solid#cyl","🥫","圆柱","底面圆 × 高 = πr²h，侧面展开"],
+    ["solid#cone","🍦","圆锥","同底等高圆柱的 ⅓"],
+    ["solid#sphere","🔮","球","体积 4⁄3 πr³，表面积 4πr²"],
+    ["","🧊","棱柱 / 棱锥","直柱与尖锥，锥是柱的 1/3",1],
+    ["","🪣","圆台 / 棱台 (frustum)","锥被切去尖顶剩下的一截",1],
+    ["","💎","多面体 · 欧拉公式","顶点 − 棱 + 面 = 2",1]
+  ]],
+  ["📈 坐标 · 函数","坐标","c-fc",[
+    ["math-edu","📐","公式课堂","一次/二次函数·勾股·圆 — 拖滑块看图形变化"]
+  ]]
 ];
 
-var FAVKEY="why_favs", TABKEY="why_tab", SCRKEY="why_scroll";
-var favset;
-try{ favset=new Set(JSON.parse(localStorage.getItem(FAVKEY)||"[]")); }catch(e){ favset=new Set(); }
-function saveFav(){ try{ localStorage.setItem(FAVKEY,JSON.stringify(Array.from(favset))); }catch(e){} }
-
-// 扁平索引：收藏 tab 用
-var FLAT=[];
-for(var fi=0;fi<C.length;fi++){ for(var fj=0;fj<C[fi][2].length;fj++){ var t=C[fi][2][fj]; FLAT.push({slug:t[0],emoji:t[1],title:t[2],cls:C[fi][1]}); } }
-
-function cardHTML(it){
-  var on=favset.has(it.slug);
-  return '<a class="card '+it.cls+'" href="'+it.slug+'.html">'+
-    '<span class="fav'+(on?' on':'')+'" data-slug="'+it.slug+'" role="button" aria-label="收藏" title="收藏">'+(on?'★':'☆')+'</span>'+
-    '<span class="emoji">'+it.emoji+'</span><h3>'+it.title+'</h3></a>';
-}
-function renderSections(idxList){
-  var h="";
-  for(var x=0;x<idxList.length;x++){ var c=C[idxList[x]];
-    h+='<section class="cat"><h2>'+c[0]+' <span class="c">('+c[2].length+')</span></h2><div class="grid">';
-    for(var y=0;y<c[2].length;y++){ var it=c[2][y]; h+=cardHTML({slug:it[0],emoji:it[1],title:it[2],cls:c[1]}); }
-    h+='</div></section>';
+var app=document.getElementById("app");
+function card(t,cls){
+  var soon=t[4];
+  if(soon){
+    return '<div class="card c-soon">'+
+      '<span class="emoji">'+t[1]+'</span><span class="badge">敬请期待</span>'+
+      '<h3>'+t[2]+'</h3><div class="desc">'+t[3]+'</div></div>';
   }
-  return h;
+  var hi=t[0].indexOf("#"), href=hi>=0?t[0].slice(0,hi)+".html#"+t[0].slice(hi+1):t[0]+".html";
+  return '<a class="card '+cls+'" href="'+href+'">'+
+    '<span class="emoji">'+t[1]+'</span>'+
+    '<h3>'+t[2]+'</h3><div class="desc">'+t[3]+'</div></a>';
 }
-function renderFav(){
-  var favs=FLAT.filter(function(f){ return favset.has(f.slug); });
-  if(!favs.length) return '<div class="empty">还没有收藏 ☆<br>点任意卡片右上角的星星，把常玩的小站收藏到这里</div>';
-  var h='<section class="cat"><div class="grid">';
-  for(var x=0;x<favs.length;x++) h+=cardHTML(favs[x]);
-  return h+'</div></section>';
+var h="";
+for(var i=0;i<C.length;i++){ var c=C[i];
+  var done=0; for(var z=0;z<c[3].length;z++) if(!c[3][z][4]) done++;
+  h+='<section class="cat"><h2><span class="dim">'+c[1]+'</span>'+c[0]+
+     ' <span class="c">'+done+'/'+c[3].length+'</span></h2><div class="grid">';
+  for(var j=0;j<c[3].length;j++) h+=card(c[3][j],c[2]);
+  h+='</div></section>';
 }
-
-// 动态计数文案（以后加站不用改这里）
-(function(){var n=FLAT.length,a=document.getElementById("cntA"),b=document.getElementById("cntB");if(a)a.textContent=n;if(b)b.textContent=n;document.title="小站合集 · "+n+" 个小玩具";})();
-
-var curTab, app=document.getElementById("app"), tabsEl=document.getElementById("tabs");
-function render(tab){
-  curTab=tab;
-  if(tab==="fav") app.innerHTML=renderFav();
-  else if(tab==="all"){ var all=[]; for(var i=0;i<C.length;i++) all.push(i); app.innerHTML=renderSections(all); }
-  else { app.innerHTML=renderSections([parseInt(tab.slice(1),10)]); }
-  var ts=tabsEl.children;
-  for(var k=0;k<ts.length;k++) ts[k].className="tab"+(ts[k].getAttribute("data-tab")===tab?" on":"");
-  try{ sessionStorage.setItem(TABKEY,tab); }catch(e){}
-}
-
-// 构建 tab
-var defs=[["fav",'⭐ 收藏'],["all","全部"]];
-for(var di=0;di<C.length;di++) defs.push(["c"+di, C[di][0]]);
-var th="";
-for(var dj=0;dj<defs.length;dj++){
-  var extra = defs[dj][0]==="fav" ? ' <span class="n" id="favn"></span>' : '';
-  th+='<div class="tab" data-tab="'+defs[dj][0]+'">'+defs[dj][1]+extra+'</div>';
-}
-tabsEl.innerHTML=th;
-function updFavN(){ var el=document.getElementById("favn"); if(el) el.textContent=favset.size? "("+favset.size+")":""; }
-
-tabsEl.addEventListener("click",function(e){
-  var t=e.target.closest? e.target.closest(".tab") : null;
-  if(t){ window.scrollTo(0,0); render(t.getAttribute("data-tab")); }
-});
-
-// 收藏切换 + 跳转前记录位置
-app.addEventListener("click",function(e){
-  var f=e.target.closest? e.target.closest(".fav") : null;
-  if(f){
-    e.preventDefault(); e.stopPropagation();
-    var slug=f.getAttribute("data-slug");
-    if(favset.has(slug)) favset.delete(slug); else favset.add(slug);
-    saveFav(); updFavN();
-    if(curTab==="fav"){ render("fav"); }
-    else { var on=favset.has(slug); f.className="fav"+(on?" on":""); f.textContent=on?"★":"☆"; }
-    return;
-  }
-  var a=e.target.closest? e.target.closest("a.card") : null;
-  if(a){ try{ sessionStorage.setItem(SCRKEY,String(window.scrollY)); sessionStorage.setItem(TABKEY,curTab); }catch(e2){} }
-});
-
-// 初始化：恢复上次 tab + 滚动位置（从子站返回时体感连续）
-var valid={fav:1,all:1};
-for(var vi=0;vi<C.length;vi++) valid["c"+vi]=1;
-var start="all";
-try{ var s=sessionStorage.getItem(TABKEY); if(s&&valid[s]) start=s; }catch(e){}
-updFavN();
-render(start);
-try{ var sy=parseInt(sessionStorage.getItem(SCRKEY)||"0",10); if(sy) window.scrollTo(0,sy); }catch(e){}
+app.innerHTML=h;
 </script>
 </body>
 </html>

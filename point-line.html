@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>点与线 · 距离 · 角 · 平行垂直</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;
+    background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+  .chips{display:flex;gap:8px;margin:4px 0 12px;flex-wrap:wrap;}
+  .chip{flex:1;min-width:96px;display:flex;align-items:center;gap:7px;justify-content:center;
+    font-size:13px;padding:11px 8px;border-radius:11px;background:#0e1322;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.14s;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);
+    border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:16px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .slider{margin-bottom:14px;}.slider:last-child{margin-bottom:0;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;}
+  .slider .sl-top .nm{color:#cfd8ea;}
+  .slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:14px;}
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;margin-bottom:6px;}
+  .readout .cell .v{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.hi .v{color:#ffd166;}
+  .readout .cell.ok .v{color:#56d6a8;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .eq{font-size:18px;line-height:1.8;color:#e8eef7;font-family:"Cambria Math","Times New Roman",Georgia,serif;}
+  .card .eq sup{font-size:62%;}.card .eq .hl{color:#ffd166;font-weight:700;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;line-height:1.8;}.card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>📍 点与线 · 距离 / 角 / 平行垂直</h1>
+    <a class="back" href="index.html">← 返回</a>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="560"></canvas></div>
+    <div class="controls">
+      <div><div class="ch">参数调节</div><div id="params"></div></div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="readout">
+      <div class="cell"><div class="k" id="k0">—</div><div class="v" id="r0">—</div></div>
+      <div class="cell hi"><div class="k" id="k1">—</div><div class="v" id="r1">—</div></div>
+      <div class="cell ok"><div class="k" id="k2">—</div><div class="v" id="r2">—</div></div>
+    </div>
+    <div class="card"><div class="ttl" id="eqt">公式</div><div class="eq" id="eq"></div></div>
+    <div class="card"><div class="ttl">怎么理解</div><div class="nt" id="note"></div></div>
+  </div>
+  <footer>点没有大小 · 线是点的轨迹 · 角是两条射线的张开 —— 纯前端单文件教学</footer>
+</div>
+
+<script>
+"use strict";
+var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=560;
+var View={xmin:-8,xmax:8,ymin:-5,ymax:5};
+function fit(){
+  var st=document.getElementById("stage");
+  var cw=st.clientWidth||900; W=cw; H=Math.round(cw*0.62); if(H<320)H=320;
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  var asp=W/H; View.xmin=-8;View.xmax=8;View.ymin=-8/asp;View.ymax=8/asp;
+}
+function PX(x){return (x-View.xmin)/(View.xmax-View.xmin)*W;}
+function PY(y){return (View.ymax-y)/(View.ymax-View.ymin)*H;}
+function grid(){
+  ctx.strokeStyle="rgba(120,140,180,.10)";ctx.lineWidth=1;ctx.beginPath();
+  for(var x=Math.ceil(View.xmin);x<=View.xmax;x++){ctx.moveTo(PX(x),0);ctx.lineTo(PX(x),H);}
+  for(var y=Math.ceil(View.ymin);y<=View.ymax;y++){ctx.moveTo(0,PY(y));ctx.lineTo(W,PY(y));}
+  ctx.stroke();
+  ctx.strokeStyle="rgba(150,170,210,.45)";ctx.lineWidth=1.3;ctx.beginPath();
+  ctx.moveTo(0,PY(0));ctx.lineTo(W,PY(0));ctx.moveTo(PX(0),0);ctx.lineTo(PX(0),H);ctx.stroke();
+}
+function dot(x,y,col,label,dx,dy){
+  ctx.fillStyle=col;ctx.beginPath();ctx.arc(PX(x),PY(y),5.5,0,7);ctx.fill();
+  ctx.strokeStyle="rgba(0,0,0,.5)";ctx.lineWidth=1;ctx.stroke();
+  if(label){ctx.fillStyle=col;ctx.font="bold 13px system-ui";ctx.textAlign="left";ctx.textBaseline="middle";
+    ctx.fillText(label,PX(x)+(dx||8),PY(y)+(dy||-10));}
+}
+function seg(x1,y1,x2,y2,col,w,dash){ctx.strokeStyle=col;ctx.lineWidth=w||2;ctx.setLineDash(dash||[]);
+  ctx.beginPath();ctx.moveTo(PX(x1),PY(y1));ctx.lineTo(PX(x2),PY(y2));ctx.stroke();ctx.setLineDash([]);}
+function lineInf(x0,y0,k,col,w,dash){ // 过点(x0,y0)斜率k的整条直线
+  var y1=k*(View.xmin-x0)+y0, y2=k*(View.xmax-x0)+y0;
+  seg(View.xmin,y1,View.xmax,y2,col,w,dash);
+}
+var BL="#56b6ff",GR="#56d6a8",YE="#ffd166",PU="#b98cff",RD="#ff8aa0";
+var idx=0,P={};
+
+var CONCEPTS=[
+{ id:"dist", emoji:"📏", name:"两点距离",
+  params:[{k:"ax",label:"A 的 x",min:-7,max:7,step:1,def:-3},{k:"ay",label:"A 的 y",min:-4,max:4,step:1,def:-2},
+          {k:"bx",label:"B 的 x",min:-7,max:7,step:1,def:3},{k:"by",label:"B 的 y",min:-4,max:4,step:1,def:2}],
+  read:function(){return ["Δx",(P.bx-P.ax).toFixed(0),"Δy",(P.by-P.ay).toFixed(0)];},
+  eqt:"距离公式",
+  eq:function(){var dx=P.bx-P.ax,dy=P.by-P.ay,d=Math.sqrt(dx*dx+dy*dy);
+    return 'd = √(Δx² + Δy²) = √('+(dx*dx).toFixed(0)+'+'+(dy*dy).toFixed(0)+') = <span class="hl">'+d.toFixed(3)+'</span>';},
+  hint:"两点间距离，就是以 Δx、Δy 为直角边的斜边。",
+  note:'把两点的<b>横向差 Δx</b> 和 <b>纵向差 Δy</b> 当作直角三角形的两条直角边，连接两点的线段正好是<b>斜边</b>。所以距离公式 d = √(Δx²+Δy²) 其实就是<b>勾股定理</b>。',
+  metric:function(){var dx=P.bx-P.ax,dy=P.by-P.ay;return Math.sqrt(dx*dx+dy*dy);},
+  draw:function(){
+    grid();
+    // 直角三角形
+    seg(P.ax,P.ay,P.bx,P.ay,GR,2,[5,4]);
+    seg(P.bx,P.ay,P.bx,P.by,GR,2,[5,4]);
+    seg(P.ax,P.ay,P.bx,P.by,YE,3);
+    ctx.fillStyle=GR;ctx.font="bold 12px system-ui";ctx.textAlign="center";ctx.textBaseline="top";
+    ctx.fillText("Δx="+(P.bx-P.ax),PX((P.ax+P.bx)/2),PY(P.ay)+6);
+    ctx.textAlign="left";ctx.textBaseline="middle";
+    ctx.fillText("Δy="+(P.by-P.ay),PX(P.bx)+6,PY((P.ay+P.by)/2));
+    dot(P.ax,P.ay,BL,"A("+P.ax+","+P.ay+")");
+    dot(P.bx,P.by,PU,"B("+P.bx+","+P.by+")");
+    var dx=P.bx-P.ax,dy=P.by-P.ay;
+    ctx.fillStyle=YE;ctx.textAlign="center";ctx.textBaseline="bottom";
+    ctx.fillText("d="+Math.sqrt(dx*dx+dy*dy).toFixed(2),PX((P.ax+P.bx)/2),PY((P.ay+P.by)/2)-6);
+  }
+},
+{ id:"angle", emoji:"📐", name:"角的度量",
+  params:[{k:"deg",label:"角度 °",min:0,max:360,step:1,def:60}],
+  read:function(){var d=P.deg;var t=d<90?"锐角":d===90?"直角":d<180?"钝角":d===180?"平角":d<360?"优角":"周角";return ["度数",d.toFixed(0)+"°","类型",t];},
+  eqt:"角的分类",
+  eq:function(){return '当前 <span class="hl">'+P.deg.toFixed(0)+'°</span>　·　锐角(&lt;90) · 直角(=90) · 钝角(90~180) · 平角(=180) · 周角(=360)';},
+  hint:"拖动角度，看角从锐角长到直角、钝角、平角。",
+  note:'角是<b>两条射线</b>从同一点张开的程度，用<b>度</b>来量。一圈 = 360°。直角 = 90°（图中转角处的小方块），平角 = 180°（拉成一条直线），周角 = 360°（转回原处）。',
+  metric:function(){return P.deg;},
+  draw:function(){
+    grid();
+    var cx=0,cy=0,L=4.2, rad=P.deg*Math.PI/180;
+    // 角弧
+    ctx.strokeStyle="rgba(255,209,102,.5)";ctx.lineWidth=2;ctx.beginPath();
+    ctx.arc(PX(0),PY(0),Math.min(PX(1.4)-PX(0),60),0,-rad,true);ctx.stroke();
+    // 直角小方块
+    if(Math.abs(P.deg-90)<0.5){var s=0.5;seg(s,0,s,s,YE,1.6);seg(0,s,s,s,YE,1.6);}
+    seg(cx,cy,cx+L,cy,BL,3);                                  // 基准边
+    seg(cx,cy,cx+L*Math.cos(rad),cy+L*Math.sin(rad),PU,3);    // 旋转边
+    // 箭头点
+    dot(cx+L,cy,BL,null);dot(cx+L*Math.cos(rad),cy+L*Math.sin(rad),PU,null);
+    dot(0,0,YE,null);
+    ctx.fillStyle=YE;ctx.font="bold 16px system-ui";ctx.textAlign="left";ctx.textBaseline="middle";
+    ctx.fillText(P.deg.toFixed(0)+"°",PX(1.6),PY(0)-Math.min(PX(0.7)-PX(0),28));
+  }
+},
+{ id:"parallel", emoji:"∥", name:"平行与垂直",
+  params:[{k:"k1",label:"直线1 斜率 k₁",min:-3,max:3,step:0.1,def:0.5},
+          {k:"k2",label:"直线2 斜率 k₂",min:-3,max:3,step:0.1,def:-2},
+          {k:"b2",label:"直线2 截距",min:-4,max:4,step:0.5,def:1}],
+  read:function(){
+    var rel=Math.abs(P.k1-P.k2)<0.06?"平行 ∥":Math.abs(P.k1*P.k2+1)<0.08?"垂直 ⊥":"相交";
+    return ["k₁·k₂",(P.k1*P.k2).toFixed(2),"关系",rel];},
+  eqt:"平行与垂直的判据",
+  eq:function(){return '平行 ⟺ k₁ = k₂　　垂直 ⟺ k₁ · k₂ = <span class="hl">−1</span>　（现在 k₁·k₂ = '+(P.k1*P.k2).toFixed(2)+'）';},
+  hint:"调两条直线的斜率：相等就平行，乘积 −1 就垂直。",
+  note:'<b>斜率</b>决定直线的倾斜方向。两条直线<b>斜率相等 → 平行</b>（永不相交）；<b>斜率乘积 = −1 → 垂直</b>（夹角 90°）。其它情况就是普通相交。',
+  metric:function(){return P.k1*P.k2;},
+  draw:function(){
+    grid();
+    lineInf(0,0,P.k1,BL,3);
+    lineInf(0,P.b2,P.k2,PU,3);
+    var rel=Math.abs(P.k1-P.k2)<0.06?"平行 ∥":Math.abs(P.k1*P.k2+1)<0.08?"垂直 ⊥":"相交";
+    ctx.fillStyle=rel==="相交"?"#9aa6bd":GR;ctx.font="bold 16px system-ui";ctx.textAlign="left";ctx.textBaseline="top";
+    ctx.fillText(rel,14,12);
+    ctx.fillStyle=BL;ctx.font="bold 12px system-ui";ctx.fillText("直线1: y = "+P.k1.toFixed(1)+"x",14,38);
+    ctx.fillStyle=PU;ctx.fillText("直线2: y = "+P.k2.toFixed(1)+"x + "+P.b2.toFixed(1),14,56);
+  }
+},
+{ id:"lines", emoji:"📍", name:"线段·射线·直线",
+  params:[{k:"ext",label:"延伸程度",min:0,max:1,step:0.01,def:0}],
+  read:function(){var e=P.ext;var t=e<0.02?"线段":e<0.99?"射线 →":"直线 ↔";return ["此刻","","形态",t];},
+  eqt:"三者的区别",
+  eq:function(){return '线段：<b style="color:#56b6ff">两端都有头</b>　·　射线：<b style="color:#56d6a8">一端无限</b>　·　直线：<b style="color:#ffd166">两端无限</b>';},
+  hint:"拖动「延伸程度」：线段 → 射线 → 直线。",
+  note:'同样过两点 A、B：<br><b>线段</b> = A 到 B 这一截，有<b>两个端点</b>、可量长度。<br><b>射线</b> = 从 A 出发、过 B 一直延伸，<b>一端无限</b>。<br><b>直线</b> = 向<b>两端无限</b>延伸，没有端点。',
+  metric:function(){return 0;},
+  draw:function(){
+    grid();
+    var ax=-2,ay=-1,bx=2,by=1.5,e=P.ext;
+    var dx=bx-ax,dy=by-ay;
+    // 线段主体
+    seg(ax,ay,bx,by,BL,4);
+    // 向 B 方向延伸（射线/直线）
+    var ex=bx+dx*8*e, ey=by+dy*8*e;
+    if(e>0.001)seg(bx,by,ex,ey,GR,3,[6,4]);
+    // 向 A 反方向延伸（仅直线，e接近1时）
+    if(e>0.99){var ex2=ax-dx*8,ey2=ay-dy*8;seg(ax,ay,ex2,ey2,YE,3,[6,4]);}
+    dot(ax,ay,BL,"A");dot(bx,by,PU,"B");
+    var t=e<0.02?"线段（两端有头）":e<0.99?"射线（一端无限延伸）":"直线（两端无限延伸）";
+    ctx.fillStyle=YE;ctx.font="bold 15px system-ui";ctx.textAlign="left";ctx.textBaseline="top";
+    ctx.fillText(t,14,12);
+  }
+}
+];
+
+function buildChips(){
+  var box=document.getElementById("chips");box.innerHTML="";
+  CONCEPTS.forEach(function(c,i){
+    var el=document.createElement("div");el.className="chip"+(i===idx?" on":"");
+    el.innerHTML='<span>'+c.emoji+'</span>'+c.name;
+    el.onclick=function(){idx=i;location.hash=c.id;load();};
+    box.appendChild(el);
+  });
+}
+function buildParams(){
+  var box=document.getElementById("params");box.innerHTML="";P={};
+  CONCEPTS[idx].params.forEach(function(pp){
+    P[pp.k]=pp.def;
+    var w=document.createElement("div");w.className="slider";
+    w.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_'+pp.k+'">'+pp.def+'</span></div>'+
+      '<input type="range" id="r_'+pp.k+'" min="'+pp.min+'" max="'+pp.max+'" step="'+pp.step+'" value="'+pp.def+'">';
+    box.appendChild(w);
+    var inp=w.querySelector("input");
+    inp.oninput=function(){P[pp.k]=parseFloat(inp.value);document.getElementById("v_"+pp.k).textContent=P[pp.k];draw();};
+  });
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  var c=CONCEPTS[idx];c.draw();
+  document.getElementById("eqt").textContent=c.eqt;
+  document.getElementById("eq").innerHTML=c.eq();
+  document.getElementById("note").innerHTML=c.note;
+  document.getElementById("hint").textContent=c.hint;
+  var r=c.read();
+  document.getElementById("k0").textContent=r[0];document.getElementById("r0").textContent=r[1];
+  document.getElementById("k1").textContent=r[2];document.getElementById("r1").textContent=r[3];
+  document.getElementById("k2").textContent="度量";document.getElementById("r2").textContent=c.metric().toFixed(2);
+}
+function load(){buildChips();buildParams();draw();}
+window.addEventListener("resize",function(){fit();draw();});
+(function(){var hs=(location.hash||"").replace("#","");for(var i=0;i<CONCEPTS.length;i++)if(CONCEPTS[i].id===hs)idx=i;})();
+fit();load();
+</script>
+</body>
+</html>

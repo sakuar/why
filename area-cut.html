@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>剪拼实验室 · 面积公式从哪来</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;
+    background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+
+  .chips{display:flex;gap:8px;margin:4px 0 12px;flex-wrap:wrap;}
+  .chip{flex:1;min-width:96px;display:flex;align-items:center;gap:7px;justify-content:center;
+    font-size:13px;padding:11px 8px;border-radius:11px;background:#0e1322;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.14s;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);
+    border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:18px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .slider{margin-bottom:15px;}.slider:last-child{margin-bottom:0;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;}
+  .slider .sl-top .nm{color:#cfd8ea;}
+  .slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .btn{font-size:14px;padding:12px 16px;border-radius:10px;background:#6c63ff;border:1px solid #6c63ff;color:#fff;font-weight:700;cursor:pointer;width:100%;}
+  .btn:hover{filter:brightness(1.08);}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:14px;}
+
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;margin-bottom:6px;}
+  .readout .cell .v{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.ok .v{color:#56d6a8;}
+  .readout .cell .u{font-size:11px;color:#5a6680;margin-top:5px;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .eq{font-size:19px;line-height:1.8;color:#e8eef7;font-family:"Cambria Math","Times New Roman",Georgia,serif;}
+  .card .eq sup{font-size:62%;}.card .eq .hl{color:#ffd166;font-weight:700;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;line-height:1.8;}.card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>✂️ 剪拼实验室 · 面积从哪来</h1>
+    <a class="back" href="index.html">← 返回</a>
+  </div>
+
+  <div class="chips" id="chips"></div>
+
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="560"></canvas></div>
+    <div class="controls">
+      <div>
+        <div class="ch">参数调节</div>
+        <div id="params"></div>
+      </div>
+      <div class="slider">
+        <div class="sl-top"><span class="nm" id="tName">剪拼程度</span><span class="val" id="vT">0%</span></div>
+        <input type="range" id="sT" min="0" max="1" step="0.01" value="0">
+      </div>
+      <button class="btn" id="bPlay">▶ 自动剪拼</button>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+
+  <div class="info">
+    <div class="readout">
+      <div class="cell"><div class="k" id="k0">—</div><div class="v" id="r0">—</div></div>
+      <div class="cell"><div class="k" id="k1">—</div><div class="v" id="r1">—</div></div>
+      <div class="cell ok"><div class="k">面积</div><div class="v" id="r2">—</div><div class="u">剪拼前后不变</div></div>
+    </div>
+    <div class="card"><div class="ttl">面积公式</div><div class="eq" id="eq"></div></div>
+    <div class="card"><div class="ttl">为什么</div><div class="nt" id="note"></div></div>
+  </div>
+
+  <footer>剪一刀 · 拼一下 · 取一半 —— 所有面积公式都从「长方形 = 底×高」长出来</footer>
+</div>
+
+<script>
+"use strict";
+var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=560,U=44,OX=450,OY=300;
+function fit(){
+  var st=document.getElementById("stage");
+  var cw=st.clientWidth||900; W=cw; H=Math.round(cw*0.62); if(H<320)H=320;
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  U=Math.min(46, W/15, H/10.5); OX=W/2; OY=H*0.55;
+}
+/* 世界坐标(数学,y上正,中心原点) -> 像素 */
+function S(p){return {x:OX+p.x*U, y:OY-p.y*U};}
+function fillW(pts,fill,stroke,w){
+  ctx.beginPath();var q=S(pts[0]);ctx.moveTo(q.x,q.y);
+  for(var i=1;i<pts.length;i++){q=S(pts[i]);ctx.lineTo(q.x,q.y);}ctx.closePath();
+  if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=w||2;ctx.stroke();}
+}
+function lineW(a,b,col,w,dash){ctx.strokeStyle=col;ctx.lineWidth=w||1.5;ctx.setLineDash(dash||[]);
+  var p=S(a),q=S(b);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();ctx.setLineDash([]);}
+function lblW(txt,p,col,size){var q=S(p);ctx.fillStyle=col;ctx.font="bold "+(size||13)+"px system-ui";
+  ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(txt,q.x,q.y);}
+function lerpPts(A,B,t){var R=[];for(var i=0;i<A.length;i++)R.push({x:A[i].x+(B[i].x-A[i].x)*t,y:A[i].y+(B[i].y-A[i].y)*t});return R;}
+function reflect(P,A,B){ // P 关于过 A,B 的直线的镜像
+  var dx=B.x-A.x,dy=B.y-A.y,dd=dx*dx+dy*dy;
+  var u=((P.x-A.x)*dx+(P.y-A.y)*dy)/dd, fx=A.x+u*dx, fy=A.y+u*dy;
+  return {x:2*fx-P.x, y:2*fy-P.y};
+}
+var BLUE="rgba(86,182,255,0.30)", BLUEs="#56b6ff", G="rgba(86,214,168,0.34)", Gs="#56d6a8",
+    P2="rgba(185,140,255,0.34)", P2s="#b98cff", DASH="rgba(255,209,102,0.30)";
+
+var T=0, idx=0, P={};
+
+var CONCEPTS=[
+{ id:"rect", emoji:"◻️", name:"长方形",
+  tName:"铺方格",
+  params:[{k:"a",label:"底 a",min:2,max:9,step:1,def:6},{k:"b",label:"高 b",min:2,max:6,step:1,def:4}],
+  read:function(){return ["底 a",P.a.toFixed(0),"高 b",P.b.toFixed(0)];},
+  eq:function(){return '面积 = 底 × 高 = '+P.a.toFixed(0)+' × '+P.b.toFixed(0)+' = <span class="hl">'+(P.a*P.b).toFixed(0)+'</span>';},
+  hint:"面积就是数它能装下多少个 1×1 的方格。",
+  note:'长方形面积 = <b>能铺进去的单位方格数</b> = 底 × 高。这是所有面积公式的<b>地基（根）</b>，其它图形都靠剪拼变回它。',
+  area:function(){return P.a*P.b;},
+  draw:function(){
+    var a=P.a,b=P.b;
+    var rect=[{x:-a/2,y:-b/2},{x:a/2,y:-b/2},{x:a/2,y:b/2},{x:-a/2,y:b/2}];
+    fillW(rect,BLUE,BLUEs,2.5);
+    // 网格 + 逐格点亮
+    var total=a*b, lit=Math.round(T*total), n=0;
+    for(var j=0;j<b;j++)for(var i=0;i<a;i++){
+      var x0=-a/2+i,y0=-b/2+j;
+      if(n<lit)fillW([{x:x0,y:y0},{x:x0+1,y:y0},{x:x0+1,y:y0+1},{x:x0,y:y0+1}],"rgba(86,214,168,0.32)",null);
+      n++;
+    }
+    for(var ii=0;ii<=a;ii++)lineW({x:-a/2+ii,y:-b/2},{x:-a/2+ii,y:b/2},"rgba(120,140,180,.25)",1);
+    for(var jj=0;jj<=b;jj++)lineW({x:-a/2,y:-b/2+jj},{x:a/2,y:-b/2+jj},"rgba(120,140,180,.25)",1);
+    lblW("已数 "+lit+" 格",{x:0,y:b/2+0.6},Gs,13);
+    lblW("a = "+a.toFixed(0),{x:0,y:-b/2-0.6},"#9aa6bd",12);
+  }
+},
+{ id:"para", emoji:"▱", name:"平行四边形",
+  tName:"切下三角形 → 补到右边",
+  params:[{k:"b",label:"底 b",min:3,max:8,step:0.5,def:6},{k:"h",label:"高 h",min:2,max:6,step:0.5,def:4},{k:"k",label:"倾斜 k",min:0.5,max:4,step:0.5,def:2.5}],
+  read:function(){return ["底 b",P.b.toFixed(1),"高 h",P.h.toFixed(1)];},
+  eq:function(){return '面积 = 底 × 高 = '+P.b.toFixed(1)+' × '+P.h.toFixed(1)+' = <span class="hl">'+(P.b*P.h).toFixed(2)+'</span>';},
+  hint:"把左边斜出来的三角形切下，平移补到右边 → 变成长方形。",
+  note:'把左边那个三角形<b>切下来、平移补到右边</b>，平行四边形就被「推正」成长方形，<b>面积一点没变</b>。所以平行四边形面积 = 底 × 高（注意高是<b>垂直</b>高，不是斜边）。',
+  area:function(){return P.b*P.h;},
+  draw:function(){
+    var b=P.b,h=P.h,k=P.k, ox=-(b+k)/2, oy=-h/2;
+    // 剩余梯形（固定）
+    var trap=[{x:ox+k,y:oy},{x:ox+b,y:oy},{x:ox+b+k,y:oy+h},{x:ox+k,y:oy+h}];
+    fillW(trap,BLUE,BLUEs,2);
+    // 左三角形：从原位平移 (+b,0)
+    var triA=[{x:ox,y:oy},{x:ox+k,y:oy},{x:ox+k,y:oy+h}];
+    var triB=[{x:ox+b,y:oy},{x:ox+b+k,y:oy},{x:ox+b+k,y:oy+h}];
+    fillW(lerpPts(triA,triB,T),G,Gs,2);
+    // 目标矩形参考
+    lineW({x:ox+k,y:oy},{x:ox+b+k,y:oy},DASH,1.4,[5,4]);
+    lineW({x:ox+b+k,y:oy},{x:ox+b+k,y:oy+h},DASH,1.4,[5,4]);
+    lblW("底 b = "+b.toFixed(1),{x:ox+k+b/2,y:oy-0.5},"#9aa6bd",12);
+    lblW("高 h",{x:ox+k-0.6,y:oy+h/2},Gs,12);
+  }
+},
+{ id:"tri", emoji:"🔺", name:"三角形",
+  tName:"复制一个 → 倒扣拼成平行四边形",
+  params:[{k:"base",label:"底 base",min:3,max:8,step:0.5,def:6},{k:"h",label:"高 h",min:2,max:6,step:0.5,def:4.5},{k:"cx",label:"顶点偏移",min:-2.5,max:2.5,step:0.5,def:1.5}],
+  read:function(){return ["底",P.base.toFixed(1),"高 h",P.h.toFixed(1)];},
+  eq:function(){return '面积 = ½ × 底 × 高 = ½ × '+P.base.toFixed(1)+' × '+P.h.toFixed(1)+' = <span class="hl">'+(0.5*P.base*P.h).toFixed(2)+'</span>';},
+  hint:"复制一个相同的三角形，旋转 180° 拼上去，正好是平行四边形。",
+  note:'复制一个<b>一模一样</b>的三角形，倒过来拼上去，就拼成一个平行四边形（底 × 高）。所以一个三角形是它的<b>一半</b> = ½ × 底 × 高。任意三角形都成立。',
+  area:function(){return 0.5*P.base*P.h;},
+  draw:function(){
+    var base=P.base,h=P.h,cx=P.cx, ox=-(base+cx)/2, oy=-h/2;
+    var A0={x:ox,y:oy},B0={x:ox+base,y:oy},C0={x:ox+cx+base/2,y:oy+h};
+    // 原三角形（固定）
+    fillW([A0,B0,C0],BLUE,BLUEs,2);
+    // 复制体：A=重合(A0,B0,C0)，B=拼接位置(B0,C0,D) D=B0+C0-A0
+    var D={x:B0.x+C0.x-A0.x,y:B0.y+C0.y-A0.y};
+    var copyA=[A0,B0,C0], copyB=[B0,C0,D];
+    fillW(lerpPts(copyA,copyB,T),P2,P2s,2);
+    if(T>0.85)lineW(A0,D,DASH,1.4,[5,4]);
+    lblW("底 = "+base.toFixed(1),{x:(A0.x+B0.x)/2,y:oy-0.5},"#9aa6bd",12);
+    lblW("高 h",{x:Math.min(A0.x,C0.x)-0.6,y:oy+h/2},Gs,12);
+  }
+},
+{ id:"trap", emoji:"⏢", name:"梯形",
+  tName:"复制一个 → 转 180° 拼成平行四边形",
+  params:[{k:"top",label:"上底 a",min:1,max:6,step:0.5,def:3},{k:"bot",label:"下底 b",min:3,max:9,step:0.5,def:7},{k:"h",label:"高 h",min:2,max:6,step:0.5,def:4}],
+  read:function(){return ["上底 a",P.top.toFixed(1),"下底 b",P.bot.toFixed(1)];},
+  eq:function(){return '面积 = ½ × (a + b) × h = ½ × '+(P.top+P.bot).toFixed(1)+' × '+P.h.toFixed(1)+' = <span class="hl">'+(0.5*(P.top+P.bot)*P.h).toFixed(2)+'</span>';},
+  hint:"复制一个梯形，旋转 180° 拼上去 → 平行四边形，底 = 上底 + 下底。",
+  note:'复制一个梯形，<b>转 180°</b> 拼到旁边，凑成一个平行四边形，它的底 = <b>上底 + 下底</b>，高不变。梯形是它的一半 = ½ ×(上底 + 下底)× 高。',
+  area:function(){return 0.5*(P.top+P.bot)*P.h;},
+  draw:function(){
+    var a=P.top,b=P.bot,h=P.h, oy=-h/2;
+    var A0={x:-b/2,y:oy},B0={x:b/2,y:oy},C0={x:a/2,y:oy+h},D0={x:-a/2,y:oy+h};
+    fillW([A0,B0,C0,D0],BLUE,BLUEs,2);
+    // 复制体绕 BC 中点旋转 180°
+    var M={x:(B0.x+C0.x)/2,y:(B0.y+C0.y)/2};
+    function rot(p){return {x:2*M.x-p.x,y:2*M.y-p.y};}
+    var copyA=[A0,B0,C0,D0], copyB=[rot(A0),rot(B0),rot(C0),rot(D0)];
+    fillW(lerpPts(copyA,copyB,T),P2,P2s,2);
+    lblW("上底 a = "+a.toFixed(1),{x:0,y:oy+h+0.5},"#9aa6bd",12);
+    lblW("下底 b = "+b.toFixed(1),{x:0,y:oy-0.55},"#9aa6bd",12);
+  }
+},
+{ id:"rhom", emoji:"◇", name:"菱形",
+  tName:"四个角转 180° → 盖满菱形",
+  params:[{k:"d1",label:"对角线 d₁",min:3,max:9,step:0.5,def:7},{k:"d2",label:"对角线 d₂",min:2,max:7,step:0.5,def:5}],
+  read:function(){return ["对角线 d₁",P.d1.toFixed(1),"对角线 d₂",P.d2.toFixed(1)];},
+  eq:function(){return '面积 = ½ × d₁ × d₂ = ½ × '+P.d1.toFixed(1)+' × '+P.d2.toFixed(1)+' = <span class="hl">'+(0.5*P.d1*P.d2).toFixed(2)+'</span>';},
+  hint:"菱形外套一个 d₁×d₂ 的矩形，四个角的三角形绕斜边中点转 180°，正好盖满菱形。",
+  note:'菱形的四个顶点正好是一个 <b>d₁×d₂ 矩形</b>各边的中点。矩形四个角上的三角形<b>各自转 180°</b>（绕斜边中点），尖角全部落到中心，正好两两拼成菱形的四个对角线三角形 —— 所以菱形是矩形的<b>一半</b> = ½ × d₁ × d₂。',
+  area:function(){return 0.5*P.d1*P.d2;},
+  draw:function(){
+    var x=P.d1/2,y=P.d2/2;
+    var L={x:-x,y:0},R={x:x,y:0},T1={x:0,y:y},B={x:0,y:-y};
+    // 外接矩形
+    lineW({x:-x,y:-y},{x:x,y:-y},DASH,1.4,[5,4]);lineW({x:x,y:-y},{x:x,y:y},DASH,1.4,[5,4]);
+    lineW({x:x,y:y},{x:-x,y:y},DASH,1.4,[5,4]);lineW({x:-x,y:y},{x:-x,y:-y},DASH,1.4,[5,4]);
+    // 菱形本体
+    fillW([L,B,R,T1],BLUE,BLUEs,2.5);
+    // 四个角三角形：corner 绕邻边翻折进内部
+    var corners=[
+      {c:{x:x,y:y},  e1:R,e2:T1},   // 右上
+      {c:{x:-x,y:y}, e1:T1,e2:L},   // 左上
+      {c:{x:-x,y:-y},e1:L,e2:B},    // 左下
+      {c:{x:x,y:-y}, e1:B,e2:R}     // 右下
+    ];
+    for(var i=0;i<corners.length;i++){
+      var cc=corners[i];
+      // 绕斜边 e1-e2 的中点旋转 180°（中心对称）：尖角落到中心 O
+      var cb={x:cc.e1.x+cc.e2.x-cc.c.x, y:cc.e1.y+cc.e2.y-cc.c.y};
+      var triA=[cc.e1,cc.c,cc.e2], triB=[cc.e1,cb,cc.e2];
+      fillW(lerpPts(triA,triB,T),"rgba(86,214,168,0.30)",Gs,1.6);
+    }
+    lblW("d₁ = "+P.d1.toFixed(1),{x:0,y:-y-0.55},"#9aa6bd",12);
+    lblW("d₂",{x:x+0.5,y:0},"#9aa6bd",12);
+  }
+}
+];
+
+/* ---- UI ---- */
+function buildChips(){
+  var box=document.getElementById("chips");box.innerHTML="";
+  CONCEPTS.forEach(function(c,i){
+    var el=document.createElement("div");el.className="chip"+(i===idx?" on":"");
+    el.innerHTML='<span>'+c.emoji+'</span>'+c.name;
+    el.onclick=function(){idx=i;location.hash=c.id;load();};
+    box.appendChild(el);
+  });
+}
+function buildParams(){
+  var box=document.getElementById("params");box.innerHTML="";P={};
+  CONCEPTS[idx].params.forEach(function(pp){
+    P[pp.k]=pp.def;
+    var w=document.createElement("div");w.className="slider";
+    w.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_'+pp.k+'">'+pp.def.toFixed(1)+'</span></div>'+
+      '<input type="range" id="r_'+pp.k+'" min="'+pp.min+'" max="'+pp.max+'" step="'+pp.step+'" value="'+pp.def+'">';
+    box.appendChild(w);
+    var inp=w.querySelector("input");
+    inp.oninput=function(){P[pp.k]=parseFloat(inp.value);document.getElementById("v_"+pp.k).textContent=P[pp.k].toFixed(1);draw();};
+  });
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  var c=CONCEPTS[idx];
+  c.draw();
+  document.getElementById("eq").innerHTML=c.eq();
+  document.getElementById("note").innerHTML=c.note;
+  document.getElementById("hint").textContent=c.hint;
+  document.getElementById("tName").textContent=c.tName;
+  var r=c.read();
+  document.getElementById("k0").textContent=r[0];document.getElementById("r0").textContent=r[1];
+  document.getElementById("k1").textContent=r[2];document.getElementById("r1").textContent=r[3];
+  document.getElementById("r2").textContent=c.area().toFixed(2);
+}
+function load(){
+  buildChips();buildParams();
+  document.getElementById("sT").value=0;T=0;document.getElementById("vT").textContent="0%";
+  draw();
+}
+document.getElementById("sT").oninput=function(){T=parseFloat(this.value);document.getElementById("vT").textContent=Math.round(T*100)+"%";draw();};
+
+var anim=null;
+function play(){
+  if(anim)cancelAnimationFrame(anim);
+  var t0=performance.now(),dur=1500,sT=document.getElementById("sT");
+  (function step(now){
+    var p=Math.min(1,(now-t0)/dur),e=p<0.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+    T=e;sT.value=T;document.getElementById("vT").textContent=Math.round(T*100)+"%";draw();
+    if(p<1)anim=requestAnimationFrame(step);else anim=null;
+  })(t0);
+}
+document.getElementById("bPlay").onclick=play;
+
+window.addEventListener("resize",function(){fit();draw();});
+// hash 直达
+(function(){var hs=(location.hash||"").replace("#","");
+  for(var i=0;i<CONCEPTS.length;i++)if(CONCEPTS[i].id===hs)idx=i;})();
+fit();load();setTimeout(play,400);
+</script>
+</body>
+</html>

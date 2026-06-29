@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>圆面积 πr² 从哪来 · 切扇形</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;
+    background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+
+  /* 上半区：左 模拟图 + 右 参数 */
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);
+    border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px 18px 20px;
+    display:flex;flex-direction:column;gap:20px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;}
+  .slider .sl-top .nm{color:#cfd8ea;}
+  .slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .btn{font-size:14px;padding:12px 16px;border-radius:10px;background:#121829;border:1px solid #232c44;color:#cdd6e8;cursor:pointer;width:100%;}
+  .btn:hover{border-color:#3a445e;}
+  .btn.primary{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+  .quick{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .chip{font-size:13px;padding:8px 13px;border-radius:20px;background:#121829;border:1px solid #232c44;color:#aab6cc;cursor:pointer;flex:1;text-align:center;min-width:60px;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:14px;}
+
+  /* 下半区：介绍 横铺 */
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;letter-spacing:.5px;margin-bottom:6px;}
+  .readout .cell .v{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.hi .v{color:#ffd166;}
+  .readout .cell.ok .v{color:#56d6a8;}
+  .readout .cell .u{font-size:11.5px;color:#5a6680;margin-top:5px;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .eq{font-size:21px;line-height:1.9;color:#e8eef7;font-family:"Cambria Math","Times New Roman",Georgia,serif;}
+  .card .eq sup{font-size:62%;}
+  .card .eq .hl{color:#ffd166;font-weight:700;}
+  .card .eq .b{color:#56b6ff;font-weight:700;}
+  .card .eq .h{color:#56d6a8;font-weight:700;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;margin-top:0;line-height:1.8;}
+  .card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>⭕ 圆面积 πr² 从哪来</h1>
+    <a class="back" href="index.html">← 返回</a>
+  </div>
+
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="560"></canvas></div>
+    <div class="controls">
+      <div>
+        <div class="ch">参数调节</div>
+        <div class="slider" style="margin-bottom:20px;">
+          <div class="sl-top"><span class="nm">切成几份 N</span><span class="val" id="vN">8</span></div>
+          <input type="range" id="sN" min="4" max="200" step="2" value="8">
+          <div class="quick">
+            <span class="chip" data-n="8">8</span>
+            <span class="chip" data-n="24">24</span>
+            <span class="chip" data-n="60">60</span>
+            <span class="chip" data-n="200">200</span>
+          </div>
+        </div>
+        <div class="slider">
+          <div class="sl-top"><span class="nm">展开程度</span><span class="val" id="vT">0%</span></div>
+          <input type="range" id="sT" min="0" max="1" step="0.01" value="0">
+        </div>
+      </div>
+      <button class="btn primary" id="bPlay">▶ 自动展开</button>
+      <div class="hint">把圆切成 N 个薄扇形，交错拼起来会越来越像一个长方形。份数越多，越接近真正的 πr²。</div>
+    </div>
+  </div>
+
+  <div class="info">
+    <div class="readout">
+      <div class="cell"><div class="k">切成几份</div><div class="v" id="rN">8</div><div class="u">份越多越准</div></div>
+      <div class="cell hi"><div class="k">长方形的底边</div><div class="v" id="rL">—</div><div class="u">在逼近 半周长 πr</div></div>
+      <div class="cell ok"><div class="k">拼出的面积</div><div class="v" id="rA">—</div><div class="u">在逼近 πr² = π</div></div>
+    </div>
+    <div class="card">
+      <div class="ttl">为什么是 πr²</div>
+      <div class="eq">S = <span class="b">底</span> × <span class="h">高</span> = <span class="b">πr</span> × <span class="h">r</span> = <span class="hl">πr<sup>2</sup></span></div>
+    </div>
+    <div class="card">
+      <div class="ttl">看懂这张图</div>
+      <div class="nt" id="note"></div>
+    </div>
+  </div>
+
+  <footer>纯前端单文件教学 · 所有计算都在你的浏览器本地完成</footer>
+</div>
+
+<script>
+"use strict";
+var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=560,RP=160;
+function fit(){
+  var st=document.getElementById("stage");
+  var cw=st.clientWidth||900; W=cw; H=Math.round(cw*0.62);
+  if(H<320)H=320;
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+  cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  RP=Math.min(180, H*0.34, W/3.3);   // 像素半径：保证展开后的长方形(宽≈πRP)放得下
+}
+var PI=Math.PI;
+var N=8, T=0;            // 份数、展开程度
+var M=8;                 // 每个扇形弧采样段数
+
+/* 构造第 i 个扇形：圆状态(A) 与 长方形状态(B) 的顶点列表，一一对应可插值 */
+function sectorPolys(i,n){
+  var dth=2*PI/n;
+  var OAx=W/2, OAy=H*0.46;
+  var s=2*RP*Math.sin(dth/2);          // 弦长(底宽)
+  var bottomLen=(n/2)*s;               // 拼成长方形的底边像素长
+  var Xb=W/2-bottomLen/2;
+  var yc=H*0.50;                        // 长方形竖直中心
+  var up=(i%2===0);
+  // --- A: 圆 ---
+  var ang0=i*dth - PI/2;               // 从顶部开始排
+  var A=[{x:OAx,y:OAy}];
+  for(var k=0;k<=M;k++){var a=ang0+(k/M)*dth; A.push({x:OAx+RP*Math.cos(a),y:OAy+RP*Math.sin(a)});}
+  // --- B: 长方形里的扇形 ---
+  var B=[], tipx, tipy, sgn;
+  if(up){var j=i/2; tipx=Xb+j*s+s/2; tipy=yc+RP/2; sgn=-1;}      // 尖在底，弧朝上
+  else  {var j2=(i-1)/2; tipx=Xb+j2*s+s; tipy=yc-RP/2; sgn=1;}    // 尖在顶，弧朝下
+  B.push({x:tipx,y:tipy});
+  for(var k2=0;k2<=M;k2++){var b=-dth/2+(k2/M)*dth;
+    B.push({x:tipx+RP*Math.sin(b), y:tipy+sgn*RP*Math.cos(b)});}
+  return {A:A,B:B,up:up};
+}
+function lerpPoly(A,B,t){
+  var P=[];for(var k=0;k<A.length;k++)P.push({x:A[k].x+(B[k].x-A[k].x)*t, y:A[k].y+(B[k].y-A[k].y)*t});return P;
+}
+function fillPoly(P,fill,stroke){
+  ctx.beginPath();ctx.moveTo(P[0].x,P[0].y);
+  for(var k=1;k<P.length;k++)ctx.lineTo(P[k].x,P[k].y);
+  ctx.closePath();
+  if(fill){ctx.fillStyle=fill;ctx.fill();}
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke();}
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  var dth=2*PI/N, s=2*RP*Math.sin(dth/2), bottomLen=(N/2)*s, Xb=W/2-bottomLen/2, yc=H*0.50;
+  // 目标长方形参考框
+  if(T>0.15){
+    ctx.setLineDash([6,5]);ctx.strokeStyle="rgba(255,209,102,"+(0.20*T)+")";ctx.lineWidth=1.4;
+    ctx.strokeRect(Xb,yc-RP/2,bottomLen,RP);ctx.setLineDash([]);
+  }
+  // 扇形
+  for(var i=0;i<N;i++){
+    var sp=sectorPolys(i,N);
+    var P=lerpPoly(sp.A,sp.B,T);
+    var col=sp.up?"rgba(86,182,255,0.55)":"rgba(185,140,255,0.55)";
+    fillPoly(P,col,"rgba(255,255,255,0.18)");
+  }
+  // 标注
+  if(T>0.55){
+    ctx.fillStyle="#ffd166";ctx.font="bold 14px system-ui";ctx.textAlign="center";ctx.textBaseline="top";
+    ctx.fillText("底 ≈ πr（半个圆周）", W/2, yc+RP/2+10);
+    ctx.save();ctx.translate(Xb-16,yc);ctx.rotate(-PI/2);
+    ctx.fillStyle="#56d6a8";ctx.textBaseline="bottom";ctx.fillText("高 = r", 0,0);ctx.restore();
+  }
+  if(T<0.45){
+    ctx.fillStyle="rgba(108,99,255,0.9)";ctx.font="bold 14px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText("半径 r", W/2+RP*0.30, H*0.46-RP*0.30);
+  }
+  updateReadout();
+}
+
+function updateReadout(){
+  // 单位圆 r=1：底 L = N·sin(π/N)，高=1，面积=L → π
+  var L=N*Math.sin(PI/N), area=L;
+  document.getElementById("rN").textContent=N;
+  document.getElementById("rL").textContent=L.toFixed(5);
+  document.getElementById("rA").textContent=area.toFixed(5);
+  var err=(PI-area)/PI*100;
+  document.getElementById("note").innerHTML=
+    '把圆切成 <b>'+N+'</b> 个扇形，交错拼起来就是一个长方形。<br>'+
+    '它的<b style="color:#56d6a8">高就是半径 r</b>，<b style="color:#56b6ff">底正好是半个圆周 πr</b>，'+
+    '所以面积 = πr × r = <b style="color:#ffd166">πr²</b>。<br><br>'+
+    '现在（取 r=1）算出的面积 = <b>'+area.toFixed(5)+'</b>，'+
+    '离真值 π = 3.14159 还差 <b>'+err.toFixed(2)+'%</b>。<br>份数越多，差距越小 —— 这就是「无限切分 → 精确」。';
+}
+
+/* 交互 */
+var sN=document.getElementById("sN"), sT=document.getElementById("sT"),
+    vN=document.getElementById("vN"), vT=document.getElementById("vT");
+sN.oninput=function(){N=parseInt(sN.value,10); vN.textContent=N; draw();};
+sT.oninput=function(){T=parseFloat(sT.value); vT.textContent=Math.round(T*100)+"%"; draw();};
+document.querySelectorAll(".chip").forEach(function(c){
+  c.onclick=function(){N=parseInt(c.getAttribute("data-n"),10);sN.value=N;vN.textContent=N;draw();};
+});
+
+/* 自动展开动画 */
+var anim=null;
+function animateTo(target){
+  if(anim)cancelAnimationFrame(anim);
+  var start=T, t0=performance.now(), dur=1400;
+  (function step(now){
+    var p=Math.min(1,(now-t0)/dur), e=p<0.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+    T=start+(target-start)*e; sT.value=T; vT.textContent=Math.round(T*100)+"%"; draw();
+    if(p<1) anim=requestAnimationFrame(step); else anim=null;
+  })(t0);
+}
+document.getElementById("bPlay").onclick=function(){
+  var open=T<0.5; animateTo(open?1:0); this.textContent=open?"◀ 复原":"▶ 自动展开";
+};
+
+window.addEventListener("resize",function(){fit();draw();});
+fit();draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>旋转体生成器 · Pappus 定理</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;
+    background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+  .chips{display:flex;gap:8px;margin:4px 0 12px;flex-wrap:wrap;}
+  .chip{flex:1;min-width:130px;display:flex;align-items:center;gap:7px;justify-content:center;
+    font-size:13px;padding:11px 8px;border-radius:11px;background:#0e1322;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.14s;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+  .chip small{opacity:.7;font-weight:400;}
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);
+    border:1px solid #1c2236;border-radius:14px;touch-action:none;cursor:grab;}
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:16px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .slider{margin-bottom:14px;}.slider:last-child{margin-bottom:0;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;}
+  .slider .sl-top .nm{color:#cfd8ea;}
+  .slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .btn{font-size:14px;padding:11px 16px;border-radius:10px;background:#6c63ff;border:1px solid #6c63ff;color:#fff;font-weight:700;cursor:pointer;width:100%;}
+  .btn:hover{filter:brightness(1.08);}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:14px;}
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;margin-bottom:6px;}
+  .readout .cell .v{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.hi .v{color:#ffd166;}
+  .readout .cell.ok .v{color:#56d6a8;}
+  .readout .cell .u{font-size:11px;color:#5a6680;margin-top:5px;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .eq{font-size:18px;line-height:1.85;color:#e8eef7;font-family:"Cambria Math","Times New Roman",Georgia,serif;}
+  .card .eq sup{font-size:62%;}.card .eq .hl{color:#ffd166;font-weight:700;}.card .eq .g{color:#56d6a8;font-weight:700;}.card .eq .p{color:#b98cff;font-weight:700;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;line-height:1.8;}.card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>🍩 旋转体生成器 · Pappus 定理</h1>
+    <a class="back" href="index.html">← 返回</a>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="560"></canvas></div>
+    <div class="controls">
+      <div><div class="ch">参数调节</div><div id="params"></div></div>
+      <div class="slider">
+        <div class="sl-top"><span class="nm">旋转角度</span><span class="val" id="vPhi">0°</span></div>
+        <input type="range" id="sPhi" min="0" max="360" step="1" value="0">
+      </div>
+      <button class="btn" id="bPlay">▶ 转一圈</button>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="readout">
+      <div class="cell"><div class="k">截面面积 A</div><div class="v" id="rA">—</div></div>
+      <div class="cell"><div class="k">形心到轴 R</div><div class="v" id="rR">—</div><div class="u">形心转一圈 = 2πR</div></div>
+      <div class="cell ok"><div class="k">体积 V</div><div class="v" id="rV">—</div><div class="u" id="rChk"></div></div>
+    </div>
+    <div class="card"><div class="ttl">Pappus 形心定理</div>
+      <div class="eq">V = <span class="g">A</span> × <span class="p">2πR</span> = 截面积 × 形心转一圈的路程</div>
+      <div class="eq" id="eq" style="margin-top:8px;font-size:16px;"></div>
+    </div>
+    <div class="card"><div class="ttl">这是什么立体</div><div class="nt" id="note"></div></div>
+  </div>
+  <footer>一个定理，统一了圆柱、圆锥、球、甜甜圈 —— 旋转体体积 = 截面积 × 形心走过的圆周长</footer>
+</div>
+
+<script>
+"use strict";
+var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=560,U=34,OX=450,OY=290;
+function fit(){
+  var st=document.getElementById("stage");
+  var cw=st.clientWidth||900; W=cw; H=Math.round(cw*0.62); if(H<320)H=320;
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  U=Math.min(38, W/16, H/12); OX=W/2; OY=H*0.52;
+}
+var PI=Math.PI, yaw=0.62, pitch=-0.40;
+function proj(x,y,z){
+  var ca=Math.cos(yaw),sa=Math.sin(yaw), x1=x*ca+z*sa, z1=-x*sa+z*ca;
+  var cb=Math.cos(pitch),sb=Math.sin(pitch), y2=y*cb-z1*sb, z2=y*sb+z1*cb;
+  return {x:OX+x1*U, y:OY-y2*U, z:z2};
+}
+function path3(pts,close,col,w,dash){
+  ctx.strokeStyle=col;ctx.lineWidth=w||1.5;ctx.setLineDash(dash||[]);
+  ctx.beginPath();var p=proj(pts[0][0],pts[0][1],pts[0][2]);ctx.moveTo(p.x,p.y);
+  for(var i=1;i<pts.length;i++){p=proj(pts[i][0],pts[i][1],pts[i][2]);ctx.lineTo(p.x,p.y);}
+  if(close)ctx.closePath();ctx.stroke();ctx.setLineDash([]);
+}
+function fill3(pts,fill){
+  ctx.beginPath();var p=proj(pts[0][0],pts[0][1],pts[0][2]);ctx.moveTo(p.x,p.y);
+  for(var i=1;i<pts.length;i++){p=proj(pts[i][0],pts[i][1],pts[i][2]);ctx.lineTo(p.x,p.y);}
+  ctx.closePath();ctx.fillStyle=fill;ctx.fill();
+}
+function dot3(x,y,z,col,r){var p=proj(x,y,z);ctx.fillStyle=col;ctx.beginPath();ctx.arc(p.x,p.y,r||4,0,7);ctx.fill();}
+function lbl3(txt,x,y,z,col){var p=proj(x,y,z);ctx.fillStyle=col;ctx.font="bold 12px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(txt,p.x,p.y);}
+// 把截面轮廓点(x离轴,y高) 绕 y 轴转角度 a → 3D
+function rev(px,py,a){return [px*Math.cos(a),py,px*Math.sin(a)];}
+
+var BL="#56b6ff",BLf="rgba(86,182,255,.10)",GR="#56d6a8",YE="#ffd166",PU="#b98cff",GRID="rgba(120,140,180,.4)";
+var idx=0,P={},phi=0;
+
+var SHAPES=[
+{ id:"cyl", emoji:"▭", name:"矩形", solid:"→ 圆柱",
+  params:[{k:"r",label:"宽（半径）",min:1.5,max:4,step:0.5,def:3},{k:"h",label:"高 h",min:2,max:6,step:0.5,def:4}],
+  outline:function(){var r=P.r,h=P.h;return [[0,-h/2],[r,-h/2],[r,h/2],[0,h/2]];},
+  A:function(){return P.r*P.h;}, R:function(){return P.r/2;},
+  eq:function(){return '= '+(P.r*P.h).toFixed(1)+' × 2π×'+(P.r/2).toFixed(2)+' = <span class="hl">'+(P.r*P.h*2*PI*(P.r/2)).toFixed(2)+'</span> = πr²h';},
+  note:'一个<b>矩形</b>贴着轴转一圈 → <b>圆柱</b>。形心在矩形中央，到轴距离 R = r/2。V = (r·h) × 2π(r/2) = <b>πr²h</b>。'
+},
+{ id:"cone", emoji:"◣", name:"直角三角形", solid:"→ 圆锥",
+  params:[{k:"r",label:"底（半径）",min:1.5,max:4,step:0.5,def:3},{k:"h",label:"高 h",min:2,max:6,step:0.5,def:5}],
+  outline:function(){var r=P.r,h=P.h;return [[0,-h/2],[r,-h/2],[0,h/2]];},
+  A:function(){return 0.5*P.r*P.h;}, R:function(){return P.r/3;},
+  eq:function(){return '= '+(0.5*P.r*P.h).toFixed(1)+' × 2π×'+(P.r/3).toFixed(2)+' = <span class="hl">'+(0.5*P.r*P.h*2*PI*(P.r/3)).toFixed(2)+'</span> = ⅓πr²h';},
+  note:'一个<b>直角三角形</b>绕一条直角边转 → <b>圆锥</b>。三角形形心到轴 R = r/3。V = (½r·h) × 2π(r/3) = <b>⅓πr²h</b>。这就是圆锥那个 ⅓ 的来历。'
+},
+{ id:"sphere", emoji:"◗", name:"半圆", solid:"→ 球",
+  params:[{k:"r",label:"半径 r",min:1.5,max:4.5,step:0.5,def:3}],
+  outline:function(){var r=P.r,pts=[],n=28;for(var i=0;i<=n;i++){var t=-PI/2+i/n*PI;pts.push([r*Math.cos(t),r*Math.sin(t)]);}return pts;},
+  A:function(){return 0.5*PI*P.r*P.r;}, R:function(){return 4*P.r/(3*PI);},
+  eq:function(){return '= '+(0.5*PI*P.r*P.r).toFixed(2)+' × 2π×'+(4*P.r/(3*PI)).toFixed(2)+' = <span class="hl">'+(0.5*PI*P.r*P.r*2*PI*(4*P.r/(3*PI))).toFixed(2)+'</span> = 4⁄3πr³';},
+  note:'一个<b>半圆</b>绕它的直径转 → <b>球</b>。半圆形心到轴 R = 4r/(3π)（不在圆心！）。V = (½πr²) × 2π·4r/(3π) = <b>4⁄3πr³</b>。'
+},
+{ id:"torus", emoji:"⬭", name:"圆（离轴）", solid:"→ 环面 / 甜甜圈",
+  params:[{k:"R",label:"圆心到轴 R",min:2,max:5,step:0.5,def:3.5},{k:"r",label:"管半径 r",min:0.5,max:2,step:0.25,def:1.25}],
+  outline:function(){var R=P.R,r=Math.min(P.r,R-0.2),pts=[],n=24;for(var i=0;i<=n;i++){var t=i/n*2*PI;pts.push([R+r*Math.cos(t),r*Math.sin(t)]);}return pts;},
+  A:function(){var r=Math.min(P.r,P.R-0.2);return PI*r*r;}, R:function(){return P.R;},
+  eq:function(){var r=Math.min(P.r,P.R-0.2);return '= '+(PI*r*r).toFixed(2)+' × 2π×'+P.R.toFixed(1)+' = <span class="hl">'+(PI*r*r*2*PI*P.R).toFixed(2)+'</span> = 2π²Rr²';},
+  note:'一个<b>不挨着轴的圆</b>绕轴转一圈 → <b>环面（甜甜圈）</b>。圆的形心就是圆心，到轴 R。V = (πr²) × 2πR = <b>2π²Rr²</b>。表面积同理 = (2πr)(2πR) = 4π²Rr。'
+}
+];
+
+function curOutline(){return SHAPES[idx].outline();}
+function yRange(o){var lo=1e9,hi=-1e9;for(var i=0;i<o.length;i++){lo=Math.min(lo,o[i][1]);hi=Math.max(hi,o[i][1]);}return [lo,hi];}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  var c=SHAPES[idx], o=curOutline(), yr=yRange(o);
+  // 轴
+  path3([[0,yr[0]-1.2,0],[0,yr[1]+1.2,0]],false,GRID,1.4,[6,5]);
+  // 曲面：经线
+  var na=Math.max(2,Math.round(phi/(2*PI)*40));
+  for(var i=0;i<o.length;i++){
+    if(o[i][0]<0.02)continue;
+    var meridian=[];for(var a=0;a<=na;a++){var ang=phi*a/na;meridian.push(rev(o[i][0],o[i][1],ang));}
+    path3(meridian,false,"rgba(86,182,255,.40)",1.1);
+  }
+  // 曲面：纬线（中间若干截面）
+  for(var k=1;k<na;k++){var ang2=phi*k/na, ring=o.map(function(pt){return rev(pt[0],pt[1],ang2);});path3(ring,false,"rgba(86,182,255,.22)",1);}
+  // 起始截面（a=0）
+  fill3(o.map(function(pt){return rev(pt[0],pt[1],0);}),"rgba(86,214,168,.16)");
+  path3(o.map(function(pt){return rev(pt[0],pt[1],0);}),true,GR,2.2);
+  // 当前截面（a=phi）
+  if(phi>0.05){
+    fill3(o.map(function(pt){return rev(pt[0],pt[1],phi);}),"rgba(185,140,255,.16)");
+    path3(o.map(function(pt){return rev(pt[0],pt[1],phi);}),true,PU,2.2);
+  }
+  // 形心 + 形心圆轨迹
+  var R=c.R(), yc=0;
+  var traj=[];for(var a2=0;a2<=na;a2++){var ang3=phi*a2/na;traj.push([R*Math.cos(ang3),yc,R*Math.sin(ang3)]);}
+  path3(traj,false,YE,1.6,[4,3]);
+  dot3(R*Math.cos(0),yc,R*Math.sin(0),GR,4.5);
+  dot3(R*Math.cos(phi),yc,R*Math.sin(phi),PU,4.5);
+  lbl3("形心",R*Math.cos(phi*0.5),yc,R*Math.sin(phi*0.5),YE);
+  updateInfo();
+}
+function updateInfo(){
+  var c=SHAPES[idx],A=c.A(),R=c.R(),V=A*2*PI*R;
+  document.getElementById("rA").textContent=A.toFixed(2);
+  document.getElementById("rR").textContent=R.toFixed(2);
+  document.getElementById("rV").textContent=V.toFixed(2);
+  document.getElementById("rChk").textContent=(phi>=2*PI-0.02?"完整一圈":Math.round(phi/PI*180)+"° 扫掠中");
+  document.getElementById("eq").innerHTML=c.eq();
+  document.getElementById("note").innerHTML=c.note;
+  document.getElementById("hint").textContent="拖「旋转角度」或点「转一圈」，看截面绕轴扫出立体。可拖动图形换视角。";
+}
+
+function buildChips(){
+  var box=document.getElementById("chips");box.innerHTML="";
+  SHAPES.forEach(function(c,i){
+    var el=document.createElement("div");el.className="chip"+(i===idx?" on":"");
+    el.innerHTML='<span>'+c.emoji+'</span>'+c.name+' <small>'+c.solid+'</small>';
+    el.onclick=function(){idx=i;location.hash=c.id;load();};
+    box.appendChild(el);
+  });
+}
+function buildParams(){
+  var box=document.getElementById("params");box.innerHTML="";P={};
+  SHAPES[idx].params.forEach(function(pp){
+    P[pp.k]=pp.def;
+    var w=document.createElement("div");w.className="slider";
+    w.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_'+pp.k+'">'+pp.def.toFixed(2)+'</span></div>'+
+      '<input type="range" id="r_'+pp.k+'" min="'+pp.min+'" max="'+pp.max+'" step="'+pp.step+'" value="'+pp.def+'">';
+    box.appendChild(w);
+    var inp=w.querySelector("input");
+    inp.oninput=function(){P[pp.k]=parseFloat(inp.value);document.getElementById("v_"+pp.k).textContent=P[pp.k].toFixed(2);draw();};
+  });
+}
+function load(){buildChips();buildParams();
+  phi=2*PI;document.getElementById("sPhi").value=360;document.getElementById("vPhi").textContent="360°";
+  draw();}
+
+document.getElementById("sPhi").oninput=function(){phi=this.value/180*PI;document.getElementById("vPhi").textContent=this.value+"°";draw();};
+
+var anim=null;
+function play(){
+  if(anim)cancelAnimationFrame(anim);
+  var t0=performance.now(),dur=2200,sPhi=document.getElementById("sPhi");
+  (function step(now){
+    var p=Math.min(1,(now-t0)/dur);phi=p*2*PI;
+    sPhi.value=Math.round(phi/PI*180);document.getElementById("vPhi").textContent=sPhi.value+"°";draw();
+    if(p<1)anim=requestAnimationFrame(step);else anim=null;
+  })(t0);
+}
+document.getElementById("bPlay").onclick=play;
+
+// 拖拽换视角
+var dragging=false,px=0,py=0;
+cv.addEventListener("pointerdown",function(e){dragging=true;px=e.clientX;py=e.clientY;cv.setPointerCapture(e.pointerId);});
+cv.addEventListener("pointermove",function(e){if(!dragging)return;yaw+=(e.clientX-px)*0.01;pitch+=(e.clientY-py)*0.01;pitch=Math.max(-1.4,Math.min(1.4,pitch));px=e.clientX;py=e.clientY;draw();});
+cv.addEventListener("pointerup",function(){dragging=false;});
+
+window.addEventListener("resize",function(){fit();draw();});
+(function(){var hs=(location.hash||"").replace("#","");for(var i=0;i<SHAPES.length;i++)if(SHAPES[i].id===hs)idx=i;})();
+fit();load();setTimeout(play,400);
+</script>
+</body>
+</html>

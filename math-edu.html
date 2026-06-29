@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>公式课堂 · 基础数学</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;min-height:100vh;overflow-x:hidden;}
+  .top{width:100%;max-width:880px;display:flex;align-items:center;justify-content:space-between;padding:12px 14px 6px;}
+  .top h1{font-size:17px;font-weight:800;letter-spacing:1px;
+    background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:5px 10px;}
+  #stage{position:relative;width:100%;max-width:880px;}
+  canvas{width:100%;display:block;background:radial-gradient(ellipse at 50% 40%,#0e1426,#06070d 80%);
+    border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+  /* 公式卡 */
+  .formula{width:100%;max-width:880px;margin:10px 0 4px;padding:13px 16px;background:#0e1322;border:1px solid #232c44;border-radius:12px;}
+  .formula .ttl{font-size:14px;font-weight:800;color:#ffd166;margin-bottom:7px;display:flex;align-items:center;gap:6px;}
+  .formula .eq{font-size:19px;line-height:1.8;color:#e8eef7;font-family:"Cambria Math","Latin Modern Math","Times New Roman",Georgia,serif;letter-spacing:.3px;overflow-x:auto;white-space:nowrap;padding-bottom:2px;}
+  .formula .eq sub,.formula .eq sup{font-size:62%;}
+  .formula .eq .hl{color:#ffd166;font-weight:700;}
+  .formula .nt{font-size:13px;color:#9aa6bd;margin-top:9px;line-height:1.7;}
+  .formula .nt b{color:#cdd6e8;}
+  .formula .live{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  /* 场景卡 */
+  .scene{width:100%;max-width:880px;margin:8px 0 4px;padding:12px 16px;background:#0d1520;border:1px solid #1d3346;border-radius:12px;}
+  .scene .sttl{font-size:13px;font-weight:800;color:#56d6a8;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+  .scene .sbody{font-size:13px;color:#9aa6bd;line-height:1.7;}
+  .scene .sbody b{color:#cdd6e8;}
+  .scene .sbody .live{color:#56d6a8;font-weight:700;font-variant-numeric:tabular-nums;}
+  .panel{width:100%;max-width:880px;padding:6px 14px 30px;}
+  .row{margin-bottom:13px;}
+  .row .lab{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:8px;}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{font-size:13px;padding:7px 12px;border-radius:20px;background:#121829;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.13s;white-space:nowrap;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;}
+  .chip .em{margin-right:4px;}
+  #params{display:grid;grid-template-columns:1fr 1fr;gap:13px 18px;}
+  @media(max-width:520px){#params{grid-template-columns:1fr;}}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px;}
+  .slider .sl-top .nm{color:#cfd8ea;}
+  .slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .selrow{display:flex;gap:7px;flex-wrap:wrap;}
+  .toggle{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#cfd8ea;cursor:pointer;user-select:none;}
+  .sw{width:38px;height:21px;border-radius:11px;background:#232c44;position:relative;transition:.15s;flex:0 0 auto;}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#8090a8;transition:.15s;}
+  .toggle.on .sw{background:#6c63ff;}
+  .toggle.on .sw::after{left:19px;background:#fff;}
+  .btn{font-size:12.5px;padding:7px 13px;border-radius:9px;background:#121829;border:1px solid #232c44;color:#aab6cc;cursor:pointer;}
+  .btn:hover{border-color:#3a445e;color:#e8eef7;}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>📐 公式课堂</h1>
+  <a class="back" href="index.html">← 返回合集</a>
+</div>
+
+<div id="stage"><canvas id="cv" width="880" height="560"></canvas></div>
+
+<div class="formula">
+  <div class="ttl" id="fTtl"></div>
+  <div class="eq" id="fEq"></div>
+  <div class="nt" id="fNt"></div>
+</div>
+
+<div class="scene">
+  <div class="sttl">🎯 生活场景</div>
+  <div class="sbody" id="fScene"></div>
+</div>
+
+<div class="panel">
+  <div class="row">
+    <div class="lab">选一个公式</div>
+    <div class="chips" id="topicChips"></div>
+  </div>
+  <div class="row" id="paramRow">
+    <div class="lab">拖动参数 · 看图形怎么变</div>
+    <div id="params"></div>
+  </div>
+  <div class="row">
+    <div class="globals" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+      <div class="toggle" id="gridTog"><span class="sw"></span><span>显示网格</span></div>
+      <button class="btn" id="btnReset">重置参数</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+function fitCanvas(){
+  var W=cv.clientWidth||880, H=W*560/880;
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  VW=W; VH=H;
+}
+var VW=880, VH=560;
+function nf(v,d){ d=(d==null?2:d); var p=Math.pow(10,d); return (Math.round(v*p)/p).toString(); }
+
+/* ====== 坐标系：数学坐标 <-> 像素 ====== */
+var View={xmin:-10,xmax:10,ymin:-7,ymax:7,pad:14};
+function setView(xmin,xmax,ymin,ymax){View.xmin=xmin;View.xmax=xmax;View.ymin=ymin;View.ymax=ymax;}
+function PX(x){var p=View.pad; return p+(x-View.xmin)/(View.xmax-View.xmin)*(VW-2*p);}
+function PY(y){var p=View.pad; return p+(View.ymax-y)/(View.ymax-View.ymin)*(VH-2*p);}
+function unit(){ // 一个数学单位对应多少像素（x方向）
+  return (VW-2*View.pad)/(View.xmax-View.xmin);
+}
+function drawGrid(showNums){
+  var g=ctx;
+  if(STATE.grid){
+    g.strokeStyle="rgba(120,140,180,0.10)";g.lineWidth=1;
+    var step=gridStep(View.xmax-View.xmin);
+    g.beginPath();
+    for(var x=Math.ceil(View.xmin/step)*step;x<=View.xmax;x+=step){var px=PX(x);g.moveTo(px,PY(View.ymax));g.lineTo(px,PY(View.ymin));}
+    var stepY=gridStep(View.ymax-View.ymin);
+    for(var y=Math.ceil(View.ymin/stepY)*stepY;y<=View.ymax;y+=stepY){var py=PY(y);g.moveTo(PX(View.xmin),py);g.lineTo(PX(View.xmax),py);}
+    g.stroke();
+  }
+  // 轴
+  g.strokeStyle="rgba(150,170,210,0.5)";g.lineWidth=1.4;
+  g.beginPath();
+  if(View.ymin<=0&&View.ymax>=0){g.moveTo(PX(View.xmin),PY(0));g.lineTo(PX(View.xmax),PY(0));}
+  if(View.xmin<=0&&View.xmax>=0){g.moveTo(PX(0),PY(View.ymin));g.lineTo(PX(0),PY(View.ymax));}
+  g.stroke();
+  // 刻度数字
+  if(showNums!==false){
+    g.fillStyle="rgba(140,155,180,0.6)";g.font="11px system-ui";g.textAlign="center";g.textBaseline="top";
+    var s=gridStep(View.xmax-View.xmin);
+    for(var xx=Math.ceil(View.xmin/s)*s;xx<=View.xmax;xx+=s){ if(Math.abs(xx)<1e-9)continue; g.fillText(nf(xx,2),PX(xx),PY(0)+4);}
+    g.textAlign="right";g.textBaseline="middle";
+    var sy=gridStep(View.ymax-View.ymin);
+    for(var yy=Math.ceil(View.ymin/sy)*sy;yy<=View.ymax;yy+=sy){ if(Math.abs(yy)<1e-9)continue; g.fillText(nf(yy,2),PX(0)-6,PY(yy));}
+  }
+}
+function gridStep(range){
+  var raw=range/10, mag=Math.pow(10,Math.floor(Math.log(raw)/Math.LN10)), n=raw/mag;
+  var s=(n<1.5?1:n<3.5?2:n<7.5?5:10); return s*mag;
+}
+function plot(fn,color,width){
+  var g=ctx; g.strokeStyle=color;g.lineWidth=width||2.6;g.lineJoin="round";
+  g.beginPath();var started=false;
+  for(var px=View.pad;px<=VW-View.pad;px+=1){
+    var x=View.xmin+(px-View.pad)/(VW-2*View.pad)*(View.xmax-View.xmin);
+    var y=fn(x);
+    if(!isFinite(y)){started=false;continue;}
+    var py=PY(y);
+    if(py<-2000)py=-2000; if(py>VH+2000)py=VH+2000;
+    if(!started){g.moveTo(px,py);started=true;}else g.lineTo(px,py);
+  }
+  g.stroke();
+}
+function dot(x,y,color,label,off){
+  var g=ctx,px=PX(x),py=PY(y);
+  g.fillStyle=color;g.beginPath();g.arc(px,py,4.5,0,7);g.fill();
+  g.strokeStyle="rgba(0,0,0,0.5)";g.lineWidth=1;g.stroke();
+  if(label){
+    off=off||[8,-8];
+    g.font="bold 12px system-ui";g.textAlign=off[0]<0?"right":"left";g.textBaseline="middle";
+    g.fillStyle=color;g.fillText(label,px+off[0],py+off[1]);
+  }
+}
+function segs(pts,color,width,dash){
+  var g=ctx;g.strokeStyle=color;g.lineWidth=width||1.5;g.setLineDash(dash||[]);
+  g.beginPath();g.moveTo(PX(pts[0][0]),PY(pts[0][1]));
+  for(var i=1;i<pts.length;i++)g.lineTo(PX(pts[i][0]),PY(pts[i][1]));
+  g.stroke();g.setLineDash([]);
+}
+function fillPoly(pts,fill){
+  var g=ctx;g.fillStyle=fill;g.beginPath();g.moveTo(PX(pts[0][0]),PY(pts[0][1]));
+  for(var i=1;i<pts.length;i++)g.lineTo(PX(pts[i][0]),PY(pts[i][1]));
+  g.closePath();g.fill();
+}
+
+/* ============================== 公式集 ============================== */
+var STATE={grid:true};
+var P={}; // 当前参数
+
+var TOPICS=[
+/* ---------- 1. 一次函数 ---------- */
+{
+  id:"linear", em:"📈", name:"一次函数",
+  ttl:"一次函数 y = kx + b",
+  view:[-10,10,-7,7],
+  params:[
+    {k:"k",label:"斜率 k",min:-3,max:3,step:0.1,def:0.8},
+    {k:"b",label:"截距 b",min:-6,max:6,step:0.5,def:1}
+  ],
+  eq:function(p){
+    return 'y = <span class="hl">'+nf(p.k,1)+'</span>x '+(p.b>=0?'+ ':'− ')+'<span class="hl">'+nf(Math.abs(p.b),1)+'</span>';
+  },
+  nt:function(p){
+    return '<b>k 是斜率</b>：x 每增加 1，y 就变化 '+
+      '<span class="live">'+nf(p.k,2)+'</span>。k>0 向上、k<0 向下，|k| 越大越陡。<br>'+
+      '<b>b 是截距</b>：直线穿过 y 轴的位置，当前在 <span class="live">(0, '+nf(p.b,2)+')</span>。';
+  },
+  scene:function(p){
+    var base=p.b, rate=p.k;
+    return '打车：起步价 <b>'+nf(base,1)+'</b> 元，每公里 <b>'+nf(rate,2)+'</b> 元。'+
+      '坐 <b>6</b> 公里要付 <span class="live">'+nf(base+rate*6,2)+'</span> 元 —— 这就是把 x=6 代入公式。';
+  },
+  draw:function(p){
+    drawGrid();
+    plot(function(x){return p.k*x+p.b;},"#56b6ff",3);
+    // 与坐标轴交点
+    dot(0,p.b,"#ffd166","b="+nf(p.b,1),[10,-10]);
+    if(Math.abs(p.k)>1e-6){var xr=-p.b/p.k; if(xr>=View.xmin&&xr<=View.xmax)dot(xr,0,"#56d6a8","x轴: "+nf(xr,2),[8,14]);}
+    // 斜率三角形（在 x=1..2 处示意）
+    var x0=1,x1=2,y0=p.k*x0+p.b,y1=p.k*x1+p.b;
+    segs([[x0,y0],[x1,y0],[x1,y1]],"rgba(255,209,102,0.7)",1.6,[5,4]);
+    ctx.fillStyle="#ffd166";ctx.font="11px system-ui";ctx.textAlign="center";
+    ctx.fillText("Δx=1",PX(1.5),PY(y0)+(p.k>=0?14:-6));
+    ctx.textAlign="left";ctx.fillText("Δy="+nf(p.k,1),PX(x1)+5,PY((y0+y1)/2));
+  }
+},
+/* ---------- 2. 二次函数 ---------- */
+{
+  id:"quad", em:"🏔️", name:"二次函数",
+  ttl:"二次函数 y = ax² + bx + c",
+  view:[-9,9,-6,9],
+  params:[
+    {k:"a",label:"开口 a",min:-2,max:2,step:0.1,def:0.5},
+    {k:"b",label:"b",min:-6,max:6,step:0.5,def:-1},
+    {k:"c",label:"c",min:-5,max:5,step:0.5,def:-2}
+  ],
+  eq:function(p){
+    var b=p.b,c=p.c;
+    return 'y = <span class="hl">'+nf(p.a,1)+'</span>x² '+(b>=0?'+ ':'− ')+nf(Math.abs(b),1)+'x '+(c>=0?'+ ':'− ')+nf(Math.abs(c),1);
+  },
+  nt:function(p){
+    var a=p.a,b=p.b,c=p.c,disc=b*b-4*a*c;
+    var vx=Math.abs(a)<1e-6?0:-b/(2*a), vy=a*vx*vx+b*vx+c;
+    var rootTxt = disc>0?'有 <b>2</b> 个实根':disc===0?'有 <b>1</b> 个实根':'<b>无</b>实根';
+    return '<b>a 控制开口</b>：a>0 开口朝上、a<0 朝下，|a| 越大越窄。<br>'+
+      '<b>顶点</b>在 x=−b/2a = <span class="live">('+nf(vx,2)+', '+nf(vy,2)+')</span>。<br>'+
+      '<b>判别式</b> Δ = b²−4ac = <span class="live">'+nf(disc,2)+'</span> → 与 x 轴 '+rootTxt+'。';
+  },
+  scene:function(p){
+    return '抛球 / 喷泉的轨迹就是抛物线：a<0 时开口朝下，顶点就是<b>最高点</b>。'+
+      '当前最高点高度 <span class="live">'+(function(){var a=p.a,b=p.b,c=p.c,vx=-b/(2*a);return nf(a*vx*vx+b*vx+c,2);})()+'</span>。';
+  },
+  draw:function(p){
+    drawGrid();
+    var a=p.a,b=p.b,c=p.c;
+    plot(function(x){return a*x*x+b*x+c;},"#b98cff",3);
+    if(Math.abs(a)>1e-6){
+      var vx=-b/(2*a),vy=a*vx*vx+b*vx+c;
+      // 对称轴
+      segs([[vx,View.ymin],[vx,View.ymax]],"rgba(255,209,102,0.35)",1.4,[6,5]);
+      dot(vx,vy,"#ffd166","顶点",[10,vy>0?16:-12]);
+      // 根
+      var disc=b*b-4*a*c;
+      if(disc>=0){var r1=(-b-Math.sqrt(disc))/(2*a),r2=(-b+Math.sqrt(disc))/(2*a);
+        dot(r1,0,"#56d6a8",null);if(Math.abs(r2-r1)>1e-6)dot(r2,0,"#56d6a8",null);}
+    }
+    dot(0,c,"#56b6ff","c="+nf(c,1),[10,-10]);
+  }
+},
+/* ---------- 3. 勾股定理 ---------- */
+{
+  id:"pyth", em:"📐", name:"勾股定理",
+  ttl:"勾股定理 a² + b² = c²",
+  view:[-2,12,-2,10],
+  params:[
+    {k:"a",label:"直角边 a",min:1,max:7,step:0.5,def:3},
+    {k:"b",label:"直角边 b",min:1,max:7,step:0.5,def:4}
+  ],
+  eq:function(p){
+    var c=Math.sqrt(p.a*p.a+p.b*p.b);
+    return '<span class="hl">'+nf(p.a,1)+'</span>² + <span class="hl">'+nf(p.b,1)+'</span>² = '+
+      nf(p.a*p.a,2)+' + '+nf(p.b*p.b,2)+' = '+nf(c*c,2)+' = c²　→　c = <span class="hl">'+nf(c,3)+'</span>';
+  },
+  nt:function(p){
+    var c=Math.sqrt(p.a*p.a+p.b*p.b);
+    return '直角三角形里，<b>两条直角边的平方和 = 斜边的平方</b>。<br>'+
+      '三个正方形面积：蓝 <span class="live">'+nf(p.a*p.a,2)+'</span> + 绿 <span class="live">'+nf(p.b*p.b,2)+
+      '</span> = 紫 <span class="live">'+nf(c*c,2)+'</span>，正好相等。';
+  },
+  scene:function(p){
+    var c=Math.sqrt(p.a*p.a+p.b*p.b);
+    return '靠墙的梯子：底部离墙 <b>'+nf(p.a,1)+'</b> m，搭到墙上 <b>'+nf(p.b,1)+'</b> m 高，'+
+      '那么梯子至少要 <span class="live">'+nf(c,2)+'</span> m 长。';
+  },
+  draw:function(p){
+    drawGrid(false);
+    var a=p.a,b=p.b,c=Math.sqrt(a*a+b*b);
+    // 直角三角形：直角在原点，a 沿 x，b 沿 y
+    var A=[0,0],B=[a,0],C=[0,b];
+    // 三个正方形
+    fillPoly([[0,0],[a,0],[a,-a],[0,-a]],"rgba(86,182,255,0.16)"); // a² 下方
+    fillPoly([[0,0],[0,b],[-b,b],[-b,0]],"rgba(86,214,168,0.16)"); // b² 左侧
+    // 斜边正方形（向斜边外侧）
+    var dx=(B[0]-C[0]), dy=(B[1]-C[1]); // 斜边方向 C->B
+    var nx=dy/c, ny=-dx/c; // 法向（朝外）
+    var s1=B, s2=C, s3=[C[0]+nx*c,C[1]+ny*c], s4=[B[0]+nx*c,B[1]+ny*c];
+    fillPoly([s1,s2,s3,s4],"rgba(185,140,255,0.16)");
+    segs([s1,s2,s3,s4,s1],"#b98cff",1.6);
+    // 边
+    segs([A,B],"#56b6ff",3);
+    segs([A,C],"#56d6a8",3);
+    segs([C,B],"#b98cff",3);
+    // 直角标记
+    segs([[0.0,0.55],[0.55,0.55],[0.55,0.0]],"rgba(220,230,245,0.6)",1.4);
+    // 标签
+    ctx.font="bold 13px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillStyle="#56b6ff";ctx.fillText("a="+nf(a,1),PX(a/2),PY(0)+16);
+    ctx.fillStyle="#56d6a8";ctx.fillText("b="+nf(b,1),PX(0)-22,PY(b/2));
+    ctx.fillStyle="#b98cff";ctx.fillText("c="+nf(c,2),PX((a+0)/2+nx*0.6),PY((0+b)/2+ny*0.6));
+    ctx.fillStyle="rgba(86,182,255,0.85)";ctx.fillText("a²="+nf(a*a,1),PX(a/2),PY(-a/2));
+    ctx.fillStyle="rgba(86,214,168,0.85)";ctx.fillText("b²="+nf(b*b,1),PX(-b/2),PY(b/2));
+  }
+},
+/* ---------- 4. 圆 ---------- */
+{
+  id:"circle", em:"⭕", name:"圆·周长面积",
+  ttl:"圆：周长 C = 2πr，面积 S = πr²",
+  view:[-7,7,-5.5,5.5],
+  params:[
+    {k:"r",label:"半径 r",min:0.5,max:5,step:0.1,def:3}
+  ],
+  eq:function(p){
+    var r=p.r;
+    return 'C = 2π·<span class="hl">'+nf(r,1)+'</span> = <span class="hl">'+nf(2*Math.PI*r,2)+
+      '</span>　　S = π·'+nf(r,1)+'² = <span class="hl">'+nf(Math.PI*r*r,2)+'</span>';
+  },
+  nt:function(p){
+    var r=p.r;
+    return '<b>π ≈ 3.14159</b>，是圆周长与直径的比值，任何圆都一样。<br>'+
+      '半径翻倍 → 周长翻倍（线性），但面积变 <b>4 倍</b>（平方）。<br>'+
+      '当前：直径 d = <span class="live">'+nf(2*r,2)+'</span>，周长 <span class="live">'+nf(2*Math.PI*r,2)+
+      '</span>，面积 <span class="live">'+nf(Math.PI*r*r,2)+'</span>。';
+  },
+  scene:function(p){
+    var r=p.r;
+    return '一张半径 <b>'+nf(r,1)+'</b> 的披萨，能吃到的面积是 <span class="live">'+nf(Math.PI*r*r,1)+
+      '</span>。半径只大一点点，面积就大很多 —— 因为面积按半径的<b>平方</b>涨。';
+  },
+  draw:function(p){
+    drawGrid();
+    var r=p.r,g=ctx,cx=PX(0),cy=PY(0),rp=r*unit();
+    // 面积填充
+    g.fillStyle="rgba(108,99,255,0.14)";g.beginPath();g.arc(cx,cy,rp,0,7);g.fill();
+    // 圆周
+    g.strokeStyle="#6c63ff";g.lineWidth=3;g.beginPath();g.arc(cx,cy,rp,0,7);g.stroke();
+    // 半径
+    segs([[0,0],[r,0]],"#ffd166",2.4);
+    dot(0,0,"#e8eef7",null);
+    g.fillStyle="#ffd166";g.font="bold 13px system-ui";g.textAlign="center";g.textBaseline="bottom";
+    g.fillText("r="+nf(r,1),PX(r/2),PY(0)-6);
+    // 周长标注（弧上一点）
+    dot(r*Math.cos(0.9),r*Math.sin(0.9),"#56b6ff",null);
+    g.fillStyle="#9aa6bd";g.font="12px system-ui";g.textAlign="left";g.textBaseline="middle";
+    g.fillText("周长 C="+nf(2*Math.PI*r,2),cx+rp*0.62,cy-rp*0.72);
+  }
+}
+];
+
+/* ============================== 渲染与交互 ============================== */
+var curIdx=0;
+function curTopic(){return TOPICS[curIdx];}
+
+function buildTopicChips(){
+  var box=document.getElementById("topicChips");box.innerHTML="";
+  TOPICS.forEach(function(t,i){
+    var el=document.createElement("div");
+    el.className="chip"+(i===curIdx?" on":"");
+    el.innerHTML='<span class="em">'+t.em+'</span>'+t.name;
+    el.onclick=function(){curIdx=i;loadTopic();};
+    box.appendChild(el);
+  });
+}
+function buildParams(){
+  var box=document.getElementById("params");box.innerHTML="";P={};
+  curTopic().params.forEach(function(pp){
+    P[pp.k]=pp.def;
+    var wrap=document.createElement("div");wrap.className="slider";
+    wrap.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_'+pp.k+'">'+nf(pp.def,2)+'</span></div>'+
+      '<input type="range" id="r_'+pp.k+'" min="'+pp.min+'" max="'+pp.max+'" step="'+pp.step+'" value="'+pp.def+'">';
+    box.appendChild(wrap);
+    var inp=wrap.querySelector("input");
+    inp.oninput=function(){P[pp.k]=parseFloat(inp.value);document.getElementById("v_"+pp.k).textContent=nf(P[pp.k],2);render();};
+  });
+}
+function loadTopic(){
+  buildTopicChips();
+  var t=curTopic();
+  if(t.view)setView(t.view[0],t.view[1],t.view[2],t.view[3]);
+  buildParams();
+  render();
+}
+function render(){
+  ctx.clearRect(0,0,VW,VH);
+  var t=curTopic();
+  t.draw(P);
+  document.getElementById("fTtl").innerHTML=t.em+" "+t.ttl;
+  document.getElementById("fEq").innerHTML=t.eq(P);
+  document.getElementById("fNt").innerHTML=t.nt(P);
+  document.getElementById("fScene").innerHTML=t.scene(P);
+}
+
+document.getElementById("btnReset").onclick=function(){buildParams();render();};
+var gridTog=document.getElementById("gridTog");
+gridTog.classList.toggle("on",STATE.grid);
+gridTog.onclick=function(){STATE.grid=!STATE.grid;gridTog.classList.toggle("on",STATE.grid);render();};
+
+window.addEventListener("resize",function(){fitCanvas();render();});
+fitCanvas();
+loadTopic();
+</script>
+</body>
+</html>

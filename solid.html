@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>立体图形 · 体积从哪来</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;
+    background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+  .chips{display:flex;gap:8px;margin:4px 0 12px;flex-wrap:wrap;}
+  .chip{flex:1;min-width:96px;display:flex;align-items:center;gap:7px;justify-content:center;
+    font-size:13px;padding:11px 8px;border-radius:11px;background:#0e1322;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.14s;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);
+    border:1px solid #1c2236;border-radius:14px;touch-action:none;cursor:grab;}
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:16px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .slider{margin-bottom:15px;}.slider:last-child{margin-bottom:0;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;}
+  .slider .sl-top .nm{color:#cfd8ea;}
+  .slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .btn{font-size:14px;padding:11px 16px;border-radius:10px;background:#121829;border:1px solid #232c44;color:#cdd6e8;cursor:pointer;width:100%;}
+  .btn:hover{border-color:#3a445e;}
+  .btn.on{background:#6c63ff;border-color:#6c63ff;color:#fff;}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:14px;}
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;margin-bottom:6px;}
+  .readout .cell .v{font-size:23px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.hi .v{color:#ffd166;}
+  .readout .cell.ok .v{color:#56d6a8;}
+  .readout .cell .u{font-size:11px;color:#5a6680;margin-top:5px;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .eq{font-size:18px;line-height:1.8;color:#e8eef7;font-family:"Cambria Math","Times New Roman",Georgia,serif;}
+  .card .eq sup{font-size:62%;}.card .eq .hl{color:#ffd166;font-weight:700;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;line-height:1.8;}.card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>🧊 立体图形 · 体积从哪来</h1>
+    <a class="back" href="index.html">← 返回</a>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="560"></canvas></div>
+    <div class="controls">
+      <div><div class="ch">参数调节</div><div id="params"></div></div>
+      <button class="btn on" id="bRot">⏸ 暂停旋转</button>
+      <div class="hint">拖动图形可手动旋转。</div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="readout">
+      <div class="cell"><div class="k" id="k0">尺寸</div><div class="v" id="r0">—</div></div>
+      <div class="cell hi"><div class="k">体积 V</div><div class="v" id="r1">—</div></div>
+      <div class="cell ok"><div class="k">表面积 S</div><div class="v" id="r2">—</div></div>
+    </div>
+    <div class="card"><div class="ttl">体积公式</div><div class="eq" id="eq"></div></div>
+    <div class="card"><div class="ttl">从哪来</div><div class="nt" id="note"></div></div>
+  </div>
+  <footer>立体的体积 = 底面积 × 高（柱），尖的（锥）再乘 ⅓ —— 纯前端单文件教学</footer>
+</div>
+
+<script>
+"use strict";
+var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=560,U=34,OX=450,OY=290;
+function fit(){
+  var st=document.getElementById("stage");
+  var cw=st.clientWidth||900; W=cw; H=Math.round(cw*0.62); if(H<320)H=320;
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  U=Math.min(36, W/18, H/13); OX=W/2; OY=H*0.52;
+}
+var PI=Math.PI, yaw=0.6, pitch=-0.42;
+function proj(x,y,z){
+  var ca=Math.cos(yaw),sa=Math.sin(yaw), x1=x*ca+z*sa, z1=-x*sa+z*ca;
+  var cb=Math.cos(pitch),sb=Math.sin(pitch), y2=y*cb-z1*sb, z2=y*sb+z1*cb;
+  return {x:OX+x1*U, y:OY-y2*U, z:z2};
+}
+function path(pts3,close,col,w){
+  ctx.strokeStyle=col;ctx.lineWidth=w||1.6;ctx.beginPath();
+  var p=proj(pts3[0][0],pts3[0][1],pts3[0][2]);ctx.moveTo(p.x,p.y);
+  for(var i=1;i<pts3.length;i++){p=proj(pts3[i][0],pts3[i][1],pts3[i][2]);ctx.lineTo(p.x,p.y);}
+  if(close)ctx.closePath();ctx.stroke();
+}
+function faceFill(pts3,fill){
+  ctx.beginPath();var p=proj(pts3[0][0],pts3[0][1],pts3[0][2]);ctx.moveTo(p.x,p.y);
+  for(var i=1;i<pts3.length;i++){p=proj(pts3[i][0],pts3[i][1],pts3[i][2]);ctx.lineTo(p.x,p.y);}
+  ctx.closePath();ctx.fillStyle=fill;ctx.fill();
+}
+function circle3(cy,r,n){var a=[];for(var i=0;i<=n;i++){var t=i/n*2*PI;a.push([r*Math.cos(t),cy,r*Math.sin(t)]);}return a;}
+function lbl3(txt,x,y,z,col){var p=proj(x,y,z);ctx.fillStyle=col;ctx.font="bold 13px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(txt,p.x,p.y);}
+
+var BL="#56b6ff", GR="#56d6a8", YE="#ffd166", PU="#b98cff", GRID="rgba(120,140,180,.35)";
+var idx=0, P={};
+
+var SOLIDS=[
+{ id:"box", emoji:"📦", name:"长方体",
+  params:[{k:"a",label:"长 a",min:2,max:8,step:0.5,def:5},{k:"b",label:"宽 b",min:2,max:7,step:0.5,def:3.5},{k:"c",label:"高 c",min:2,max:7,step:0.5,def:4}],
+  read:function(){return P.a.toFixed(1)+"×"+P.b.toFixed(1)+"×"+P.c.toFixed(1);},
+  vol:function(){return P.a*P.b*P.c;}, surf:function(){return 2*(P.a*P.b+P.b*P.c+P.a*P.c);},
+  eq:function(){return 'V = 长 × 宽 × 高 = '+P.a.toFixed(1)+'×'+P.b.toFixed(1)+'×'+P.c.toFixed(1)+' = <span class="hl">'+(P.a*P.b*P.c).toFixed(2)+'</span>';},
+  hint:"体积 = 底面积(长×宽) × 高。",
+  note:'长方体 = 一个矩形底面<b>沿高度堆叠</b>。体积 = 底面积 × 高 = 长×宽×高。表面积 = 6 个面，两两相等：2(ab+bc+ca)。',
+  draw:function(){
+    var a=P.a/2,b=P.c/2,c=P.b/2; // 映射: x=长, y=高(c参数), z=宽(b参数)
+    var x=P.a/2,y=P.c/2,z=P.b/2;
+    var v=[[-x,-y,-z],[x,-y,-z],[x,y,-z],[-x,y,-z],[-x,-y,z],[x,-y,z],[x,y,z],[-x,y,z]];
+    faceFill([v[0],v[1],v[2],v[3]],"rgba(86,182,255,.10)");
+    faceFill([v[4],v[5],v[6],v[7]],"rgba(86,182,255,.16)");
+    faceFill([v[3],v[2],v[6],v[7]],"rgba(86,182,255,.20)");
+    var E=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+    for(var i=0;i<E.length;i++)path([v[E[i][0]],v[E[i][1]]],false,BL,1.8);
+    lbl3("a",0,-y-0.001,z+0.4,GRID);
+  }
+},
+{ id:"cyl", emoji:"🥫", name:"圆柱",
+  params:[{k:"r",label:"底面半径 r",min:1.5,max:5,step:0.5,def:3},{k:"h",label:"高 h",min:2,max:8,step:0.5,def:5}],
+  read:function(){return "r="+P.r.toFixed(1)+" h="+P.h.toFixed(1);},
+  vol:function(){return PI*P.r*P.r*P.h;}, surf:function(){return 2*PI*P.r*P.r+2*PI*P.r*P.h;},
+  eq:function(){return 'V = 底面圆 × 高 = πr²·h = π×'+P.r.toFixed(1)+'²×'+P.h.toFixed(1)+' = <span class="hl">'+(PI*P.r*P.r*P.h).toFixed(2)+'</span>';},
+  hint:"和长方体同理：底面积(πr²) × 高。侧面展开是 2πr × h 的长方形。",
+  note:'圆柱 = 一个圆<b>沿高度堆叠</b>，和长方体完全同理：体积 = 底面积 × 高 = πr²·h。<br>侧面<b>剪开摊平</b>是个长方形：宽 = 圆周长 2πr，高 = h。',
+  draw:function(){
+    var r=P.r,h=P.h/2,n=36;
+    faceFill(circle3(h,r,n),"rgba(86,182,255,.14)");
+    path(circle3(h,r,n),false,BL,1.8);
+    path(circle3(-h,r,n),false,BL,1.8);
+    for(var k=0;k<n;k+=Math.floor(n/12)){var t=k/n*2*PI,x=r*Math.cos(t),z=r*Math.sin(t);path([[x,-h,z],[x,h,z]],false,"rgba(86,182,255,.45)",1.2);}
+    lbl3("r",r/2,-h,0,GRID); lbl3("h",r+0.3,0,0,GR);
+  }
+},
+{ id:"cone", emoji:"🍦", name:"圆锥",
+  params:[{k:"r",label:"底面半径 r",min:1.5,max:5,step:0.5,def:3},{k:"h",label:"高 h",min:2,max:8,step:0.5,def:5}],
+  read:function(){return "r="+P.r.toFixed(1)+" h="+P.h.toFixed(1);},
+  vol:function(){return PI*P.r*P.r*P.h/3;},
+  surf:function(){var l=Math.sqrt(P.r*P.r+P.h*P.h);return PI*P.r*P.r+PI*P.r*l;},
+  eq:function(){return 'V = ⅓ × πr² × h = ⅓×π×'+P.r.toFixed(1)+'²×'+P.h.toFixed(1)+' = <span class="hl">'+(PI*P.r*P.r*P.h/3).toFixed(2)+'</span>';},
+  hint:"同底等高时，圆锥体积正好是圆柱的 1/3（虚线就是那个圆柱）。",
+  note:'圆锥和圆柱<b>同底等高</b>时，体积正好是圆柱的 <b>⅓</b>（拿圆锥往圆柱里灌水，灌三次刚好满）。所以 V = ⅓ × πr² × h。<br>侧面摊平是一个<b>扇形</b>。',
+  draw:function(){
+    var r=P.r,h=P.h/2,n=36;
+    // 同底等高圆柱（虚线参照）
+    ctx.setLineDash([4,4]);
+    path(circle3(h,r,n),false,"rgba(255,209,102,.35)",1);
+    path(circle3(-h,r,n),false,"rgba(255,209,102,.25)",1);
+    ctx.setLineDash([]);
+    // 圆锥
+    faceFill(circle3(-h,r,n),"rgba(86,182,255,.14)");
+    path(circle3(-h,r,n),false,BL,1.8);
+    for(var k=0;k<n;k+=Math.floor(n/12)){var t=k/n*2*PI;path([[r*Math.cos(t),-h,r*Math.sin(t)],[0,h,0]],false,"rgba(86,182,255,.5)",1.3);}
+    lbl3("r",r/2,-h,0,GRID); lbl3("h",0.3,0,0,GR); lbl3("圆柱的 ⅓",0,h+0.5,0,YE);
+  }
+},
+{ id:"sphere", emoji:"🔮", name:"球",
+  params:[{k:"r",label:"半径 r",min:1.5,max:5,step:0.5,def:3.5}],
+  read:function(){return "r = "+P.r.toFixed(1);},
+  vol:function(){return 4/3*PI*Math.pow(P.r,3);}, surf:function(){return 4*PI*P.r*P.r;},
+  eq:function(){return 'V = 4⁄3 × π × r³ = 4⁄3×π×'+P.r.toFixed(1)+'³ = <span class="hl">'+(4/3*PI*Math.pow(P.r,3)).toFixed(2)+'</span>';},
+  hint:"体积 4⁄3πr³，表面积 4πr²。半径稍大，体积按立方猛涨。",
+  note:'球的体积 = <b>4⁄3 πr³</b>，表面积 = <b>4πr²</b>。<br>阿基米德发现：把球塞进刚好装下它的圆柱，<b>球是那个圆柱的 ⅔</b>。半径只要大一点，体积就按 <b>r 的立方</b>猛涨。',
+  draw:function(){
+    var r=P.r,n=40;
+    // 纬线
+    for(var j=1;j<6;j++){var phi=-PI/2+j/6*PI, y=r*Math.sin(phi), rr=r*Math.cos(phi);
+      path(circle3(y,rr,n),false,"rgba(86,182,255,.5)",1.2);}
+    // 经线
+    for(var m=0;m<6;m++){var ang=m/6*PI, a=[];
+      for(var i=0;i<=n;i++){var t=-PI/2+i/n*PI; a.push([r*Math.cos(t)*Math.cos(ang),r*Math.sin(t),r*Math.cos(t)*Math.sin(ang)]);}
+      path(a,false,"rgba(86,182,255,.45)",1.2);}
+    path(circle3(0,r,n),false,BL,1.8); // 赤道
+    lbl3("r",r/2,0,0,GR);
+  }
+}
+];
+
+function buildChips(){
+  var box=document.getElementById("chips");box.innerHTML="";
+  SOLIDS.forEach(function(c,i){
+    var el=document.createElement("div");el.className="chip"+(i===idx?" on":"");
+    el.innerHTML='<span>'+c.emoji+'</span>'+c.name;
+    el.onclick=function(){idx=i;location.hash=c.id;load();};
+    box.appendChild(el);
+  });
+}
+function buildParams(){
+  var box=document.getElementById("params");box.innerHTML="";P={};
+  SOLIDS[idx].params.forEach(function(pp){
+    P[pp.k]=pp.def;
+    var w=document.createElement("div");w.className="slider";
+    w.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_'+pp.k+'">'+pp.def.toFixed(1)+'</span></div>'+
+      '<input type="range" id="r_'+pp.k+'" min="'+pp.min+'" max="'+pp.max+'" step="'+pp.step+'" value="'+pp.def+'">';
+    box.appendChild(w);
+    var inp=w.querySelector("input");
+    inp.oninput=function(){P[pp.k]=parseFloat(inp.value);document.getElementById("v_"+pp.k).textContent=P[pp.k].toFixed(1);};
+  });
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  var c=SOLIDS[idx];c.draw();
+  document.getElementById("eq").innerHTML=c.eq();
+  document.getElementById("note").innerHTML=c.note;
+  document.getElementById("hint").textContent=c.hint;
+  document.getElementById("k0").textContent="尺寸";
+  document.getElementById("r0").textContent=c.read();
+  document.getElementById("r1").textContent=c.vol().toFixed(2);
+  document.getElementById("r2").textContent=c.surf().toFixed(2);
+}
+function load(){buildChips();buildParams();draw();}
+
+/* 旋转动画 + 拖拽 */
+var rotating=true, last=0;
+function loop(now){
+  if(rotating){yaw+=0.012;}
+  draw();
+  requestAnimationFrame(loop);
+}
+var bRot=document.getElementById("bRot");
+bRot.onclick=function(){rotating=!rotating;bRot.classList.toggle("on",rotating);bRot.textContent=rotating?"⏸ 暂停旋转":"▶ 继续旋转";};
+// 拖拽旋转
+var dragging=false,px=0,py=0;
+cv.addEventListener("pointerdown",function(e){dragging=true;rotating=false;bRot.classList.remove("on");bRot.textContent="▶ 继续旋转";px=e.clientX;py=e.clientY;cv.setPointerCapture(e.pointerId);});
+cv.addEventListener("pointermove",function(e){if(!dragging)return;yaw+=(e.clientX-px)*0.01;pitch+=(e.clientY-py)*0.01;pitch=Math.max(-1.4,Math.min(1.4,pitch));px=e.clientX;py=e.clientY;});
+cv.addEventListener("pointerup",function(e){dragging=false;});
+
+window.addEventListener("resize",function(){fit();});
+(function(){var hs=(location.hash||"").replace("#","");for(var i=0;i<SOLIDS.length;i++)if(SOLIDS[i].id===hs)idx=i;})();
+fit();load();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
