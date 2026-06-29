@@ -194,6 +194,54 @@ var SOLIDS=[
     path(circle3(0,r,n),false,BL,1.8); // 赤道
     lbl3("r",r/2,0,0,GR);
   }
+},
+{ id:"prism", emoji:"🧊", name:"棱柱",
+  params:[{k:"n",label:"底面边数 n",min:3,max:8,step:1,def:6},{k:"r",label:"外接圆半径 r",min:1.5,max:4,step:0.5,def:3},{k:"h",label:"高 h",min:2,max:7,step:0.5,def:4}],
+  read:function(){return "正"+P.n.toFixed(0)+"棱柱 h="+P.h.toFixed(1);},
+  vol:function(){return 0.5*P.n*P.r*P.r*Math.sin(2*PI/P.n)*P.h;},
+  surf:function(){var A=0.5*P.n*P.r*P.r*Math.sin(2*PI/P.n),per=P.n*2*P.r*Math.sin(PI/P.n);return 2*A+per*P.h;},
+  eq:function(){var A=0.5*P.n*P.r*P.r*Math.sin(2*PI/P.n);return 'V = 底面积 × 高 = '+A.toFixed(2)+' × '+P.h.toFixed(1)+' = <span class="hl">'+(A*P.h).toFixed(2)+'</span>';},
+  hint:"棱柱和圆柱一样：底面积 × 高。底面是正多边形。",
+  note:'棱柱 = 一个<b>正多边形底面沿高度堆叠</b>，和圆柱同理：体积 = 底面积 × 高。<br>边数 n 越大，越接近圆柱。',
+  draw:function(){
+    var n=P.n,r=P.r,h=P.h/2;
+    faceFill(circle3(h,r,n),"rgba(86,182,255,.12)");
+    path(circle3(h,r,n),false,BL,1.8);path(circle3(-h,r,n),false,BL,1.8);
+    for(var i=0;i<n;i++){var t=i/n*2*PI;path([[r*Math.cos(t),-h,r*Math.sin(t)],[r*Math.cos(t),h,r*Math.sin(t)]],false,"rgba(86,182,255,.5)",1.3);}
+    lbl3("正"+n+"边形底",0,-h-0.4,0,GRID);lbl3("h",r+0.3,0,0,GR);
+  }
+},
+{ id:"pyramid", emoji:"🔺", name:"棱锥",
+  params:[{k:"n",label:"底面边数 n",min:3,max:8,step:1,def:4},{k:"r",label:"外接圆半径 r",min:1.5,max:4,step:0.5,def:3},{k:"h",label:"高 h",min:2,max:7,step:0.5,def:5}],
+  read:function(){return "正"+P.n.toFixed(0)+"棱锥 h="+P.h.toFixed(1);},
+  vol:function(){return 0.5*P.n*P.r*P.r*Math.sin(2*PI/P.n)*P.h/3;},
+  surf:function(){var A=0.5*P.n*P.r*P.r*Math.sin(2*PI/P.n),per=P.n*2*P.r*Math.sin(PI/P.n),ap=P.r*Math.cos(PI/P.n),sl=Math.sqrt(ap*ap+P.h*P.h);return A+0.5*per*sl;},
+  eq:function(){var A=0.5*P.n*P.r*P.r*Math.sin(2*PI/P.n);return 'V = ⅓ × 底面积 × 高 = ⅓ × '+A.toFixed(2)+' × '+P.h.toFixed(1)+' = <span class="hl">'+(A*P.h/3).toFixed(2)+'</span>';},
+  hint:"棱锥和圆锥一样：是同底等高棱柱的 ⅓。",
+  note:'棱锥（尖塔形）和圆锥同理：体积 = <b>⅓ × 底面积 × 高</b>，是同底等高棱柱的 ⅓。<br>埃及金字塔就是正四棱锥。',
+  draw:function(){
+    var n=P.n,r=P.r,h=P.h/2;
+    faceFill(circle3(-h,r,n),"rgba(86,182,255,.12)");
+    path(circle3(-h,r,n),false,BL,1.8);
+    for(var i=0;i<n;i++){var t=i/n*2*PI;path([[r*Math.cos(t),-h,r*Math.sin(t)],[0,h,0]],false,"rgba(86,182,255,.5)",1.3);}
+    lbl3("正"+n+"边形底",0,-h-0.4,0,GRID);lbl3("⅓ 棱柱",0,h+0.4,0,YE);
+  }
+},
+{ id:"frustum", emoji:"🪣", name:"圆台",
+  params:[{k:"R",label:"下底半径 R",min:2,max:5,step:0.5,def:3.5},{k:"r2",label:"上底半径 r",min:0.5,max:4,step:0.5,def:1.5},{k:"h",label:"高 h",min:2,max:7,step:0.5,def:4}],
+  read:function(){return "R="+P.R.toFixed(1)+" r="+P.r2.toFixed(1)+" h="+P.h.toFixed(1);},
+  vol:function(){return PI*P.h/3*(P.R*P.R+P.R*P.r2+P.r2*P.r2);},
+  surf:function(){var l=Math.sqrt((P.R-P.r2)*(P.R-P.r2)+P.h*P.h);return PI*(P.R*P.R+P.r2*P.r2)+PI*(P.R+P.r2)*l;},
+  eq:function(){return 'V = ⅓πh(R² + R·r + r²) = <span class="hl">'+(PI*P.h/3*(P.R*P.R+P.R*P.r2+P.r2*P.r2)).toFixed(2)+'</span>';},
+  hint:"圆台 = 圆锥被一刀切去尖顶后剩下的一截。",
+  note:'圆台 = <b>圆锥切去尖顶</b>剩下的一截（像水桶、灯罩）。<br>体积 = ⅓πh(R² + R·r + r²)。当上底 r=0 时退回圆锥 ⅓πR²h；当 R=r 时退回圆柱 πR²h。',
+  draw:function(){
+    var R=P.R,r=P.r2,h=P.h/2,n=36;
+    faceFill(circle3(h,r,n),"rgba(86,182,255,.14)");
+    path(circle3(h,r,n),false,BL,1.8);path(circle3(-h,R,n),false,BL,1.8);
+    for(var i=0;i<n;i+=Math.floor(n/10)){var t=i/n*2*PI;path([[R*Math.cos(t),-h,R*Math.sin(t)],[r*Math.cos(t),h,r*Math.sin(t)]],false,"rgba(86,182,255,.5)",1.3);}
+    lbl3("R",R*0.6,-h,0,GRID);lbl3("r",r*0.6,h,0,GRID);lbl3("h",R+0.3,0,0,GR);
+  }
 }
 ];
 
