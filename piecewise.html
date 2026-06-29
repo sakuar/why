@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>分段函数 · 绝对值</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+  .chips{display:flex;gap:8px;margin:4px 0 12px;flex-wrap:wrap;}
+  .chip{flex:1;min-width:110px;display:flex;align-items:center;gap:7px;justify-content:center;font-size:13px;padding:11px 8px;border-radius:11px;background:#0e1322;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.14s;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:16px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .slider{margin-bottom:13px;}.slider:last-child{margin-bottom:0;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px;}
+  .slider .sl-top .nm{color:#cfd8ea;}.slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:13px;}
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;margin-bottom:6px;}
+  .readout .cell .v{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.ok .v{color:#56d6a8;}.readout .cell.hi .v{color:#ffd166;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .eq{font-size:16px;line-height:1.8;color:#e8eef7;font-family:"Cambria Math","Times New Roman",Georgia,serif;}
+  .card .eq .hl{color:#ffd166;font-weight:700;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;line-height:1.8;}.card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>📐 分段函数 · 绝对值</h1><a class="back" href="index.html">← 返回</a></div>
+  <div class="chips" id="chips"></div>
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="560"></canvas></div>
+    <div class="controls">
+      <div><div class="ch">参数调节</div><div id="params"></div></div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="readout">
+      <div class="cell"><div class="k" id="k0">—</div><div class="v" id="r0">—</div></div>
+      <div class="cell hi"><div class="k" id="k1">—</div><div class="v" id="r1">—</div></div>
+      <div class="cell ok"><div class="k" id="k2">—</div><div class="v" id="r2" style="font-size:14px;">—</div></div>
+    </div>
+    <div class="card"><div class="ttl">定义</div><div class="eq" id="eq"></div></div>
+    <div class="card"><div class="ttl">怎么理解</div><div class="nt" id="note"></div></div>
+  </div>
+  <footer>分段函数 = 不同区间用不同公式；绝对值就是最简单的分段函数 · 纯前端单文件教学</footer>
+</div>
+<script>
+"use strict";
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=560,Vw={xmin:-6,xmax:6,ymin:-4,ymax:6};
+function fit(){var st=document.getElementById("stage");var cw=st.clientWidth||900;W=cw;H=Math.round(cw*0.62);if(H<320)H=320;
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.height=H+"px";ctx.setTransform(DPR,0,0,DPR,0,0);}
+function PX(x){var p=30;return p+(x-Vw.xmin)/(Vw.xmax-Vw.xmin)*(W-2*p);}
+function PY(y){var p=22;return p+(Vw.ymax-y)/(Vw.ymax-Vw.ymin)*(H-2*p);}
+var idx=0,P={};
+function grid(){ctx.strokeStyle="rgba(120,140,180,.09)";ctx.lineWidth=1;ctx.beginPath();
+  for(var x=Math.ceil(Vw.xmin);x<=Vw.xmax;x++){ctx.moveTo(PX(x),0);ctx.lineTo(PX(x),H);}
+  for(var y=Math.ceil(Vw.ymin);y<=Vw.ymax;y++){ctx.moveTo(0,PY(y));ctx.lineTo(W,PY(y));}ctx.stroke();
+  ctx.strokeStyle="rgba(150,170,210,.4)";ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(0,PY(0));ctx.lineTo(W,PY(0));ctx.moveTo(PX(0),0);ctx.lineTo(PX(0),H);ctx.stroke();}
+function plotRange(fn,x0,x1,col,w){ctx.strokeStyle=col;ctx.lineWidth=w||2.8;ctx.beginPath();var st=false;
+  for(var px=PX(x0);px<=PX(x1);px+=2){var x=Vw.xmin+(px-30)/(W-60)*(Vw.xmax-Vw.xmin);if(x<x0||x>x1)continue;var y=fn(x);if(isNaN(y)||!isFinite(y)){st=false;continue;}var py=PY(y);if(py<-700||py>H+700){st=false;continue;}if(!st){ctx.moveTo(px,py);st=true;}else ctx.lineTo(px,py);}ctx.stroke();}
+function dotOpen(x,y,col){ctx.beginPath();ctx.arc(PX(x),PY(y),5,0,2*Math.PI);ctx.fillStyle="#070912";ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.stroke();}
+function dotFill(x,y,col){ctx.beginPath();ctx.arc(PX(x),PY(y),5,0,2*Math.PI);ctx.fillStyle=col;ctx.fill();}
+var BL="#56b6ff",GR="#56d6a8",YE="#ffd166";
+var CONCEPTS=[
+{ id:"abs",emoji:"V",name:"绝对值",
+  params:[{k:"a",label:"开口 a",min:-3,max:3,step:0.5,def:1},{k:"h",label:"顶点左右 h",min:-4,max:4,step:0.5,def:0},{k:"k",label:"顶点上下 k",min:-3,max:4,step:0.5,def:0}],
+  read:function(){return ["顶点","("+P.h.toFixed(1)+", "+P.k.toFixed(1)+")",P.a>0?"开口向上":"开口向下"];},
+  labels:["特征","顶点","开口"],
+  eq:function(){return 'y = a|x − h| + k = '+P.a.toFixed(1)+'|x '+(P.h>=0?"− ":"+ ")+Math.abs(P.h).toFixed(1)+'| '+(P.k>=0?"+ ":"− ")+Math.abs(P.k).toFixed(1);},
+  hint:"|x| 是 V 形：到 0 的距离。a、h、k 控制开口与顶点。",
+  note:'<b>绝对值 |x|</b> = 一个数到 0 的<b>距离</b>，永远非负，图像是 <b>V 形</b>。<br>它本质是个<b>分段函数</b>：|x| = x（当 x≥0）或 −x（当 x&lt;0）。<br>y = a|x−h|+k 把 V 形的顶点移到 (h, k)，a 控制开口方向和陡峭。',
+  draw:function(){grid();var a=P.a,h=P.h,k=P.k;
+    plotRange(function(x){return a*Math.abs(x-h)+k;},Vw.xmin,Vw.xmax,BL,2.8);
+    dotFill(h,k,YE);ctx.fillStyle="#ffd166";ctx.font="bold 12px system-ui";ctx.textAlign="left";ctx.fillText("顶点("+h+","+k+")",PX(h)+8,PY(k)+(a>0?16:-8));}
+},
+{ id:"piece",emoji:"⊏",name:"分段函数",
+  params:[{k:"c",label:"分界点 c",min:-3,max:3,step:0.5,def:1}],
+  f1:function(x){return x+2;},
+  f2:function(x){return 0.5*x*x;},
+  read:function(){var lv=this.f1(P.c),rv=this.f2(P.c);return ["x = "+P.c.toFixed(1),lv.toFixed(2)+" → "+rv.toFixed(2),Math.abs(lv-rv)<1e-6?"连续 ✓":"跳跃（不连续）"];},
+  labels:["分界点","左值 → 右值","在分界点"],
+  eq:function(){return 'f(x) = { x+2 (当 x &lt; c)；　½x² (当 x ≥ c) }　·　c = '+P.c.toFixed(1);},
+  hint:"两段不同公式拼成一个函数。拖 c 看分界点处是否接得上。",
+  note:'<b>分段函数</b>：在不同的 x 区间用<b>不同的公式</b>。<br>左段 y=x+2（蓝），右段 y=½x²（绿），分界点在 x=c。<br>在分界点：<b>实心点</b>是取到的值，<b>空心点</b>是取不到的。两段在此处<b>接上</b>就连续，<b>断开</b>就是跳跃（不连续）。',
+  draw:function(){grid();var c=P.c;
+    plotRange(this.f1,Vw.xmin,c,BL,2.8);
+    plotRange(this.f2,c,Vw.xmax,GR,2.8);
+    var lv=this.f1(c),rv=this.f2(c);
+    dotOpen(c,lv,BL);   // 左段在 c 取不到（x<c）
+    dotFill(c,rv,GR);   // 右段在 c 取到（x>=c）
+    ctx.strokeStyle="rgba(255,209,102,.3)";ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(PX(c),0);ctx.lineTo(PX(c),H);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle="#ffd166";ctx.font="12px system-ui";ctx.textAlign="center";ctx.textBaseline="top";ctx.fillText("x = "+c,PX(c),8);
+    ctx.fillStyle=Math.abs(lv-rv)<1e-6?"#56d6a8":"#ff8aa0";ctx.font="bold 13px system-ui";ctx.fillText(Math.abs(lv-rv)<1e-6?"接上了：连续":"断开：跳跃 "+Math.abs(lv-rv).toFixed(2),PX(c),26);}
+}
+];
+function buildChips(){var box=document.getElementById("chips");box.innerHTML="";
+  CONCEPTS.forEach(function(c,i){var el=document.createElement("div");el.className="chip"+(i===idx?" on":"");el.innerHTML='<span>'+c.emoji+'</span>'+c.name;el.onclick=function(){idx=i;location.hash=c.id;load();};box.appendChild(el);});}
+function buildParams(){var box=document.getElementById("params");box.innerHTML="";P={};
+  CONCEPTS[idx].params.forEach(function(pp){P[pp.k]=pp.def;var w=document.createElement("div");w.className="slider";
+    w.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_'+pp.k+'">'+pp.def.toFixed(1)+'</span></div><input type="range" id="r_'+pp.k+'" min="'+pp.min+'" max="'+pp.max+'" step="'+pp.step+'" value="'+pp.def+'">';
+    box.appendChild(w);var inp=w.querySelector("input");
+    inp.oninput=function(){P[pp.k]=parseFloat(inp.value);document.getElementById("v_"+pp.k).textContent=P[pp.k].toFixed(1);draw();};});}
+function draw(){ctx.clearRect(0,0,W,H);var c=CONCEPTS[idx];c.draw();
+  var r=c.read(),L=c.labels;
+  document.getElementById("k0").textContent=L[0];document.getElementById("r0").textContent=r[0];
+  document.getElementById("k1").textContent=L[1];document.getElementById("r1").textContent=r[1];
+  document.getElementById("k2").textContent=L[2];document.getElementById("r2").textContent=r[2];
+  document.getElementById("eq").innerHTML=c.eq();document.getElementById("note").innerHTML=c.note;document.getElementById("hint").textContent=c.hint;}
+function load(){buildChips();buildParams();draw();}
+window.addEventListener("resize",function(){fit();draw();});
+(function(){var hs=(location.hash||"").replace("#","");for(var i=0;i<CONCEPTS.length;i++)if(CONCEPTS[i].id===hs)idx=i;})();
+fit();load();
+</script>
+</body>
+</html>

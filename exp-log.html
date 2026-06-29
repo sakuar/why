@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>指数与对数 · 互为反函数</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+  .chips{display:flex;gap:8px;margin:4px 0 12px;flex-wrap:wrap;}
+  .chip{flex:1;min-width:110px;display:flex;align-items:center;gap:7px;justify-content:center;font-size:13px;padding:11px 8px;border-radius:11px;background:#0e1322;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.14s;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:16px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px;}
+  .slider .sl-top .nm{color:#cfd8ea;}.slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:13px;}
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;margin-bottom:6px;}
+  .readout .cell .v{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.ok .v{color:#56d6a8;}.readout .cell.hi .v{color:#ffd166;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .eq{font-size:16px;line-height:1.8;color:#e8eef7;font-family:"Cambria Math","Times New Roman",Georgia,serif;}
+  .card .eq .hl{color:#ffd166;font-weight:700;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;line-height:1.8;}.card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>📈 指数与对数 · 互为反函数</h1><a class="back" href="index.html">← 返回</a></div>
+  <div class="chips" id="chips"></div>
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="560"></canvas></div>
+    <div class="controls">
+      <div><div class="ch">参数调节</div><div id="params"></div></div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="readout">
+      <div class="cell"><div class="k">底数 a</div><div class="v" id="r0">—</div></div>
+      <div class="cell hi"><div class="k" id="k1">必过点</div><div class="v" id="r1">—</div></div>
+      <div class="cell ok"><div class="k">单调性</div><div class="v" id="r2" style="font-size:14px;">—</div></div>
+    </div>
+    <div class="card"><div class="ttl">公式</div><div class="eq" id="eq"></div></div>
+    <div class="card"><div class="ttl">怎么理解</div><div class="nt" id="note"></div></div>
+  </div>
+  <footer>指数 aˣ 与对数 logₐx 互为反函数，图像关于直线 y=x 对称 · 纯前端单文件教学</footer>
+</div>
+<script>
+"use strict";
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=560,Vw={ox:0,oy:0,s:40};
+function fit(){var st=document.getElementById("stage");var cw=st.clientWidth||900;W=cw;H=Math.round(cw*0.62);if(H<320)H=320;
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.height=H+"px";ctx.setTransform(DPR,0,0,DPR,0,0);
+  var xmin=-3.5,xmax=6.5,ymin=-3.5,ymax=6.5,p=26,s=Math.min((W-2*p)/(xmax-xmin),(H-2*p)/(ymax-ymin));
+  Vw.s=s;Vw.ox=p-xmin*s;Vw.oy=H-p+ymin*s;}
+function PX(x){return Vw.ox+x*Vw.s;}function PY(y){return Vw.oy-y*Vw.s;}
+var idx=0,P={};
+function grid(){ctx.strokeStyle="rgba(120,140,180,.09)";ctx.lineWidth=1;ctx.beginPath();
+  for(var x=-3;x<=6;x++){ctx.moveTo(PX(x),0);ctx.lineTo(PX(x),H);}for(var y=-3;y<=6;y++){ctx.moveTo(0,PY(y));ctx.lineTo(W,PY(y));}ctx.stroke();
+  ctx.strokeStyle="rgba(150,170,210,.4)";ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(0,PY(0));ctx.lineTo(W,PY(0));ctx.moveTo(PX(0),0);ctx.lineTo(PX(0),H);ctx.stroke();}
+function plot(fn,x0,x1,col,w,dash){ctx.strokeStyle=col;ctx.lineWidth=w||2.6;ctx.setLineDash(dash||[]);ctx.beginPath();var st=false;
+  for(var i=0;i<=300;i++){var x=x0+(x1-x0)*i/300,y=fn(x);if(isNaN(y)||!isFinite(y)){st=false;continue;}var py=PY(y);if(py<-800||py>H+800){st=false;continue;}var px=PX(x);if(!st){ctx.moveTo(px,py);st=true;}else ctx.lineTo(px,py);}ctx.stroke();ctx.setLineDash([]);}
+function dot(x,y,col){ctx.fillStyle=col;ctx.beginPath();ctx.arc(PX(x),PY(y),5,0,2*Math.PI);ctx.fill();ctx.strokeStyle="rgba(0,0,0,.5)";ctx.lineWidth=1;ctx.stroke();}
+function lbl(txt,x,y,col,dx,dy){ctx.fillStyle=col;ctx.font="bold 13px system-ui";ctx.textAlign="left";ctx.textBaseline="middle";ctx.fillText(txt,PX(x)+(dx||6),PY(y)+(dy||-8));}
+var BL="#56b6ff",GR="#56d6a8",YE="#ffd166";
+var CONCEPTS=[
+{ id:"exp",emoji:"📈",name:"指数函数",
+  read:function(){return [P.a.toFixed(1),"(0, 1)",P.a>1?"递增 ↗":"递减 ↘"];},
+  eq:function(){return 'y = aˣ　(a = '+P.a.toFixed(1)+')　·　a⁰=1，所以必过 (0, 1)';},
+  hint:"底数 a>1 时爆炸增长，0<a<1 时衰减。永远过 (0,1)。",
+  note:'<b>指数函数 y = aˣ</b>（a&gt;0 且 a≠1）。<br>a&gt;1：<b>越来越快地增长</b>（如细菌繁殖、复利）；0&lt;a&lt;1：<b>衰减</b>（如放射性衰变）。<br>无论 a 是多少，因为 a⁰=1，图像都<b>必过点 (0, 1)</b>，且永远在 x 轴上方。',
+  draw:function(){grid();plot(function(x){return Math.pow(P.a,x);},-3.5,6.5,BL,2.8);dot(0,1,YE);lbl("(0,1)",0,1,YE,8,-10);
+    ctx.fillStyle="#8090a8";ctx.font="12px system-ui";ctx.textAlign="left";ctx.textBaseline="top";ctx.fillText("y = "+P.a.toFixed(1)+"ˣ",PX(-3)+4,8);}
+},
+{ id:"log",emoji:"📉",name:"对数函数",
+  read:function(){return [P.a.toFixed(1),"(1, 0)",P.a>1?"递增 ↗":"递减 ↘"];},
+  eq:function(){return 'y = logₐx　(a = '+P.a.toFixed(1)+')　·　logₐ1=0，所以必过 (1, 0)';},
+  hint:"对数是指数的逆运算。只对 x>0 有定义，必过 (1,0)。",
+  note:'<b>对数函数 y = logₐx</b> 是指数的<b>逆运算</b>：aˣ=N ⟺ x=logₐN。<br>只对 <b>x&gt;0</b> 有定义（图像在 y 轴右侧）。<br>因为 logₐ1=0，图像<b>必过 (1, 0)</b>。a&gt;1 递增、0&lt;a&lt;1 递减。',
+  draw:function(){grid();plot(function(x){return x>0?Math.log(x)/Math.log(P.a):NaN;},0.001,6.5,GR,2.8);dot(1,0,YE);lbl("(1,0)",1,0,YE,8,14);
+    ctx.fillStyle="#8090a8";ctx.font="12px system-ui";ctx.textAlign="left";ctx.textBaseline="top";ctx.fillText("y = log_"+P.a.toFixed(1)+" x",PX(-3)+4,8);}
+},
+{ id:"inverse",emoji:"🪞",name:"互为反函数",
+  read:function(){return [P.a.toFixed(1),"关于 y=x 对称","互为反函数"];},
+  eq:function(){return 'y = aˣ 与 y = logₐx 关于直线 <span class="hl">y = x</span> 对称';},
+  hint:"指数和对数图像沿 y=x 翻折正好重合 —— 这就是反函数。",
+  note:'<b>指数与对数互为反函数</b>。一个函数和它的反函数，图像<b>关于直线 y=x 对称</b>（像照镜子）。<br>指数过 (0,1)，对数就过 (1,0)；点 (x,y) 在指数上，则 (y,x) 在对数上 —— x、y 对调，正是反函数的本质。',
+  draw:function(){grid();
+    plot(function(x){return x;},-3.5,6.5,"rgba(255,209,102,.4)",1.6,[6,4]); // y=x
+    plot(function(x){return Math.pow(P.a,x);},-3.5,6.5,BL,2.6);
+    plot(function(x){return x>0?Math.log(x)/Math.log(P.a):NaN;},0.001,6.5,GR,2.6);
+    // 对称点
+    var xx=1.4,ye=Math.pow(P.a,xx);dot(xx,ye,BL);dot(ye,xx,GR);
+    ctx.strokeStyle="rgba(255,255,255,.25)";ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(PX(xx),PY(ye));ctx.lineTo(PX(ye),PY(xx));ctx.stroke();ctx.setLineDash([]);
+    lbl("("+xx+","+ye.toFixed(1)+")",xx,ye,BL,8,-8);lbl("("+ye.toFixed(1)+","+xx+")",ye,xx,GR,8,14);
+    ctx.fillStyle="#ffd166";ctx.font="12px system-ui";ctx.textAlign="left";ctx.textBaseline="top";ctx.fillText("y=x（对称轴）",PX(4)+4,PY(4)-2);
+    ctx.fillStyle=BL;ctx.fillText("y=aˣ",PX(-3)+4,8);ctx.fillStyle=GR;ctx.fillText("y=logₐx",PX(-3)+4,24);}
+}
+];
+function buildChips(){var box=document.getElementById("chips");box.innerHTML="";
+  CONCEPTS.forEach(function(c,i){var el=document.createElement("div");el.className="chip"+(i===idx?" on":"");el.innerHTML='<span>'+c.emoji+'</span>'+c.name;el.onclick=function(){idx=i;location.hash=c.id;load();};box.appendChild(el);});}
+function buildParams(){var box=document.getElementById("params");box.innerHTML="";P={a:2};
+  var pp={k:"a",label:"底数 a",min:0.3,max:3,step:0.1,def:2};
+  var w=document.createElement("div");w.className="slider";
+  w.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_a">2.0</span></div><input type="range" id="r_a" min="0.3" max="3" step="0.1" value="2">';
+  box.appendChild(w);var inp=w.querySelector("input");
+  inp.oninput=function(){var v=parseFloat(inp.value);if(Math.abs(v-1)<0.05)v=v<1?0.9:1.1;P.a=v;document.getElementById("v_a").textContent=v.toFixed(1);draw();};}
+function draw(){ctx.clearRect(0,0,W,H);var c=CONCEPTS[idx];c.draw();
+  var r=c.read();document.getElementById("r0").textContent=r[0];
+  document.getElementById("k1").textContent=idx===2?"对称":"必过点";document.getElementById("r1").textContent=r[1];
+  document.getElementById("r2").textContent=r[2];
+  document.getElementById("eq").innerHTML=c.eq();document.getElementById("note").innerHTML=c.note;document.getElementById("hint").textContent=c.hint;}
+function load(){buildChips();buildParams();draw();}
+window.addEventListener("resize",function(){fit();draw();});
+(function(){var hs=(location.hash||"").replace("#","");for(var i=0;i<CONCEPTS.length;i++)if(CONCEPTS[i].id===hs)idx=i;})();
+fit();load();
+</script>
+</body>
+</html>

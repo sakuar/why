@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>函数图像变换 · 平移 · 伸缩 · 翻折</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+  .chips{display:flex;gap:8px;margin:4px 0 12px;flex-wrap:wrap;}
+  .chip{flex:1;min-width:82px;display:flex;align-items:center;gap:6px;justify-content:center;font-size:13px;padding:11px 6px;border-radius:11px;background:#0e1322;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.14s;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:10px;}
+  .slider{margin-bottom:11px;}.slider:last-child{margin-bottom:0;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;}
+  .slider .sl-top .nm{color:#cfd8ea;}.slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .btn{font-size:13px;padding:9px 13px;border-radius:9px;background:#121829;border:1px solid #232c44;color:#cdd6e8;cursor:pointer;width:100%;}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:13px;}
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .eqbar{grid-column:1/-1;background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 18px;text-align:center;font-size:19px;font-family:"Cambria Math","Times New Roman",Georgia,serif;}
+  .eqbar .hl{color:#ffd166;font-weight:700;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .nt{font-size:13px;color:#9aa6bd;line-height:1.85;}.card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>📊 函数图像变换</h1><a class="back" href="index.html">← 返回</a></div>
+  <div class="chips" id="chips"></div>
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="560"></canvas></div>
+    <div class="controls">
+      <div><div class="ch">变换参数</div><div id="params"></div></div>
+      <button class="btn" id="bReset">重置为原函数</button>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="eqbar" id="eq"></div>
+    <div class="card"><div class="ttl">每个参数管什么</div><div class="nt" id="note"></div></div>
+    <div class="card"><div class="ttl">口诀</div><div class="nt" id="rule"></div></div>
+  </div>
+  <footer>灰虚线 = 原函数，蓝实线 = 变换后 · 拖参数看图像怎么动 · 纯前端单文件教学</footer>
+</div>
+<script>
+"use strict";
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=560,Vw={xmin:-6,xmax:6,ymin:-4,ymax:6};
+function fit(){var st=document.getElementById("stage");var cw=st.clientWidth||900;W=cw;H=Math.round(cw*0.62);if(H<320)H=320;
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.height=H+"px";ctx.setTransform(DPR,0,0,DPR,0,0);}
+function PX(x){var p=30;return p+(x-Vw.xmin)/(Vw.xmax-Vw.xmin)*(W-2*p);}
+function PY(y){var p=22;return p+(Vw.ymax-y)/(Vw.ymax-Vw.ymin)*(H-2*p);}
+var idx=0,P={a:1,h:0,k:0,b:1};
+var FUNCS=[
+  {id:"sq",name:"x²",f:function(x){return x*x;},view:[-2,8]},
+  {id:"sin",name:"sin x",f:function(x){return Math.sin(x);},view:[-4,4]},
+  {id:"cube",name:"x³",f:function(x){return x*x*x;},view:[-6,6]},
+  {id:"abs",name:"|x|",f:function(x){return Math.abs(x);},view:[-2,8]},
+  {id:"sqrt",name:"√x",f:function(x){return x>=0?Math.sqrt(x):NaN;},view:[-2,5]}
+];
+function grid(){ctx.strokeStyle="rgba(120,140,180,.09)";ctx.lineWidth=1;ctx.beginPath();
+  for(var x=Math.ceil(Vw.xmin);x<=Vw.xmax;x++){ctx.moveTo(PX(x),0);ctx.lineTo(PX(x),H);}
+  for(var y=Math.ceil(Vw.ymin);y<=Vw.ymax;y++){ctx.moveTo(0,PY(y));ctx.lineTo(W,PY(y));}ctx.stroke();
+  ctx.strokeStyle="rgba(150,170,210,.4)";ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(0,PY(0));ctx.lineTo(W,PY(0));ctx.moveTo(PX(0),0);ctx.lineTo(PX(0),H);ctx.stroke();}
+function plot(fn,col,w,dash){ctx.strokeStyle=col;ctx.lineWidth=w||2.6;ctx.setLineDash(dash||[]);ctx.beginPath();var st=false;
+  for(var px=30;px<=W-30;px+=2){var x=Vw.xmin+(px-30)/(W-60)*(Vw.xmax-Vw.xmin),y=fn(x);
+    if(isNaN(y)||!isFinite(y)){st=false;continue;}var py=PY(y);if(py<-600||py>H+600){st=false;continue;}
+    if(!st){ctx.moveTo(px,py);st=true;}else ctx.lineTo(px,py);}ctx.stroke();ctx.setLineDash([]);}
+function buildChips(){var box=document.getElementById("chips");box.innerHTML="";
+  FUNCS.forEach(function(c,i){var el=document.createElement("div");el.className="chip"+(i===idx?" on":"");el.textContent="f(x)="+c.name;el.onclick=function(){idx=i;location.hash=c.id;load();};box.appendChild(el);});}
+var PARAMS=[{k:"a",label:"a · 竖直伸缩/翻折",min:-3,max:3,step:0.1,def:1},{k:"b",label:"b · 水平伸缩/翻折",min:-3,max:3,step:0.1,def:1},{k:"h",label:"h · 左右平移",min:-4,max:4,step:0.5,def:0},{k:"k",label:"k · 上下平移",min:-4,max:4,step:0.5,def:0}];
+function buildParams(){var box=document.getElementById("params");box.innerHTML="";P={a:1,b:1,h:0,k:0};
+  PARAMS.forEach(function(pp){P[pp.k]=pp.def;var w=document.createElement("div");w.className="slider";
+    w.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_'+pp.k+'">'+pp.def.toFixed(1)+'</span></div><input type="range" id="r_'+pp.k+'" min="'+pp.min+'" max="'+pp.max+'" step="'+pp.step+'" value="'+pp.def+'">';
+    box.appendChild(w);var inp=w.querySelector("input");
+    inp.oninput=function(){P[pp.k]=parseFloat(inp.value);document.getElementById("v_"+pp.k).textContent=P[pp.k].toFixed(1);draw();};});}
+function draw(){ctx.clearRect(0,0,W,H);var c=FUNCS[idx];Vw.ymin=c.view[0];Vw.ymax=c.view[1];grid();
+  plot(c.f,"rgba(140,150,175,.5)",1.8,[6,4]);            // 原函数
+  var b=Math.abs(P.b)<0.05?0.05:P.b;
+  plot(function(x){return P.a*c.f(b*(x-P.h))+P.k;},"#56b6ff",2.8); // 变换后
+  var sign=function(v){return v>=0?"+ "+v.toFixed(1):"− "+Math.abs(v).toFixed(1);};
+  document.getElementById("eq").innerHTML='y = <span class="hl">'+P.a.toFixed(1)+'</span>·f( <span class="hl">'+P.b.toFixed(1)+'</span>(x '+(P.h>=0?"− ":"+ ")+Math.abs(P.h).toFixed(1)+') ) '+sign(P.k);
+  document.getElementById("note").innerHTML='<b>a（竖直）</b>：|a|&gt;1 拉高、&lt;1 压扁；<b>a&lt;0</b> 关于 x 轴翻折。<br><b>b（水平）</b>：|b|&gt;1 横向压窄、&lt;1 拉宽；<b>b&lt;0</b> 关于 y 轴翻折。<br><b>h（左右）</b>：h&gt;0 右移、h&lt;0 左移（注意是 x−h，<b>与直觉相反</b>）。<br><b>k（上下）</b>：k&gt;0 上移、k&lt;0 下移。';
+  document.getElementById("rule").innerHTML='<b>左加右减、上加下减</b>（对 x 是「左加右减」，对 y/整体是「上加下减」）。<br>记法：跟着 <b>x</b> 走的（h、b）方向<b>相反</b>；在<b>外面</b>的（k、a）方向<b>一致</b>。';
+  document.getElementById("hint").textContent="一次只动一个参数，更容易看清它单独的效果。";}
+function load(){buildChips();buildParams();draw();}
+document.getElementById("bReset").onclick=function(){buildParams();draw();};
+window.addEventListener("resize",function(){fit();draw();});
+(function(){var hs=(location.hash||"").replace("#","");for(var i=0;i<FUNCS.length;i++)if(FUNCS[i].id===hs)idx=i;})();
+fit();load();
+</script>
+</body>
+</html>
