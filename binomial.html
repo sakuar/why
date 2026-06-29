@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>二项式定理 · (a+b)ⁿ 展开</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+  .chips{display:flex;gap:8px;margin:4px 0 12px;flex-wrap:wrap;}
+  .chip{flex:1;min-width:130px;display:flex;align-items:center;gap:7px;justify-content:center;font-size:13px;padding:11px 8px;border-radius:11px;background:#0e1322;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.14s;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:16px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .slider{margin-bottom:13px;}.slider:last-child{margin-bottom:0;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px;}
+  .slider .sl-top .nm{color:#cfd8ea;}.slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:13px;}
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;margin-bottom:6px;}
+  .readout .cell .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.ok .v{color:#56d6a8;}.readout .cell.hi .v{color:#ffd166;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .eq{font-size:15.5px;line-height:1.8;color:#e8eef7;font-family:"Cambria Math","Times New Roman",Georgia,serif;}
+  .card .eq .hl{color:#ffd166;font-weight:700;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;line-height:1.8;}.card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>🧮 二项式定理 · (a+b)ⁿ</h1><a class="back" href="index.html">← 返回</a></div>
+  <div class="chips" id="chips"></div>
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="540"></canvas></div>
+    <div class="controls">
+      <div><div class="ch">参数调节</div><div id="params"></div></div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="readout">
+      <div class="cell"><div class="k" id="k0">项数</div><div class="v" id="r0">—</div></div>
+      <div class="cell hi"><div class="k" id="k1">系数和</div><div class="v" id="r1">—</div></div>
+      <div class="cell ok"><div class="k" id="k2">最大系数</div><div class="v" id="r2">—</div></div>
+    </div>
+    <div class="card"><div class="ttl">展开式</div><div class="eq" id="eq"></div></div>
+    <div class="card"><div class="ttl">怎么理解</div><div class="nt" id="note"></div></div>
+  </div>
+  <footer>(a+b)ⁿ 展开后，每一项的系数正好是杨辉三角第 n 行 = 组合数 C(n,k) · 纯前端单文件教学</footer>
+</div>
+<script>
+"use strict";
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=540;
+function fit(){var st=document.getElementById("stage");var cw=st.clientWidth||900;W=cw;H=Math.round(cw*0.60);if(H<320)H=320;
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.height=H+"px";ctx.setTransform(DPR,0,0,DPR,0,0);}
+function fact(n){var r=1;for(var i=2;i<=n;i++)r*=i;return r;}
+function comb(n,k){return fact(n)/(fact(k)*fact(n-k));}
+var idx=0,P={};
+var CONCEPTS=[
+{ id:"square",emoji:"⬜",name:"(a+b)² 看面积",
+  params:[{k:"a",label:"a",min:1,max:5,step:0.5,def:3},{k:"b",label:"b",min:1,max:5,step:0.5,def:2}],
+  read:function(){return [(P.a*P.a).toFixed(2),(2*P.a*P.b).toFixed(2),(P.b*P.b).toFixed(2)];},
+  labels:["a²","2ab","b²"],
+  eq:function(){return '(a+b)² = a² + 2ab + b² = '+(P.a*P.a).toFixed(1)+' + '+(2*P.a*P.b).toFixed(1)+' + '+(P.b*P.b).toFixed(1)+' = <span class="hl">'+((P.a+P.b)*(P.a+P.b)).toFixed(2)+'</span>';},
+  hint:"边长 (a+b) 的正方形，正好切成 a²、两个 ab、b² 四块。",
+  note:'边长 <b>(a+b)</b> 的大正方形，面积 = (a+b)²。<br>把它切成四块：<b>a²</b>（蓝）+ <b>ab + ab</b>（绿，两块）+ <b>b²</b>（黄）。<br>所以 (a+b)² = a² + <b>2ab</b> + b² —— 那个常被漏掉的 2ab，就是这两块。',
+  draw:function(){var a=P.a,b=P.b,s=a+b;
+    var pad=40,sz=Math.min(W-2*pad,H-2*pad)*0.92,ox=(W-sz)/2,oy=(H-sz)/2,u=sz/s;
+    function rect(x,y,w,h,col,txt){ctx.fillStyle=col;ctx.fillRect(ox+x*u,oy+(s-y-h)*u,w*u,h*u);ctx.strokeStyle="rgba(255,255,255,.2)";ctx.strokeRect(ox+x*u,oy+(s-y-h)*u,w*u,h*u);
+      ctx.fillStyle="#e8eef7";ctx.font="bold 14px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(txt,ox+(x+w/2)*u,oy+(s-y-h/2)*u);}
+    rect(0,0,a,a,"rgba(86,182,255,.45)","a²");
+    rect(a,0,b,a,"rgba(86,214,168,.45)","ab");
+    rect(0,a,a,b,"rgba(86,214,168,.45)","ab");
+    rect(a,a,b,b,"rgba(255,209,102,.45)","b²");
+    ctx.fillStyle="#9aa6bd";ctx.font="13px system-ui";ctx.textAlign="center";ctx.textBaseline="top";ctx.fillText("a = "+a.toFixed(1)+"，b = "+b.toFixed(1)+"，大正方形边长 = "+s.toFixed(1),W/2,oy+sz+10);}
+},
+{ id:"expand",emoji:"📜",name:"(a+b)ⁿ 一般展开",
+  params:[{k:"n",label:"指数 n",min:2,max:9,step:1,def:5}],
+  read:function(){var n=P.n;var mx=comb(n,Math.floor(n/2));return [(n+1).toString(),Math.pow(2,n).toString(),mx.toString()];},
+  labels:["项数","系数和=2ⁿ","最大系数"],
+  eq:function(){var n=P.n,terms=[];for(var k=0;k<=n;k++){var c=comb(n,k);terms.push((c===1?"":c)+"a"+(n-k>0?(n-k>1?"^"+(n-k):""):"")+(k>0?"b"+(k>1?"^"+k:""):""));}
+    return '(a+b)^'+n+' = '+terms.join(" + ");},
+  hint:"系数就是杨辉三角第 n 行，即组合数 C(n,k)。",
+  note:'<b>二项式定理</b>：(a+b)ⁿ = Σ <b>C(n,k)</b>·aⁿ⁻ᵏ·bᵏ。<br>每一项的系数 = <b>组合数 C(n,k)</b> = 杨辉三角第 n 行。<br>为什么？展开是 n 个 (a+b) 相乘，选 k 个括号出 b、其余出 a，方法数正是 C(n,k)。所有系数之和 = 2ⁿ（每个括号 2 选 1）。',
+  draw:function(){var n=P.n;
+    var coeffs=[];for(var k=0;k<=n;k++)coeffs.push(comb(n,k));
+    var mx=Math.max.apply(null,coeffs);
+    var m=n+1,ox=W*0.08,axW=W*0.84,oy=H*0.78,bw=axW/m;
+    ctx.strokeStyle="rgba(120,140,180,.3)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+axW,oy);ctx.stroke();
+    for(var i=0;i<m;i++){var c=coeffs[i],bh=(c/mx)*(H*0.56),x=ox+i*bw;
+      ctx.fillStyle="rgba(86,182,255,.5)";ctx.fillRect(x+bw*0.15,oy-bh,bw*0.7,bh);
+      ctx.fillStyle="#ffd166";ctx.font="bold 13px system-ui";ctx.textAlign="center";ctx.textBaseline="bottom";ctx.fillText(c,x+bw*0.5,oy-bh-3);
+      ctx.fillStyle="#9aa6bd";ctx.font="11px system-ui";ctx.textBaseline="top";ctx.fillText("a"+(n-i>0?"^"+(n-i):"")+(i>0?" b"+(i>0?"^"+i:""):""),x+bw*0.5,oy+6);}
+    ctx.fillStyle="#8090a8";ctx.font="12px system-ui";ctx.textAlign="left";ctx.textBaseline="top";ctx.fillText("柱高 = 该项系数 C("+n+",k)（杨辉三角第 "+n+" 行）",ox,10);}
+}
+];
+function buildChips(){var box=document.getElementById("chips");box.innerHTML="";
+  CONCEPTS.forEach(function(c,i){var el=document.createElement("div");el.className="chip"+(i===idx?" on":"");el.innerHTML='<span>'+c.emoji+'</span>'+c.name;el.onclick=function(){idx=i;location.hash=c.id;load();};box.appendChild(el);});}
+function buildParams(){var box=document.getElementById("params");box.innerHTML="";P={};
+  CONCEPTS[idx].params.forEach(function(pp){P[pp.k]=pp.def;var w=document.createElement("div");w.className="slider";
+    var d=pp.k==="n"?pp.def.toFixed(0):pp.def.toFixed(1);
+    w.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_'+pp.k+'">'+d+'</span></div><input type="range" id="r_'+pp.k+'" min="'+pp.min+'" max="'+pp.max+'" step="'+pp.step+'" value="'+pp.def+'">';
+    box.appendChild(w);var inp=w.querySelector("input");
+    inp.oninput=function(){P[pp.k]=parseFloat(inp.value);document.getElementById("v_"+pp.k).textContent=pp.k==="n"?P[pp.k].toFixed(0):P[pp.k].toFixed(1);draw();};});}
+function draw(){ctx.clearRect(0,0,W,H);var c=CONCEPTS[idx];c.draw();
+  var r=c.read(),L=c.labels;
+  document.getElementById("k0").textContent=L[0];document.getElementById("r0").textContent=r[0];
+  document.getElementById("k1").textContent=L[1];document.getElementById("r1").textContent=r[1];
+  document.getElementById("k2").textContent=L[2];document.getElementById("r2").textContent=r[2];
+  document.getElementById("eq").innerHTML=c.eq();document.getElementById("note").innerHTML=c.note;document.getElementById("hint").textContent=c.hint;}
+function load(){buildChips();buildParams();draw();}
+window.addEventListener("resize",function(){fit();draw();});
+(function(){var hs=(location.hash||"").replace("#","");for(var i=0;i<CONCEPTS.length;i++)if(CONCEPTS[i].id===hs)idx=i;})();
+fit();load();
+</script>
+</body>
+</html>

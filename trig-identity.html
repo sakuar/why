@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>三角恒等变换 · 和角 · 二倍角</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+  .chips{display:flex;gap:8px;margin:4px 0 12px;flex-wrap:wrap;}
+  .chip{flex:1;min-width:110px;display:flex;align-items:center;gap:7px;justify-content:center;font-size:13px;padding:11px 8px;border-radius:11px;background:#0e1322;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.14s;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:16px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .slider{margin-bottom:13px;}.slider:last-child{margin-bottom:0;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px;}
+  .slider .sl-top .nm{color:#cfd8ea;}.slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:13px;}
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;margin-bottom:6px;}
+  .readout .cell .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.ok .v{color:#56d6a8;}.readout .cell.hi .v{color:#ffd166;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .eq{font-size:16px;line-height:1.9;color:#e8eef7;font-family:"Cambria Math","Times New Roman",Georgia,serif;}
+  .card .eq .hl{color:#ffd166;font-weight:700;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;line-height:1.8;}.card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>🔄 三角恒等变换 · 和角 · 二倍角</h1><a class="back" href="index.html">← 返回</a></div>
+  <div class="chips" id="chips"></div>
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="560"></canvas></div>
+    <div class="controls">
+      <div><div class="ch">参数调节</div><div id="params"></div></div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="readout">
+      <div class="cell"><div class="k" id="k0">左边</div><div class="v" id="r0">—</div></div>
+      <div class="cell hi"><div class="k" id="k1">右边（公式）</div><div class="v" id="r1">—</div></div>
+      <div class="cell ok"><div class="k">两边相等</div><div class="v" id="r2">恒等 ✓</div></div>
+    </div>
+    <div class="card"><div class="ttl">公式</div><div class="eq" id="eq"></div></div>
+    <div class="card"><div class="ttl">怎么理解</div><div class="nt" id="note"></div></div>
+  </div>
+  <footer>先转 α 再转 β，等于一次转 α+β —— 和角公式就是把这件事用坐标写出来 · 纯前端单文件教学</footer>
+</div>
+<script>
+"use strict";
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=560;
+function fit(){var st=document.getElementById("stage");var cw=st.clientWidth||900;W=cw;H=Math.round(cw*0.62);if(H<320)H=320;
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.height=H+"px";ctx.setTransform(DPR,0,0,DPR,0,0);}
+var PI=Math.PI,idx=0,P={};
+function deg(r){return r*180/PI;}
+var CONCEPTS=[
+{ id:"sum",emoji:"➕",name:"和角公式",
+  params:[{k:"al",label:"角 α (°)",min:0,max:120,step:1,def:40},{k:"be",label:"角 β (°)",min:0,max:120,step:1,def:35}],
+  left:function(){return Math.sin((P.al+P.be)*PI/180);},
+  right:function(){var a=P.al*PI/180,b=P.be*PI/180;return Math.sin(a)*Math.cos(b)+Math.cos(a)*Math.sin(b);},
+  eq:function(){return 'sin(α+β) = sinα·cosβ + cosα·sinβ<br>cos(α+β) = cosα·cosβ − sinα·sinβ';},
+  hint:"α+β 的正弦，可以用 α、β 各自的正余弦拼出来。",
+  note:'<b>和角公式</b>：把两个角的和的三角函数，拆成各自的三角函数。<br>几何上：单位圆上一个点先转 α、再转 β，等于直接转 α+β。把「旋转」用坐标 (cos, sin) 写出来，整理就得到这两个公式。',
+  draw:function(){drawCircle(P.al*PI/180,P.be*PI/180);}
+},
+{ id:"double",emoji:"✖️2",name:"二倍角公式",
+  params:[{k:"al",label:"角 α (°)",min:0,max:170,step:1,def:35}],
+  left:function(){return Math.sin(2*P.al*PI/180);},
+  right:function(){var a=P.al*PI/180;return 2*Math.sin(a)*Math.cos(a);},
+  eq:function(){return 'sin 2α = 2 sinα cosα<br>cos 2α = cos²α − sin²α = 1 − 2sin²α';},
+  hint:"二倍角是和角公式里 β = α 的特例。",
+  note:'<b>二倍角公式</b>是和角公式的特例（令 β = α）：<br>sin2α = 2 sinα cosα，cos2α = cos²α − sin²α。<br>常用来把「平方」降次（如 sin²α = (1−cos2α)/2），在积分、化简里非常有用。',
+  draw:function(){drawCircle(P.al*PI/180,P.al*PI/180);}
+}
+];
+function drawCircle(a,b){
+  var cx=W*0.40,cy=H*0.54,R=Math.min(H*0.38,W*0.30);
+  // 轴
+  ctx.strokeStyle="rgba(120,140,180,.22)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx-R-14,cy);ctx.lineTo(cx+R+14,cy);ctx.moveTo(cx,cy-R-14);ctx.lineTo(cx,cy+R+14);ctx.stroke();
+  // 单位圆
+  ctx.strokeStyle="rgba(150,170,210,.5)";ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(cx,cy,R,0,2*PI);ctx.stroke();
+  // α 弧 + 半径
+  ctx.strokeStyle="#56b6ff";ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,30,0,-a,true);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+R*Math.cos(a),cy-R*Math.sin(a));ctx.stroke();
+  // β 弧 (从 α 到 α+β) + 半径
+  ctx.strokeStyle="#56d6a8";ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,46,-a,-(a+b),true);ctx.stroke();
+  var px=cx+R*Math.cos(a+b),py=cy-R*Math.sin(a+b);
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(px,py);ctx.stroke();
+  // sin(α+β) 投影
+  ctx.strokeStyle="#ffd166";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(px,cy);ctx.lineTo(px,py);ctx.stroke();
+  ctx.strokeStyle="rgba(255,209,102,.4)";ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(cx,py);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle="#ffd166";ctx.beginPath();ctx.arc(px,py,4.5,0,2*PI);ctx.fill();
+  // 标注
+  ctx.fillStyle="#56b6ff";ctx.font="bold 13px system-ui";ctx.textAlign="left";ctx.textBaseline="middle";ctx.fillText("α="+deg(a).toFixed(0)+"°",cx+38,cy-14);
+  ctx.fillStyle="#56d6a8";ctx.fillText("β="+deg(b).toFixed(0)+"°",cx+52,cy-34);
+  ctx.fillStyle="#ffd166";ctx.fillText("sin(α+β)",px+8,(cy+py)/2);
+}
+function buildChips(){var box=document.getElementById("chips");box.innerHTML="";
+  CONCEPTS.forEach(function(c,i){var el=document.createElement("div");el.className="chip"+(i===idx?" on":"");el.innerHTML='<span>'+c.emoji+'</span>'+c.name;el.onclick=function(){idx=i;location.hash=c.id;load();};box.appendChild(el);});}
+function buildParams(){var box=document.getElementById("params");box.innerHTML="";P={};
+  CONCEPTS[idx].params.forEach(function(pp){P[pp.k]=pp.def;var w=document.createElement("div");w.className="slider";
+    w.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_'+pp.k+'">'+pp.def+'</span></div><input type="range" id="r_'+pp.k+'" min="'+pp.min+'" max="'+pp.max+'" step="'+pp.step+'" value="'+pp.def+'">';
+    box.appendChild(w);var inp=w.querySelector("input");
+    inp.oninput=function(){P[pp.k]=parseFloat(inp.value);document.getElementById("v_"+pp.k).textContent=P[pp.k];draw();};});}
+function draw(){ctx.clearRect(0,0,W,H);var c=CONCEPTS[idx];c.draw();
+  document.getElementById("k0").textContent=idx===0?"sin(α+β)":"sin 2α";
+  document.getElementById("r0").textContent=c.left().toFixed(4);
+  document.getElementById("r1").textContent=c.right().toFixed(4);
+  document.getElementById("eq").innerHTML=c.eq();document.getElementById("note").innerHTML=c.note;document.getElementById("hint").textContent=c.hint;}
+function load(){buildChips();buildParams();draw();}
+window.addEventListener("resize",function(){fit();draw();});
+(function(){var hs=(location.hash||"").replace("#","");for(var i=0;i<CONCEPTS.length;i++)if(CONCEPTS[i].id===hs)idx=i;})();
+fit();load();
+</script>
+</body>
+</html>

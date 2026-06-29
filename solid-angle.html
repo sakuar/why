@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>立体几何的角 · 线面角 · 二面角</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+  .chips{display:flex;gap:8px;margin:4px 0 12px;flex-wrap:wrap;}
+  .chip{flex:1;min-width:110px;display:flex;align-items:center;gap:7px;justify-content:center;font-size:13px;padding:11px 8px;border-radius:11px;background:#0e1322;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.14s;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);border:1px solid #1c2236;border-radius:14px;touch-action:none;cursor:grab;}
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:16px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .slider{margin-bottom:13px;}.slider:last-child{margin-bottom:0;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px;}
+  .slider .sl-top .nm{color:#cfd8ea;}.slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .btn{font-size:14px;padding:11px 16px;border-radius:10px;background:#121829;border:1px solid #232c44;color:#cdd6e8;cursor:pointer;width:100%;}
+  .btn.on{background:#6c63ff;border-color:#6c63ff;color:#fff;}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:13px;}
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;margin-bottom:6px;}
+  .readout .cell .v{font-size:21px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.ok .v{color:#56d6a8;}.readout .cell.hi .v{color:#ffd166;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;line-height:1.8;}.card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>📐 立体几何的角 · 线面角 · 二面角</h1><a class="back" href="index.html">← 返回</a></div>
+  <div class="chips" id="chips"></div>
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="560"></canvas></div>
+    <div class="controls">
+      <div><div class="ch">参数调节</div><div id="params"></div></div>
+      <button class="btn on" id="bRot">⏸ 暂停旋转</button>
+      <div class="hint">拖动可手动旋转视角。</div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="readout">
+      <div class="cell hi"><div class="k">角的大小</div><div class="v" id="rAng">—</div></div>
+      <div class="cell"><div class="k">类型</div><div class="v" id="rType">—</div></div>
+      <div class="cell ok"><div class="k">怎么找这个角</div><div class="v" id="rHow" style="font-size:13px;">—</div></div>
+    </div>
+    <div class="card"><div class="ttl">定义</div><div class="nt" id="def"></div></div>
+    <div class="card"><div class="ttl">怎么理解</div><div class="nt" id="note"></div></div>
+  </div>
+  <footer>线面角 = 斜线与它在平面上的投影的夹角；二面角 = 沿棱张开的两个半平面的夹角 · 纯前端单文件教学</footer>
+</div>
+<script>
+"use strict";
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=560,U=58,OX=450,OY=290;
+function fit(){var st=document.getElementById("stage");var cw=st.clientWidth||900;W=cw;H=Math.round(cw*0.62);if(H<320)H=320;
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.height=H+"px";ctx.setTransform(DPR,0,0,DPR,0,0);
+  U=Math.min(64,W*0.13,H*0.17);OX=W/2;OY=H*0.54;}
+var PI=Math.PI,yaw=0.7,pitch=-0.5;
+function proj(x,y,z){var ca=Math.cos(yaw),sa=Math.sin(yaw),x1=x*ca+z*sa,z1=-x*sa+z*ca;
+  var cb=Math.cos(pitch),sb=Math.sin(pitch),y2=y*cb-z1*sb,z2=y*sb+z1*cb;return {x:OX+x1*U,y:OY-y2*U,z:z2};}
+function line3(a,b,col,w,dash){var p=proj(a[0],a[1],a[2]),q=proj(b[0],b[1],b[2]);ctx.strokeStyle=col;ctx.lineWidth=w||2;ctx.setLineDash(dash||[]);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();ctx.setLineDash([]);}
+function face3(pts,fill){ctx.beginPath();var p=proj(pts[0][0],pts[0][1],pts[0][2]);ctx.moveTo(p.x,p.y);for(var i=1;i<pts.length;i++){p=proj(pts[i][0],pts[i][1],pts[i][2]);ctx.lineTo(p.x,p.y);}ctx.closePath();ctx.fillStyle=fill;ctx.fill();}
+function dot3(a,col){var p=proj(a[0],a[1],a[2]);ctx.fillStyle=col;ctx.beginPath();ctx.arc(p.x,p.y,4.5,0,2*PI);ctx.fill();}
+function lbl3(txt,a,col,dx,dy){var p=proj(a[0],a[1],a[2]);ctx.fillStyle=col;ctx.font="bold 13px system-ui";ctx.textAlign="left";ctx.textBaseline="middle";ctx.fillText(txt,p.x+(dx||6),p.y+(dy||-6));}
+function arc3(O,d1,d2,r,col){ // 在 O 处，从方向 d1 到 d2 画小角弧（屏幕近似）
+  var n=16;ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();
+  for(var i=0;i<=n;i++){var t=i/n;var dx=d1[0]+(d2[0]-d1[0])*t,dy=d1[1]+(d2[1]-d1[1])*t,dz=d1[2]+(d2[2]-d1[2])*t;
+    var L=Math.sqrt(dx*dx+dy*dy+dz*dz)||1;var p=proj(O[0]+dx/L*r,O[1]+dy/L*r,O[2]+dz/L*r);if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);}ctx.stroke();}
+var BL="#56b6ff",GR="#56d6a8",YE="#ffd166",PU="#b98cff",GRID="rgba(120,140,180,.4)";
+var idx=0,P={};
+var CONCEPTS=[
+{ id:"lineplane",emoji:"📏",name:"线面角",
+  params:[{k:"elev",label:"线面角（仰角）",min:5,max:85,step:1,def:40},{k:"az",label:"方向（方位角）",min:-80,max:80,step:1,def:25}],
+  ang:function(){return P.elev;},
+  def:'<b>线面角</b>：一条斜线与平面所成的角，定义为<b>斜线与它在平面内的投影</b>所成的角（0°~90°）。',
+  note:'从斜线上任取一点向平面作<b>垂线</b>（黄虚线），垂足与斜线起点连成<b>投影</b>（蓝线）。斜线（绿）与投影（蓝）的夹角就是线面角。<br>越「躺平」角越小，越「竖直」角越接近 90°。',
+  how:"斜线 ∠ 投影",
+  draw:function(){
+    var e=P.elev*PI/180,az=P.az*PI/180,L=2.6;
+    // 平面 y=0 网格
+    for(var g=-2;g<=2;g++){line3([g,0,-2],[g,0,2],GRID,1);line3([-2,0,g],[2,0,g],GRID,1);}
+    face3([[-2,0,-2],[2,0,-2],[2,0,2],[-2,0,2]],"rgba(86,182,255,.05)");
+    var O=[0,0,0];
+    var A=[L*Math.cos(e)*Math.cos(az),L*Math.sin(e),L*Math.cos(e)*Math.sin(az)];
+    var Ap=[A[0],0,A[2]]; // 投影
+    line3(O,A,GR,3);                 // 斜线
+    line3(O,Ap,BL,2.6);              // 投影
+    line3(A,Ap,YE,1.8,[4,3]);        // 垂线
+    // 直角标记(投影与垂线)
+    arc3(O,[Math.cos(az),0,Math.sin(az)],[Math.cos(e)*Math.cos(az),Math.sin(e),Math.cos(e)*Math.sin(az)],0.6,YE);
+    dot3(O,"#fff");dot3(A,GR);dot3(Ap,BL);
+    lbl3("斜线",A,GR);lbl3("投影",Ap,BL,6,14);
+    lbl3(P.elev+"°",[O[0]+0.7*Math.cos(az),0.18,O[2]+0.7*Math.sin(az)],YE);
+  }
+},
+{ id:"dihedral",emoji:"📖",name:"二面角",
+  params:[{k:"th",label:"二面角",min:15,max:165,step:1,def:75}],
+  ang:function(){return P.th;},
+  def:'<b>二面角</b>：从一条棱出发的两个<b>半平面</b>所夹的角。在棱上任取一点，在两个半平面内各作<b>垂直于棱</b>的射线，它们的夹角就是二面角。',
+  note:'像翻开的一本书：书脊是<b>棱</b>，两页是两个<b>半平面</b>。翻开得越大，二面角越大。<br>量它的方法：在棱上找一点，在两个面内各画一条<b>垂直于棱</b>的线，这两条线的夹角就是二面角（这叫「二面角的平面角」）。',
+  how:"棱上作垂线",
+  draw:function(){
+    var th=P.th*PI/180;
+    // 棱 = x 轴
+    line3([-2.6,0,0],[2.6,0,0],YE,2.5);
+    // 半平面1: xz, z>0
+    face3([[-2,0,0],[2,0,0],[2,0,2],[-2,0,2]],"rgba(86,182,255,.16)");
+    line3([-2,0,2],[2,0,2],BL,1.6);
+    // 半平面2: 绕 x 轴转 th
+    var c=Math.cos(th),s=Math.sin(th);
+    face3([[-2,0,0],[2,0,0],[2,2*s,2*c],[-2,2*s,2*c]],"rgba(185,140,255,.18)");
+    line3([-2,2*s,2*c],[2,2*s,2*c],PU,1.6);
+    // 在 x=0 处的平面角：两条垂直棱的射线
+    var O=[0,0,0];
+    line3(O,[0,0,1.6],BL,2.4);              // 面1内垂直棱
+    line3(O,[0,1.6*s,1.6*c],PU,2.4);        // 面2内垂直棱
+    arc3(O,[0,0,1],[0,s,c],0.55,YE);
+    dot3(O,"#fff");
+    lbl3("棱",[2.6,0,0],YE);
+    lbl3(P.th+"°",[0,0.5*s+0.1,0.6*c+0.3],YE);
+  }
+}
+];
+function buildChips(){var box=document.getElementById("chips");box.innerHTML="";
+  CONCEPTS.forEach(function(c,i){var el=document.createElement("div");el.className="chip"+(i===idx?" on":"");el.innerHTML='<span>'+c.emoji+'</span>'+c.name;el.onclick=function(){idx=i;location.hash=c.id;load();};box.appendChild(el);});}
+function buildParams(){var box=document.getElementById("params");box.innerHTML="";P={};
+  CONCEPTS[idx].params.forEach(function(pp){P[pp.k]=pp.def;var w=document.createElement("div");w.className="slider";
+    w.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_'+pp.k+'">'+pp.def+'°</span></div><input type="range" id="r_'+pp.k+'" min="'+pp.min+'" max="'+pp.max+'" step="'+pp.step+'" value="'+pp.def+'">';
+    box.appendChild(w);var inp=w.querySelector("input");
+    inp.oninput=function(){P[pp.k]=parseFloat(inp.value);document.getElementById("v_"+pp.k).textContent=P[pp.k]+"°";};});}
+function render(){var c=CONCEPTS[idx];c.draw();
+  var ang=c.ang();
+  document.getElementById("rAng").textContent=ang.toFixed(0)+"°";
+  document.getElementById("rType").textContent=ang<90?"锐角":ang===90?"直角":"钝角";
+  document.getElementById("rHow").textContent=c.how;
+  document.getElementById("def").innerHTML=c.def;document.getElementById("note").innerHTML=c.note;
+  document.getElementById("hint").textContent="拖参数改变角的大小，旋转视角从不同方向看清它。";}
+function load(){buildChips();buildParams();}
+var rotating=true;
+function loop(){ctx.clearRect(0,0,W,H);if(rotating)yaw+=0.008;render();requestAnimationFrame(loop);}
+var bRot=document.getElementById("bRot");
+bRot.onclick=function(){rotating=!rotating;bRot.classList.toggle("on",rotating);bRot.textContent=rotating?"⏸ 暂停旋转":"▶ 继续旋转";};
+var dragging=false,px=0,py=0;
+cv.addEventListener("pointerdown",function(e){dragging=true;px=e.clientX;py=e.clientY;cv.setPointerCapture(e.pointerId);});
+cv.addEventListener("pointermove",function(e){if(!dragging)return;yaw+=(e.clientX-px)*0.01;pitch+=(e.clientY-py)*0.01;pitch=Math.max(-1.4,Math.min(0.2,pitch));px=e.clientX;py=e.clientY;});
+cv.addEventListener("pointerup",function(){dragging=false;});
+window.addEventListener("resize",function(){fit();});
+(function(){var hs=(location.hash||"").replace("#","");for(var i=0;i<CONCEPTS.length;i++)if(CONCEPTS[i].id===hs)idx=i;})();
+fit();load();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
