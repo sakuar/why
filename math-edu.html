@@ -55,40 +55,50 @@
   .toggle.on .sw::after{left:19px;background:#fff;}
   .btn{font-size:12.5px;padding:7px 13px;border-radius:9px;background:#121829;border:1px solid #232c44;color:#aab6cc;cursor:pointer;}
   .btn:hover{border-color:#3a445e;color:#e8eef7;}
+  /* 左右布局 */
+  .wrap{width:100%;max-width:1240px;padding:0 18px;margin:0 auto;}
+  .wrap .top{max-width:100%;}
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{min-width:0;}
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:18px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .controls #params{grid-template-columns:1fr;}
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .wrap .formula,.wrap .scene{max-width:100%;margin:0;}
+  .wrap .chips{margin:4px 0 12px;}
 </style>
 </head>
 <body>
-<div class="top">
-  <h1>📐 公式课堂</h1>
-  <a class="back" href="index.html">← 返回合集</a>
-</div>
-
-<div id="stage"><canvas id="cv" width="880" height="560"></canvas></div>
-
-<div class="formula">
-  <div class="ttl" id="fTtl"></div>
-  <div class="eq" id="fEq"></div>
-  <div class="nt" id="fNt"></div>
-</div>
-
-<div class="scene">
-  <div class="sttl">🎯 生活场景</div>
-  <div class="sbody" id="fScene"></div>
-</div>
-
-<div class="panel">
-  <div class="row">
-    <div class="lab">选一个公式</div>
-    <div class="chips" id="topicChips"></div>
+<div class="wrap">
+  <div class="top">
+    <h1>📐 公式课堂</h1>
+    <a class="back" href="index.html">← 返回合集</a>
   </div>
-  <div class="row" id="paramRow">
-    <div class="lab">拖动参数 · 看图形怎么变</div>
-    <div id="params"></div>
+  <div class="chips" id="topicChips"></div>
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="880" height="560"></canvas></div>
+    <div class="controls">
+      <div id="paramRow">
+        <div class="ch">拖动参数 · 看图形怎么变</div>
+        <div id="params"></div>
+      </div>
+      <div class="globals" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+        <div class="toggle" id="gridTog"><span class="sw"></span><span>显示网格</span></div>
+        <button class="btn" id="btnReset">重置参数</button>
+      </div>
+    </div>
   </div>
-  <div class="row">
-    <div class="globals" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
-      <div class="toggle" id="gridTog"><span class="sw"></span><span>显示网格</span></div>
-      <button class="btn" id="btnReset">重置参数</button>
+  <div class="info">
+    <div class="formula">
+      <div class="ttl" id="fTtl"></div>
+      <div class="eq" id="fEq"></div>
+      <div class="nt" id="fNt"></div>
+    </div>
+    <div class="scene">
+      <div class="sttl">🎯 生活场景</div>
+      <div class="sbody" id="fScene"></div>
     </div>
   </div>
 </div>

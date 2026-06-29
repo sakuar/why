@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>向量 · 加减 · 数乘 · 点积</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+  .chips{display:flex;gap:8px;margin:4px 0 12px;flex-wrap:wrap;}
+  .chip{flex:1;min-width:96px;display:flex;align-items:center;gap:7px;justify-content:center;font-size:13px;padding:11px 8px;border-radius:11px;background:#0e1322;border:1px solid #232c44;color:#aab6cc;cursor:pointer;transition:.14s;}
+  .chip:hover{border-color:#3a445e;color:#e8eef7;}
+  .chip.on{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700;}
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:16px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .slider{margin-bottom:13px;}.slider:last-child{margin-bottom:0;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px;}
+  .slider .sl-top .nm{color:#cfd8ea;}.slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:13px;}
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;margin-bottom:6px;}
+  .readout .cell .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.ok .v{color:#56d6a8;}.readout .cell.hi .v{color:#ffd166;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .eq{font-size:17px;line-height:1.8;color:#e8eef7;font-family:"Cambria Math","Times New Roman",Georgia,serif;}
+  .card .eq .hl{color:#ffd166;font-weight:700;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;line-height:1.8;}.card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>➡️ 向量 · 加减 · 数乘 · 点积</h1><a class="back" href="index.html">← 返回</a></div>
+  <div class="chips" id="chips"></div>
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="560"></canvas></div>
+    <div class="controls">
+      <div><div class="ch">参数调节（向量的分量）</div><div id="params"></div></div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="readout">
+      <div class="cell"><div class="k" id="k0">—</div><div class="v" id="r0">—</div></div>
+      <div class="cell hi"><div class="k" id="k1">—</div><div class="v" id="r1">—</div></div>
+      <div class="cell ok"><div class="k" id="k2">—</div><div class="v" id="r2">—</div></div>
+    </div>
+    <div class="card"><div class="ttl">公式</div><div class="eq" id="eq"></div></div>
+    <div class="card"><div class="ttl">几何意义</div><div class="nt" id="note"></div></div>
+  </div>
+  <footer>向量 = 既有大小又有方向的量 · 沟通几何、代数、三角的桥梁 · 纯前端单文件教学</footer>
+</div>
+<script>
+"use strict";
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=560,Vw={ox:0,oy:0,s:40};
+function fit(){var st=document.getElementById("stage");var cw=st.clientWidth||900;W=cw;H=Math.round(cw*0.62);if(H<320)H=320;
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.height=H+"px";ctx.setTransform(DPR,0,0,DPR,0,0);
+  var span=14,p=30,s=Math.min((W-2*p)/span,(H-2*p)/span);Vw.s=s;Vw.ox=W/2;Vw.oy=H/2;}
+function PX(x){return Vw.ox+x*Vw.s;}function PY(y){return Vw.oy-y*Vw.s;}
+var PI=Math.PI;
+function grid(){ctx.strokeStyle="rgba(120,140,180,.10)";ctx.lineWidth=1;ctx.beginPath();
+  for(var x=-7;x<=7;x++){ctx.moveTo(PX(x),0);ctx.lineTo(PX(x),H);}for(var y=-7;y<=7;y++){ctx.moveTo(0,PY(y));ctx.lineTo(W,PY(y));}ctx.stroke();
+  ctx.strokeStyle="rgba(150,170,210,.4)";ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(0,PY(0));ctx.lineTo(W,PY(0));ctx.moveTo(PX(0),0);ctx.lineTo(PX(0),H);ctx.stroke();}
+function arrow(x1,y1,x2,y2,col,w){var p1={x:PX(x1),y:PY(y1)},p2={x:PX(x2),y:PY(y2)};
+  ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=w||3;ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();
+  var ang=Math.atan2(p2.y-p1.y,p2.x-p1.x),hl=11;
+  ctx.beginPath();ctx.moveTo(p2.x,p2.y);ctx.lineTo(p2.x-hl*Math.cos(ang-0.4),p2.y-hl*Math.sin(ang-0.4));ctx.lineTo(p2.x-hl*Math.cos(ang+0.4),p2.y-hl*Math.sin(ang+0.4));ctx.closePath();ctx.fill();}
+function segp(x1,y1,x2,y2,col,w,dash){ctx.strokeStyle=col;ctx.lineWidth=w||1.4;ctx.setLineDash(dash||[]);ctx.beginPath();ctx.moveTo(PX(x1),PY(y1));ctx.lineTo(PX(x2),PY(y2));ctx.stroke();ctx.setLineDash([]);}
+function lbl(txt,x,y,col,size){ctx.fillStyle=col;ctx.font="bold "+(size||14)+"px system-ui";ctx.textAlign="left";ctx.textBaseline="middle";ctx.fillText(txt,PX(x)+6,PY(y)-6);}
+var A="#56b6ff",B="#b98cff",R="#56d6a8",YE="#ffd166";
+var idx=0,P={};
+function mag(x,y){return Math.sqrt(x*x+y*y);}
+
+var CONCEPTS=[
+{ id:"add",emoji:"➕",name:"加法",
+  params:[{k:"ax",label:"a 的 x",min:-5,max:5,step:0.5,def:3},{k:"ay",label:"a 的 y",min:-5,max:5,step:0.5,def:1},{k:"bx",label:"b 的 x",min:-5,max:5,step:0.5,def:1},{k:"by",label:"b 的 y",min:-5,max:5,step:0.5,def:3}],
+  read:function(){var rx=P.ax+P.bx,ry=P.ay+P.by;return ["a+b 坐标","("+rx.toFixed(1)+", "+ry.toFixed(1)+")","|a+b|",mag(rx,ry).toFixed(2)];},
+  eq:function(){return 'a + b = ('+P.ax.toFixed(1)+', '+P.ay.toFixed(1)+') + ('+P.bx.toFixed(1)+', '+P.by.toFixed(1)+') = <span class="hl">('+(P.ax+P.bx).toFixed(1)+', '+(P.ay+P.by).toFixed(1)+')</span>';},
+  hint:"分量分别相加。几何上把 b 接在 a 的尾巴后。",
+  note:'<b>三角形法则</b>：把 b 平移到 a 的终点，从 a 的起点连到 b 的终点就是 a+b。<br><b>平行四边形法则</b>：a、b 从同一点出发，对角线就是 a+b。<br>坐标上就是<b>分量分别相加</b>。',
+  draw:function(){grid();var rx=P.ax+P.bx,ry=P.ay+P.by;
+    // 平行四边形虚线
+    segp(P.ax,P.ay,rx,ry,"rgba(185,140,255,.5)",1.4,[5,4]);segp(P.bx,P.by,rx,ry,"rgba(86,182,255,.5)",1.4,[5,4]);
+    arrow(0,0,P.ax,P.ay,A,3);lbl("a",P.ax,P.ay,A);
+    arrow(0,0,P.bx,P.by,B,3);lbl("b",P.bx,P.by,B);
+    arrow(0,0,rx,ry,R,3.4);lbl("a+b",rx,ry,R);}
+},
+{ id:"sub",emoji:"➖",name:"减法",
+  params:[{k:"ax",label:"a 的 x",min:-5,max:5,step:0.5,def:3},{k:"ay",label:"a 的 y",min:-5,max:5,step:0.5,def:3},{k:"bx",label:"b 的 x",min:-5,max:5,step:0.5,def:4},{k:"by",label:"b 的 y",min:-5,max:5,step:0.5,def:1}],
+  read:function(){var rx=P.ax-P.bx,ry=P.ay-P.by;return ["a−b 坐标","("+rx.toFixed(1)+", "+ry.toFixed(1)+")","|a−b|",mag(rx,ry).toFixed(2)];},
+  eq:function(){return 'a − b = ('+P.ax.toFixed(1)+', '+P.ay.toFixed(1)+') − ('+P.bx.toFixed(1)+', '+P.by.toFixed(1)+') = <span class="hl">('+(P.ax-P.bx).toFixed(1)+', '+(P.ay-P.by).toFixed(1)+')</span>';},
+  hint:"分量分别相减。它是从 b 的终点指向 a 的终点的向量。",
+  note:'<b>a − b</b> 的方向：<b>从 b 的终点指向 a 的终点</b>（虚线那条平移到原点就是 a−b）。<br>所以两点间的向量 = 终点坐标 − 起点坐标。',
+  draw:function(){grid();var rx=P.ax-P.bx,ry=P.ay-P.by;
+    arrow(0,0,P.ax,P.ay,A,3);lbl("a",P.ax,P.ay,A);
+    arrow(0,0,P.bx,P.by,B,3);lbl("b",P.bx,P.by,B);
+    segp(P.bx,P.by,P.ax,P.ay,"rgba(86,214,168,.5)",1.6,[5,4]); // b终点->a终点
+    arrow(0,0,rx,ry,R,3.4);lbl("a−b",rx,ry,R);}
+},
+{ id:"scale",emoji:"✖️",name:"数乘",
+  params:[{k:"ax",label:"a 的 x",min:-4,max:4,step:0.5,def:2.5},{k:"ay",label:"a 的 y",min:-4,max:4,step:0.5,def:1.5},{k:"lam",label:"倍数 λ",min:-2,max:2.5,step:0.1,def:1.6}],
+  read:function(){return ["λa 坐标","("+(P.lam*P.ax).toFixed(1)+", "+(P.lam*P.ay).toFixed(1)+")","方向",P.lam>=0?"与 a 同向":"与 a 反向"];},
+  eq:function(){return 'λa = '+P.lam.toFixed(1)+' · ('+P.ax.toFixed(1)+', '+P.ay.toFixed(1)+') = <span class="hl">('+(P.lam*P.ax).toFixed(1)+', '+(P.lam*P.ay).toFixed(1)+')</span>';},
+  hint:"λ 把向量伸缩 |λ| 倍；λ<0 时方向反过来。",
+  note:'<b>数乘 λa</b>：长度变成原来的 <b>|λ| 倍</b>，方向：λ>0 不变，λ<0 <b>反向</b>，λ=0 变成零向量。<br>方向始终在同一条直线上 —— 这就是「共线向量」。',
+  draw:function(){grid();
+    arrow(0,0,P.lam*P.ax,P.lam*P.ay,R,3.6);lbl("λa",P.lam*P.ax,P.lam*P.ay,R);
+    arrow(0,0,P.ax,P.ay,A,3);lbl("a",P.ax,P.ay,A);
+    // 共线方向虚线
+    segp(-P.ax*3,-P.ay*3,P.ax*3,P.ay*3,"rgba(255,209,102,.18)",1,[4,4]);}
+},
+{ id:"dot",emoji:"·",name:"点积",
+  params:[{k:"ax",label:"a 的 x",min:-5,max:5,step:0.5,def:4},{k:"ay",label:"a 的 y",min:-5,max:5,step:0.5,def:1},{k:"bx",label:"b 的 x",min:-5,max:5,step:0.5,def:2},{k:"by",label:"b 的 y",min:-5,max:5,step:0.5,def:3}],
+  read:function(){var d=P.ax*P.bx+P.ay*P.by,ma=mag(P.ax,P.ay),mb=mag(P.bx,P.by);var th=(ma*mb<1e-6)?0:Math.acos(Math.max(-1,Math.min(1,d/(ma*mb))))*180/PI;return ["a·b",d.toFixed(2),"夹角 θ",th.toFixed(1)+"°"];},
+  eq:function(){var d=P.ax*P.bx+P.ay*P.by;return 'a·b = ax·bx + ay·by = '+(P.ax*P.bx).toFixed(1)+'+'+(P.ay*P.by).toFixed(1)+' = <span class="hl">'+d.toFixed(2)+'</span> = |a||b|cosθ';},
+  hint:"点积 = 一个向量在另一个上的投影 × 另一个的长度。",
+  note:'<b>点积 a·b = |a||b|cosθ</b>，是个<b>数</b>（不是向量）。<br>= b 在 a 上的<b>投影长</b> × |a|。<br>夹角<b>锐角→正</b>，<b>直角→0</b>（垂直！），<b>钝角→负</b>。所以 a·b=0 ⟺ a⊥b。',
+  draw:function(){grid();
+    var ma=mag(P.ax,P.ay),d=P.ax*P.bx+P.ay*P.by;
+    // b 在 a 上的投影点
+    var t=ma<1e-6?0:d/(ma*ma);var px=t*P.ax,py=t*P.ay;
+    segp(P.bx,P.by,px,py,"rgba(255,209,102,.6)",1.5,[4,3]); // 投影垂线
+    segp(0,0,px,py,"rgba(255,209,102,.9)",4); // 投影段
+    arrow(0,0,P.ax,P.ay,A,3);lbl("a",P.ax,P.ay,A);
+    arrow(0,0,P.bx,P.by,B,3);lbl("b",P.bx,P.by,B);
+    ctx.fillStyle=YE;ctx.font="12px system-ui";ctx.textAlign="left";ctx.fillText("黄色 = b 在 a 上的投影",10,18);}
+}
+];
+function buildChips(){var box=document.getElementById("chips");box.innerHTML="";
+  CONCEPTS.forEach(function(c,i){var el=document.createElement("div");el.className="chip"+(i===idx?" on":"");el.innerHTML='<span>'+c.emoji+'</span>'+c.name;el.onclick=function(){idx=i;location.hash=c.id;load();};box.appendChild(el);});}
+function buildParams(){var box=document.getElementById("params");box.innerHTML="";P={};
+  CONCEPTS[idx].params.forEach(function(pp){P[pp.k]=pp.def;var w=document.createElement("div");w.className="slider";
+    w.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_'+pp.k+'">'+pp.def.toFixed(1)+'</span></div><input type="range" id="r_'+pp.k+'" min="'+pp.min+'" max="'+pp.max+'" step="'+pp.step+'" value="'+pp.def+'">';
+    box.appendChild(w);var inp=w.querySelector("input");
+    inp.oninput=function(){P[pp.k]=parseFloat(inp.value);document.getElementById("v_"+pp.k).textContent=P[pp.k].toFixed(1);draw();};});}
+function draw(){ctx.clearRect(0,0,W,H);var c=CONCEPTS[idx];c.draw();
+  document.getElementById("eq").innerHTML=c.eq();document.getElementById("note").innerHTML=c.note;document.getElementById("hint").textContent=c.hint;
+  var r=c.read();document.getElementById("k0").textContent=r[0];document.getElementById("r0").textContent=r[1];document.getElementById("k1").textContent=r[2];document.getElementById("r1").textContent=r[3];
+  document.getElementById("k2").textContent="|a|, |b|";document.getElementById("r2").textContent=mag(P.ax,P.ay).toFixed(2)+(P.bx!==undefined?", "+mag(P.bx,P.by).toFixed(2):"");}
+function load(){buildChips();buildParams();draw();}
+window.addEventListener("resize",function(){fit();draw();});
+(function(){var hs=(location.hash||"").replace("#","");for(var i=0;i<CONCEPTS.length;i++)if(CONCEPTS[i].id===hs)idx=i;})();
+fit();load();
+</script>
+</body>
+</html>
