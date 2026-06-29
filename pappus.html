@@ -58,7 +58,7 @@
 <div class="wrap">
   <div class="top">
     <h1>🍩 旋转体生成器 · Pappus 定理</h1>
-    <a class="back" href="index.html">← 返回</a>
+    <span><a class="back" href="shell.html" style="margin-right:8px;border-color:#3a3060;color:#b98cff;">🧅 看证明</a><a class="back" href="index.html">← 返回</a></span>
   </div>
   <div class="chips" id="chips"></div>
   <div class="work">
@@ -138,14 +138,14 @@ var SHAPES=[
   outline:function(){var r=P.r,h=P.h;return [[0,-h/2],[r,-h/2],[0,h/2]];},
   A:function(){return 0.5*P.r*P.h;}, R:function(){return P.r/3;},
   eq:function(){return '= '+(0.5*P.r*P.h).toFixed(1)+' × 2π×'+(P.r/3).toFixed(2)+' = <span class="hl">'+(0.5*P.r*P.h*2*PI*(P.r/3)).toFixed(2)+'</span> = ⅓πr²h';},
-  note:'一个<b>直角三角形</b>绕一条直角边转 → <b>圆锥</b>。三角形形心到轴 R = r/3。V = (½r·h) × 2π(r/3) = <b>⅓πr²h</b>。这就是圆锥那个 ⅓ 的来历。'
+  note:'一个<b>直角三角形</b>绕直角边转 → <b>圆锥</b>。形心（平衡点）到轴 = <b>r/3</b>。<br><b>为什么是 ⅓ 不是 ½？</b> 矩形每处一样宽，平衡点在正中（½）；三角形从底边到尖端越来越窄、越来越轻，平衡点就<b>偏向粗的那头</b>，从 ½ 挪到 ⅓。<br>于是 V = ½r·h × 2π(r/3) = <b>⅓πr²h</b>。<br><small style="color:#5a6680">（想更直接看「圆锥=圆柱⅓」：solid 页有灌水演示。Pappus 的看点是「一个公式统一四种立体」。）</small>'
 },
 { id:"sphere", emoji:"◗", name:"半圆", solid:"→ 球",
   params:[{k:"r",label:"半径 r",min:1.5,max:4.5,step:0.5,def:3}],
   outline:function(){var r=P.r,pts=[],n=28;for(var i=0;i<=n;i++){var t=-PI/2+i/n*PI;pts.push([r*Math.cos(t),r*Math.sin(t)]);}return pts;},
   A:function(){return 0.5*PI*P.r*P.r;}, R:function(){return 4*P.r/(3*PI);},
   eq:function(){return '= '+(0.5*PI*P.r*P.r).toFixed(2)+' × 2π×'+(4*P.r/(3*PI)).toFixed(2)+' = <span class="hl">'+(0.5*PI*P.r*P.r*2*PI*(4*P.r/(3*PI))).toFixed(2)+'</span> = 4⁄3πr³';},
-  note:'一个<b>半圆</b>绕它的直径转 → <b>球</b>。半圆形心到轴 R = 4r/(3π)（不在圆心！）。V = (½πr²) × 2π·4r/(3π) = <b>4⁄3πr³</b>。'
+  note:'一个<b>半圆</b>绕它的直径转 → <b>球</b>。半圆形心到轴 R = 4r/(3π) ≈ 0.42r（<b>不在圆心</b>，偏向鼓的那侧）。<br>这个 4/(3π) 不像三角形那么好猜，要用<b>积分</b>算（属于进阶），但 Pappus 公式照样好使：V = (½πr²) × 2π·4r/(3π) = <b>4⁄3πr³</b>。'
 },
 { id:"torus", emoji:"⬭", name:"圆（离轴）", solid:"→ 环面 / 甜甜圈",
   params:[{k:"R",label:"圆心到轴 R",min:2,max:5,step:0.5,def:3.5},{k:"r",label:"管半径 r",min:0.5,max:2,step:0.25,def:1.25}],
@@ -188,6 +188,15 @@ function draw(){
   dot3(R*Math.cos(0),yc,R*Math.sin(0),GR,4.5);
   dot3(R*Math.cos(phi),yc,R*Math.sin(phi),PU,4.5);
   lbl3("形心",R*Math.cos(phi*0.5),yc,R*Math.sin(phi*0.5),YE);
+  // 圆锥：标注三个顶点离轴的距离，点明「形心 = 三顶点平均 = r/3」
+  if(c.id==="cone"){
+    var vs=o; // [[0,-h/2],[r,-h/2],[0,h/2]]
+    for(var vi=0;vi<vs.length;vi++){
+      var wx=vs[vi][0]; dot3(wx,vs[vi][1],0,wx>0.02?GR:"#8090a8",4);
+      lbl3("离轴 "+wx.toFixed(1),wx,vs[vi][1]+0.45,0,wx>0.02?GR:"#8090a8");
+    }
+    lbl3("平均 → R = r/3",P.r/3,-P.h/2-0.7,0,YE);
+  }
   updateInfo();
 }
 function updateInfo(){
