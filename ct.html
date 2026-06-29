@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>CT 扫描 · 切片重建图像</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+  .badge{font-size:12px;color:#56d6a8;margin:2px 2px 12px;}
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:16px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px;}
+  .slider .sl-top .nm{color:#cfd8ea;}.slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .quick{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+  .qchip{font-size:13px;padding:7px 11px;border-radius:20px;background:#121829;border:1px solid #232c44;color:#aab6cc;cursor:pointer;flex:1;text-align:center;min-width:48px;}
+  .qchip:hover{border-color:#3a445e;color:#e8eef7;}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:13px;}
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;margin-bottom:6px;}
+  .readout .cell .v{font-size:21px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.ok .v{color:#56d6a8;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;line-height:1.8;}.card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>🩻 CT 扫描 · 切片重建</h1><a class="back" href="index.html">← 返回</a></div>
+  <div class="badge">🎯 应用场景：医院的 CT / 核磁 · 用到 切片积分（slice 页的逆问题）</div>
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="500"></canvas></div>
+    <div class="controls">
+      <div><div class="ch">扫描角度数</div>
+        <div class="slider"><div class="sl-top"><span class="nm">从几个角度拍 N</span><span class="val" id="vN">8</span></div>
+        <input type="range" id="sN" min="1" max="120" step="1" value="8">
+        <div class="quick" id="quickN"></div></div>
+      </div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="readout">
+      <div class="cell"><div class="k">扫描角度数</div><div class="v" id="rN">—</div></div>
+      <div class="cell ok"><div class="k">重建相似度</div><div class="v" id="rSim">—</div></div>
+    </div>
+    <div class="card"><div class="ttl">CT 怎么工作</div><div class="nt" id="def"></div></div>
+    <div class="card"><div class="ttl">和切片求和的关系</div><div class="nt" id="note"></div></div>
+  </div>
+  <footer>左=真实切片（人体内部），右=只靠多角度投影重建出来的图 · 角度越多越清晰 · 纯前端单文件教学</footer>
+</div>
+<script>
+"use strict";
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=500;
+function fit(){var st=document.getElementById("stage");var cw=st.clientWidth||900;W=cw;H=Math.round(cw*0.56);if(H<300)H=300;
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.height=H+"px";ctx.setTransform(DPR,0,0,DPR,0,0);}
+var PI=Math.PI,G=64,Ns=80,smax=1.45,N=8;
+// 模体(原始切片): 几个不同密度的圆
+function phantom(x,y){var v=0;
+  if((x+0.2)*(x+0.2)+(y-0.1)*(y-0.1)<0.36*0.36)v+=1.0;
+  if((x-0.32)*(x-0.32)+(y+0.28)*(y+0.28)<0.22*0.22)v+=0.8;
+  if((x-0.05)*(x-0.05)+(y-0.4)*(y-0.4)<0.14*0.14)v+=0.6;
+  return v;}
+// 预采样模体
+var dens=[],coordX=[],coordY=[];
+for(var i=0;i<G;i++){dens[i]=[];coordX[i]=-1+2*(i+0.5)/G;coordY[i]=-1+2*(i+0.5)/G;}
+for(var i2=0;i2<G;i2++)for(var j2=0;j2<G;j2++)dens[i2][j2]=phantom(coordX[i2],coordY[j2]);
+var densMax=0;for(var a=0;a<G;a++)for(var b=0;b<G;b++)densMax=Math.max(densMax,dens[a][b]);
+
+function reconstruct(n){
+  // 前向投影
+  var proj=[],ca=[],sa=[];
+  for(var k=0;k<n;k++){var ang=PI*k/n;ca[k]=Math.cos(ang);sa[k]=Math.sin(ang);proj[k]=new Float64Array(Ns);}
+  for(var i=0;i<G;i++)for(var j=0;j<G;j++){var d=dens[i][j];if(d===0)continue;var x=coordX[i],y=coordY[j];
+    for(var k2=0;k2<n;k2++){var s=x*ca[k2]+y*sa[k2];var bb=Math.floor((s+smax)/(2*smax)*Ns);if(bb>=0&&bb<Ns)proj[k2][bb]+=d;}}
+  // 反投影
+  var rec=[],mn=1e9,mx=-1e9;
+  for(var i3=0;i3<G;i3++){rec[i3]=new Float64Array(G);var x3=coordX[i3];
+    for(var j3=0;j3<G;j3++){var y3=coordY[j3],sum=0;
+      for(var k3=0;k3<n;k3++){var s3=x3*ca[k3]+y3*sa[k3];var b3=Math.floor((s3+smax)/(2*smax)*Ns);if(b3>=0&&b3<Ns)sum+=proj[k3][b3];}
+      rec[i3][j3]=sum;if(sum<mn)mn=sum;if(sum>mx)mx=sum;}}
+  return {rec:rec,mn:mn,mx:mx};
+}
+function heat(getV,vmax,ox,oy,sz){var cell=sz/G;
+  for(var i=0;i<G;i++)for(var j=0;j<G;j++){var t=Math.max(0,Math.min(1,getV(i,j)/vmax));var g=Math.round(t*255);
+    ctx.fillStyle="rgb("+g+","+g+","+Math.round(g*0.95+8)+")";ctx.fillRect(ox+i*cell,oy+(G-1-j)*cell,cell+0.5,cell+0.5);}
+  ctx.strokeStyle="#232c44";ctx.lineWidth=1;ctx.strokeRect(ox,oy,sz,sz);}
+function draw(){ctx.clearRect(0,0,W,H);
+  var sz=Math.min(W*0.40,H*0.78),gap=W*0.06,total=sz*2+gap,ox0=(W-total)/2,oy=(H-sz)/2-6;
+  // 左: 原始
+  heat(function(i,j){return dens[i][j];},densMax,ox0,oy,sz);
+  ctx.fillStyle="#9aa6bd";ctx.font="13px system-ui";ctx.textAlign="center";ctx.textBaseline="top";ctx.fillText("真实切片（人体内部）",ox0+sz/2,oy+sz+8);
+  // 右: 重建
+  var R=reconstruct(N);
+  heat(function(i,j){return R.rec[i][j]-R.mn;},R.mx-R.mn||1,ox0+sz+gap,oy,sz);
+  ctx.fillStyle="#56d6a8";ctx.font="13px system-ui";ctx.textAlign="center";ctx.fillText("CT 重建（"+N+" 个角度）",ox0+sz+gap+sz/2,oy+sz+8);
+  ctx.fillStyle="#5a6680";ctx.font="22px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("→",ox0+sz+gap/2,oy+sz/2);
+  // 相似度: 归一化后与原图的相关
+  var sumA=0,sumB=0,sa2=0,sb2=0,sab=0,cnt=G*G;
+  for(var i=0;i<G;i++)for(var j=0;j<G;j++){var A=dens[i][j],B=(R.rec[i][j]-R.mn)/((R.mx-R.mn)||1);sumA+=A;sumB+=B;}
+  var mA=sumA/cnt,mB=sumB/cnt;
+  for(var i4=0;i4<G;i4++)for(var j4=0;j4<G;j4++){var A2=dens[i4][j4]-mA,B2=(R.rec[i4][j4]-R.mn)/((R.mx-R.mn)||1)-mB;sa2+=A2*A2;sb2+=B2*B2;sab+=A2*B2;}
+  var corr=sab/(Math.sqrt(sa2*sb2)||1);
+  document.getElementById("rN").textContent=N;
+  document.getElementById("rSim").textContent=(corr*100).toFixed(1)+"%";
+  document.getElementById("def").innerHTML='CT 机绕着身体转，<b>从很多个角度</b>打 X 光。每个角度得到一条「<b>这条线上一共挡了多少</b>」的读数（沿直线的<b>积分/投影</b>）。<br>计算机把所有角度的投影<b>反推叠加</b>，就重建出内部的切片图 —— 不用切开人就能看到里面。';
+  document.getElementById("note").innerHTML='<b>slice 页</b>是「把切片加起来求面积/体积」（正问题）；<br><b>CT 是它的逆</b>：已知各方向的投影（积分结果），反求里面长什么样。<br>角度太少时全是放射状条纹（信息不够）；角度越多，重建越接近真实切片。这就是为什么 CT 要转一整圈拍几百张。';
+  document.getElementById("hint").textContent="从 1 个角度拖到上百个，看右图从一团模糊条纹逐渐清晰出三个圆。";}
+document.getElementById("sN").oninput=function(){N=parseInt(this.value,10);document.getElementById("vN").textContent=N;draw();};
+function buildQuick(){var box=document.getElementById("quickN");box.innerHTML="";
+  [3,8,30,120].forEach(function(n){var el=document.createElement("div");el.className="qchip";el.textContent=n;el.onclick=function(){N=n;document.getElementById("sN").value=n;document.getElementById("vN").textContent=n;draw();};box.appendChild(el);});}
+window.addEventListener("resize",function(){fit();draw();});
+fit();buildQuick();draw();
+</script>
+</body>
+</html>

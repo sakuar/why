@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>GPS 定位 · 双曲线找你在哪</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:#070912;color:#e8eef7;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1240px;padding:0 18px;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 10px;}
+  .top h1{font-size:18px;font-weight:800;letter-spacing:.5px;background:linear-gradient(90deg,#ffd166,#56b6ff,#b98cff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .top .back{font-size:12px;color:#8090a8;text-decoration:none;border:1px solid #222840;border-radius:8px;padding:6px 11px;}
+  .badge{font-size:12px;color:#56d6a8;margin:2px 2px 12px;}
+  .work{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;}
+  @media(max-width:780px){.work{grid-template-columns:1fr;}}
+  #stage{position:relative;min-width:0;}
+  canvas{width:100%;height:100%;display:block;background:radial-gradient(ellipse at 50% 42%,#0e1426,#06070d 80%);border:1px solid #1c2236;border-radius:14px;touch-action:none;}
+  .controls{background:#0e1322;border:1px solid #232c44;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:16px;}
+  .controls .ch{font-size:12px;color:#8090a8;font-weight:600;letter-spacing:1px;margin-bottom:12px;}
+  .slider{margin-bottom:13px;}.slider:last-child{margin-bottom:0;}
+  .slider .sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px;}
+  .slider .sl-top .nm{color:#cfd8ea;}.slider .sl-top .val{color:#56b6ff;font-weight:700;font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:#232c44;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;box-shadow:0 0 0 1px #6c63ff;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#6c63ff;cursor:pointer;border:2px solid #0b0e18;}
+  .hint{font-size:12px;color:#5a6680;line-height:1.6;border-top:1px solid #1a2138;padding-top:13px;}
+  .info{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:780px){.info{grid-template-columns:1fr;}}
+  .readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;grid-column:1 / -1;}
+  .readout .cell{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:14px 12px;text-align:center;}
+  .readout .cell .k{font-size:11.5px;color:#8090a8;margin-bottom:6px;}
+  .readout .cell .v{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;color:#56b6ff;}
+  .readout .cell.ok .v{color:#56d6a8;}.readout .cell.hi .v{color:#ffd166;}
+  .card{background:#0e1322;border:1px solid #232c44;border-radius:12px;padding:16px 18px;}
+  .card .ttl{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:9px;}
+  .card .nt{font-size:13.5px;color:#9aa6bd;line-height:1.8;}.card .nt b{color:#cdd6e8;}
+  footer{color:#5a6680;font-size:12px;text-align:center;padding:22px 0 36px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>🛰️ GPS 定位 · 双曲线找你在哪</h1><a class="back" href="index.html">← 返回</a></div>
+  <div class="badge">🎯 应用场景：手机/导航天天在用 · 用到 圆锥曲线（双曲线）</div>
+  <div class="work">
+    <div id="stage"><canvas id="cv" width="900" height="620"></canvas></div>
+    <div class="controls">
+      <div><div class="ch">拖动「你的真实位置」</div><div id="params"></div></div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="readout">
+      <div class="cell"><div class="k">到卫星A的距离</div><div class="v" id="rA">—</div></div>
+      <div class="cell"><div class="k">到卫星B的距离</div><div class="v" id="rB">—</div></div>
+      <div class="cell ok"><div class="k">到卫星C的距离</div><div class="v" id="rC">—</div></div>
+    </div>
+    <div class="card"><div class="ttl">原理</div><div class="nt" id="def"></div></div>
+    <div class="card"><div class="ttl">为什么是双曲线</div><div class="nt" id="note"></div></div>
+  </div>
+  <footer>测出到两颗卫星的「距离差」→ 一条双曲线；两条双曲线一交，就是你的位置 · 纯前端单文件教学</footer>
+</div>
+<script>
+"use strict";
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+var W=900,H=620,Vw={ox:0,oy:0,s:40};
+function fit(){var st=document.getElementById("stage");var cw=st.clientWidth||900;W=cw;H=Math.round(cw*0.66);if(H<360)H=360;
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.height=H+"px";ctx.setTransform(DPR,0,0,DPR,0,0);
+  var span=14,p=34,s=Math.min((W-2*p)/span,(H-2*p)/span);Vw.s=s;Vw.ox=W/2;Vw.oy=H/2;}
+function PX(x){return Vw.ox+x*Vw.s;}function PY(y){return Vw.oy-y*Vw.s;}
+var PI=Math.PI,P={tx:1.5,ty:-1};
+// 三颗卫星(信标)位置
+var SAT=[{x:-5,y:4,n:"A",c:"#56b6ff"},{x:5,y:4,n:"B",c:"#b98cff"},{x:0,y:-5,n:"C",c:"#ff8aa0"}];
+function dist(ax,ay,bx,by){return Math.sqrt((ax-bx)*(ax-bx)+(ay-by)*(ay-by));}
+// 画以 F1,F2 为焦点、过点 T 的双曲线（距离差恒定那支及对支）
+function drawHyperbola(F1,F2,T,col){
+  var d1=dist(T.x,T.y,F1.x,F1.y),d2=dist(T.x,T.y,F2.x,F2.y);
+  var a=Math.abs(d1-d2)/2;if(a<0.05)return;
+  var cx=(F1.x+F2.x)/2,cy=(F1.y+F2.y)/2,c=dist(F1.x,F1.y,F2.x,F2.y)/2;
+  if(c<=a)return;var b=Math.sqrt(c*c-a*a);
+  var ang=Math.atan2(F2.y-F1.y,F2.x-F1.x);
+  // 参数化: 局部 (±a cosh t, b sinh t)，T 离哪个焦点近就画哪支
+  var nearF1=d1<d2; // T 离 F1 近 → 在靠 F1 的那支(局部 x=-a...)
+  ctx.strokeStyle=col;ctx.lineWidth=2.2;ctx.beginPath();var first=true;
+  for(var i=-200;i<=200;i++){var t=i/55;
+    var lx=(nearF1?-1:1)*a*Math.cosh(t),ly=b*Math.sinh(t);
+    var wx=cx+lx*Math.cos(ang)-ly*Math.sin(ang),wy=cy+lx*Math.sin(ang)+ly*Math.cos(ang);
+    if(Math.abs(wx)>10||Math.abs(wy)>10){first=true;continue;}
+    if(first){ctx.moveTo(PX(wx),PY(wy));first=false;}else ctx.lineTo(PX(wx),PY(wy));}
+  ctx.stroke();
+}
+function buildParams(){var box=document.getElementById("params");box.innerHTML="";P={tx:1.5,ty:-1};
+  [{k:"tx",label:"你的位置 x",min:-6,max:6,step:0.2,def:1.5},{k:"ty",label:"你的位置 y",min:-6,max:6,step:0.2,def:-1}].forEach(function(pp){
+    P[pp.k]=pp.def;var w=document.createElement("div");w.className="slider";
+    w.innerHTML='<div class="sl-top"><span class="nm">'+pp.label+'</span><span class="val" id="v_'+pp.k+'">'+pp.def.toFixed(1)+'</span></div><input type="range" id="r_'+pp.k+'" min="'+pp.min+'" max="'+pp.max+'" step="'+pp.step+'" value="'+pp.def+'">';
+    box.appendChild(w);var inp=w.querySelector("input");
+    inp.oninput=function(){P[pp.k]=parseFloat(inp.value);document.getElementById("v_"+pp.k).textContent=P[pp.k].toFixed(1);draw();};});}
+function draw(){ctx.clearRect(0,0,W,H);
+  // 网格
+  ctx.strokeStyle="rgba(120,140,180,.08)";ctx.lineWidth=1;ctx.beginPath();for(var g=-6;g<=6;g++){ctx.moveTo(PX(g),0);ctx.lineTo(PX(g),H);ctx.moveTo(0,PY(g));ctx.lineTo(W,PY(g));}ctx.stroke();
+  var T={x:P.tx,y:P.ty};
+  // 双曲线: (A,B) 和 (B,C) 两条
+  drawHyperbola(SAT[0],SAT[1],T,"rgba(86,182,255,.7)");
+  drawHyperbola(SAT[1],SAT[2],T,"rgba(255,138,160,.7)");
+  // 到各卫星的连线
+  for(var i=0;i<3;i++){ctx.strokeStyle="rgba(255,255,255,.15)";ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(PX(SAT[i].x),PY(SAT[i].y));ctx.lineTo(PX(T.x),PY(T.y));ctx.stroke();ctx.setLineDash([]);}
+  // 卫星
+  for(var j=0;j<3;j++){var s=SAT[j];ctx.fillStyle=s.c;ctx.beginPath();ctx.arc(PX(s.x),PY(s.y),7,0,2*PI);ctx.fill();
+    ctx.fillStyle="#0b0e18";ctx.font="bold 11px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(s.n,PX(s.x),PY(s.y));
+    ctx.fillStyle=s.c;ctx.font="12px system-ui";ctx.textBaseline="bottom";ctx.fillText("卫星"+s.n,PX(s.x),PY(s.y)-11);}
+  // 交点 = 你的位置
+  ctx.fillStyle="#56d6a8";ctx.beginPath();ctx.arc(PX(T.x),PY(T.y),8,0,2*PI);ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle="#56d6a8";ctx.font="bold 13px system-ui";ctx.textAlign="left";ctx.textBaseline="middle";ctx.fillText("📍你在这",PX(T.x)+12,PY(T.y));
+  // 读出
+  document.getElementById("rA").textContent=dist(T.x,T.y,SAT[0].x,SAT[0].y).toFixed(2);
+  document.getElementById("rB").textContent=dist(T.x,T.y,SAT[1].x,SAT[1].y).toFixed(2);
+  document.getElementById("rC").textContent=dist(T.x,T.y,SAT[2].x,SAT[2].y).toFixed(2);
+  document.getElementById("def").innerHTML='卫星不停广播「现在几点」。你的接收器比较<b>不同卫星信号到达的时间差</b>，乘光速就得到<b>到两颗卫星的距离差</b>。<br>距离差固定的所有点，组成一条<b>双曲线</b>（蓝线 / 红线）。两条双曲线的<b>交点</b>，就是你的位置。';
+  document.getElementById("note").innerHTML='还记得圆锥曲线页吗？<b>到两个定点距离之差恒定</b>的轨迹，正是<b>双曲线</b>（两颗卫星就是它的两个焦点）。<br>GPS 测的不是「到某颗卫星多远」（钟不够准），而是「到两颗的差」，所以天然落在双曲线上。再多一颗卫星给第二条双曲线，一交点就锁定你。真实 GPS 是 3D，用的是双曲面，至少 4 颗卫星。';
+  document.getElementById("hint").textContent="拖动你的位置，看两条双曲线随之改变，但始终交于你所在的那一点。";}
+window.addEventListener("resize",function(){fit();draw();});
+fit();buildParams();draw();
+</script>
+</body>
+</html>
